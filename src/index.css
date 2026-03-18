@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,34 +6,40 @@
 
 @layer base {
   :root {
-    --background: 210 40% 98%;
-    --foreground: 222 47% 11%;
-    --card: 0 0% 100%;
-    --card-foreground: 222 47% 11%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222 47% 11%;
-    --primary: 226 70% 55%;
+    --background: 40 50% 97%;
+    --foreground: 220 20% 25%;
+    --card: 40 40% 99%;
+    --card-foreground: 220 20% 25%;
+    --popover: 40 40% 99%;
+    --popover-foreground: 220 20% 25%;
+    --primary: 210 60% 52%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 210 40% 96%;
-    --secondary-foreground: 222 47% 11%;
-    --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
-    --accent: 226 70% 95%;
-    --accent-foreground: 226 70% 45%;
-    --destructive: 0 84% 60%;
+    --secondary: 40 45% 93%;
+    --secondary-foreground: 220 20% 30%;
+    --muted: 40 30% 94%;
+    --muted-foreground: 220 10% 50%;
+    --accent: 150 40% 90%;
+    --accent-foreground: 150 40% 30%;
+    --destructive: 0 65% 55%;
     --destructive-foreground: 0 0% 100%;
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 226 70% 55%;
-    --radius: 0.5rem;
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 222 47% 11%;
-    --sidebar-primary: 226 70% 55%;
+    --border: 40 25% 88%;
+    --input: 40 25% 88%;
+    --ring: 210 60% 52%;
+    --radius: 0.75rem;
+
+    --success: 150 50% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 35 90% 55%;
+    --warning-foreground: 0 0% 100%;
+
+    --sidebar-background: 40 40% 99%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 210 60% 52%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 226 70% 95%;
-    --sidebar-accent-foreground: 226 70% 45%;
-    --sidebar-border: 214 32% 91%;
-    --sidebar-ring: 226 70% 55%;
+    --sidebar-accent: 210 50% 93%;
+    --sidebar-accent-foreground: 210 60% 40%;
+    --sidebar-border: 40 25% 88%;
+    --sidebar-ring: 210 60% 52%;
   }
 }
 
@@ -43,6 +49,6 @@
   }
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, sans-serif;
+    font-family: 'Nunito', system-ui, sans-serif;
   }
 }
