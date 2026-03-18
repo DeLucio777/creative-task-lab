@@ -22,6 +22,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
+const AuthenticatedOnly = ({ children }: { children: React.ReactNode }) => {
+  const { isGuest } = useAuth();
+  if (isGuest) return <Navigate to="/dashboard" replace />;
+  return <>{children}</>;
+};
+
 const AppRoutes = () => {
   const { user } = useAuth();
 
@@ -31,9 +37,9 @@ const AppRoutes = () => {
       <Route element={<ProtectedRoute><AppLayout /></ProtectedRoute>}>
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/task/:id" element={<TaskDetailPage />} />
-        <Route path="/editor/:id" element={<TaskEditorPage />} />
-        <Route path="/media-library" element={<MediaLibraryPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
+        <Route path="/editor/:id" element={<AuthenticatedOnly><TaskEditorPage /></AuthenticatedOnly>} />
+        <Route path="/media-library" element={<AuthenticatedOnly><MediaLibraryPage /></AuthenticatedOnly>} />
+        <Route path="/profile" element={<AuthenticatedOnly><ProfilePage /></AuthenticatedOnly>} />
         <Route path="/reports" element={<ReportsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

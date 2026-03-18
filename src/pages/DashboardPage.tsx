@@ -1,11 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { MOCK_TASKS } from '@/data/mockData';
+import { MOCK_TASKS, MOCK_TEMPLATES } from '@/data/mockData';
 import TaskCard from '@/components/TaskCard';
 import FilterPanel from '@/components/FilterPanel';
 
 const tabs = [
-  { id: 'catalog', label: 'Каталог заданий' },
-  { id: 'other', label: '...' },
+  { id: 'catalog', label: '📚 Каталог заданий' },
+  { id: 'other', label: '📌 Другое' },
 ];
 
 const DashboardPage: React.FC = () => {
@@ -30,15 +30,15 @@ const DashboardPage: React.FC = () => {
   return (
     <div>
       <div className="flex items-center justify-between mb-8">
-        <div className="flex gap-1 border-b border-border">
+        <div className="flex gap-1">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-4 py-2.5 text-sm font-medium transition-all duration-200 border-b-2 -mb-px ${
+              className={`px-5 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
                 activeTab === tab.id
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:bg-muted'
               }`}
             >
               {tab.label}
@@ -62,16 +62,18 @@ const DashboardPage: React.FC = () => {
             filtered.map(task => <TaskCard key={task.PK_TaskId} task={task} />)
           ) : (
             <div className="col-span-full text-center py-16">
-              <p className="text-muted-foreground text-sm">Задания не найдены</p>
-              <p className="text-xs text-muted-foreground mt-1">Попробуйте изменить параметры фильтра</p>
+              <p className="text-4xl mb-3">🔍</p>
+              <p className="text-muted-foreground font-bold">Задания не найдены</p>
+              <p className="text-sm text-muted-foreground mt-1">Попробуйте изменить параметры фильтра</p>
             </div>
           )}
         </div>
       )}
 
       {activeTab === 'other' && (
-        <div className="text-center py-16 text-muted-foreground text-sm">
-          Раздел в разработке
+        <div className="text-center py-16">
+          <p className="text-4xl mb-3">🚧</p>
+          <p className="text-muted-foreground font-bold">Раздел в разработке</p>
         </div>
       )}
     </div>
