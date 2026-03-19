@@ -1,26 +1,46 @@
-import React, { useState } from 'react';
-import { MOCK_PECS, MOCK_MEDIA } from '@/data/mockData';
+import React, { useState, useEffect } from 'react';
+import { api } from '@/services/api';
+import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Upload, Search, Image, FileText } from 'lucide-react';
+import UploadDialog from '@/components/UploadDialog';
 
 const MediaLibraryPage: React.FC = () => {
   const [tab, setTab] = useState<'pecs' | 'media'>('pecs');
   const [search, setSearch] = useState('');
+  const [pecs, setPecs] = useState<CatalogPECS[]>([]);
+  const [media, setMedia] = useState<MediaCatalog[]>([]);
+  const [uploadOpen, setUploadOpen] = useState(false);
 
-  const filteredPecs = MOCK_PECS.filter(p =>
+  useEffect(() => {
+    api.getPecs().then(setPecs);
+    api.getMedia().then(setMedia);
+  }, []);
+
+  const filteredPecs = pecs.filter(p =>
     !search || p.Descripti?.toLowerCase().includes(search.toLowerCase()) || p.Category.toLowerCase().includes(search.toLowerCase())
   );
 
-  const filteredMedia = MOCK_MEDIA.filter(m =>
+  const filteredMedia = media.filter(m =>
     !search || m.Descripti?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const handleUpload = async (file: File, name: string, category?: string) => {
+    if (tab === 'pecs') {
+      const result = await api.uploadPecs(file, name, category || 'Общее');
+      if (result) setPecs(prev => [...prev, result]);
+    } else {
+      const result = await api.uploadMedia(file, name);
+      if (result) setMedia(prev => [...prev, result]);
+    }
+  };
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">🖼️ Библиотека медиа-файлов</h1>
-        <Button className="gap-2 rounded-xl font-bold h-11 transition-all duration-200 active:scale-[0.98]">
+        <Button onClick={() => setUploadOpen(true)} className="gap-2 rounded-xl font-bold h-11 transition-all duration-200 active:scale-[0.98]">
           <Upload className="h-4 w-4" /> Загрузить
         </Button>
       </div>
@@ -61,7 +81,7 @@ const MediaLibraryPage: React.FC = () => {
               <p className="text-xs text-muted-foreground font-medium">{p.Category}</p>
             </div>
           ))}
-          <div className="bg-muted/20 border-2 border-dashed border-border rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-colors min-h-[160px]">
+          <div onClick={() => setUploadOpen(true)} className="bg-muted/20 border-2 border-dashed border-border rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-colors min-h-[160px]">
             <Upload className="h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground font-bold">Добавить PECS</p>
           </div>
@@ -79,12 +99,19 @@ const MediaLibraryPage: React.FC = () => {
               <p className="text-xs text-muted-foreground font-medium">{m.FileType}</p>
             </div>
           ))}
-          <div className="bg-muted/20 border-2 border-dashed border-border rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-colors min-h-[160px]">
+          <div onClick={() => setUploadOpen(true)} className="bg-muted/20 border-2 border-dashed border-border rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer hover:border-primary/30 transition-colors min-h-[160px]">
             <Upload className="h-8 w-8 text-muted-foreground mb-2" />
             <p className="text-sm text-muted-foreground font-bold">Добавить файл</p>
           </div>
         </div>
       )}
+
+      <UploadDialog
+        open={uploadOpen}
+        onClose={() => setUploadOpen(false)}
+        onUpload={handleUpload}
+        type={tab}
+      />
     </div>
   );
 };

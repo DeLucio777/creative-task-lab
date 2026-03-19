@@ -13,10 +13,11 @@ const LoginPage: React.FC = () => {
   const { login, loginAsGuest } = useAuth();
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    if (login(username, password)) {
+    const success = await login(username, password);
+    if (success) {
       navigate('/dashboard');
     } else {
       setError('Неверный логин или пароль');

@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
-import { MOCK_TASKS } from '@/data/mockData';
+import React, { useState, useEffect, useMemo } from 'react';
+import { api } from '@/services/api';
+import type { Task } from '@/types/models';
 import { Calendar, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -7,18 +8,18 @@ import { Label } from '@/components/ui/label';
 const ReportsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
 
-  const taskCount = useMemo(() => {
-    // In a real app this would query the DB; for now count mock tasks
-    return MOCK_TASKS.length;
+  useEffect(() => {
+    api.getTasks().then(setTasks);
   }, []);
+
+  const taskCount = useMemo(() => tasks.length, [tasks]);
 
   return (
     <div>
       <h1 className="text-2xl font-bold tracking-tight text-foreground mb-6">📊 Отчётность</h1>
-
       <div className="space-y-4">
-        {/* Report card */}
         <div className="bg-card rounded-2xl border-2 border-border p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
@@ -29,7 +30,6 @@ const ReportsPage: React.FC = () => {
               <p className="text-xs text-muted-foreground font-medium">Количество заданий за выбранный период</p>
             </div>
           </div>
-
           <div className="flex gap-4 mb-6">
             <div className="flex-1 space-y-2">
               <Label className="font-semibold text-xs">Дата начала</Label>
@@ -46,7 +46,6 @@ const ReportsPage: React.FC = () => {
               </div>
             </div>
           </div>
-
           <div className="bg-accent/50 rounded-xl p-6 text-center">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Всего заданий</p>
             <p className="text-5xl font-extrabold text-primary">{taskCount}</p>
