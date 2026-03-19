@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,14 +6,16 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
-import { MOCK_PECS, MOCK_TEMPLATES, MOCK_MEDIA } from '@/data/mockData';
+import { api } from '@/services/api';
+import type { CatalogPECS, MediaCatalog } from '@/types/models';
+import TaskPreview from '@/components/TaskPreview';
 
 type TaskType = 'find_odd' | 'match_image_word' | 'sequence' | 'sort';
 
 interface FindOddItem { id: string; text: string; isOdd: boolean; pecsId?: number; }
 interface MatchPair { id: string; mediaId?: number; pecsId?: number; word: string; }
 interface SeqItem { id: string; order: number; value: string; pecsId?: number; }
-interface SortItem { id: string; value: string; sortKey: string; pecsId?: number; }
+interface SortItemData { id: string; value: string; sortKey: string; pecsId?: number; }
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string; emoji: string; templateId: number }[] = [
   { value: 'find_odd', label: 'Найди лишнее', emoji: '🔍', templateId: 3 },
@@ -22,8 +24,14 @@ const TASK_TYPE_OPTIONS: { value: TaskType; label: string; emoji: string; templa
   { value: 'sort', label: 'Сортировка по признаку', emoji: '📂', templateId: 2 },
 ];
 
-const PecsPreview: React.FC<{ pecsId?: number; onSelect: (id: number) => void; onClear: () => void }> = ({ pecsId, onSelect, onClear }) => {
-  const selected = pecsId ? MOCK_PECS.find(p => p.PK_PECSid === pecsId) : null;
+// --- PECS Preview subcomponent ---
+const PecsPreview: React.FC<{
+  pecsId?: number;
+  pecsList: CatalogPECS[];
+  onSelect: (id: number) => void;
+  onClear: () => void;
+}> = ({ pecsId, pecsList, onSelect, onClear }) => {
+  const selected = pecsId ? pecsList.find(p => p.PK_PECSid === pecsId) : null;
 
   if (selected) {
     return (
@@ -49,7 +57,7 @@ const PecsPreview: React.FC<{ pecsId?: number; onSelect: (id: number) => void; o
       defaultValue=""
     >
       <option value="" disabled>Выберите PECS...</option>
-      {MOCK_PECS.map(p => (
+      {pecsList.map(p => (
         <option key={p.PK_PECSid} value={p.PK_PECSid}>
           {p.Descripti} ({p.Category})
         </option>
@@ -58,10 +66,19 @@ const PecsPreview: React.FC<{ pecsId?: number; onSelect: (id: number) => void; o
   );
 };
 
+// --- Main editor ---
 const TaskEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const isNew = id === 'new';
+
+  const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
+
+  useEffect(() => {
+    api.getPecs().then(setPecsList);
+    api.getMedia().then(setMediaList);
+  }, []);
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -70,28 +87,21 @@ const TaskEditorPage: React.FC = () => {
   const [showHints, setShowHints] = useState(true);
   const [elementCount, setElementCount] = useState([6]);
 
-  // Find odd one out
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
     { id: '1', text: '', isOdd: false },
     { id: '2', text: '', isOdd: false },
     { id: '3', text: '', isOdd: true },
   ]);
-
-  // Match image-word
   const [matchPairs, setMatchPairs] = useState<MatchPair[]>([
     { id: '1', word: '' },
     { id: '2', word: '' },
   ]);
-
-  // Sequence
   const [seqItems, setSeqItems] = useState<SeqItem[]>([
     { id: '1', order: 1, value: '' },
     { id: '2', order: 2, value: '' },
     { id: '3', order: 3, value: '' },
   ]);
-
-  // Sort
-  const [sortItems, setSortItems] = useState<SortItem[]>([
+  const [sortItems, setSortItems] = useState<SortItemData[]>([
     { id: '1', value: '', sortKey: '' },
     { id: '2', value: '', sortKey: '' },
   ]);
@@ -102,6 +112,19 @@ const TaskEditorPage: React.FC = () => {
     Hard: { label: 'Сложный', emoji: '🔴' },
   };
 
+  const handleSave = async () => {
+    const templateId = TASK_TYPE_OPTIONS.find(o => o.value === taskType)?.templateId || 1;
+    await api.createTask({
+      Title: title,
+      Descripti: description,
+      FK_TemplateId: templateId,
+      FK_UserId: 1,
+      DifficultyLevel: difficulty,
+    });
+    navigate('/dashboard');
+  };
+
+  // --- Render functions for each task type ---
   const renderFindOdd = () => (
     <div className="space-y-3">
       <div className="flex justify-between items-center">
@@ -116,24 +139,12 @@ const TaskEditorPage: React.FC = () => {
         <div key={item.id} className="flex gap-3 items-start p-3 bg-muted/50 rounded-xl border border-border">
           <span className="text-lg font-bold text-muted-foreground mt-1">{idx + 1}</span>
           <div className="flex-1 space-y-2">
-            <Input
-              value={item.text}
-              onChange={e => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, text: e.target.value } : i))}
-              placeholder="Текст элемента"
-              className="rounded-xl h-11"
-            />
-            <PecsPreview
-              pecsId={item.pecsId}
-              onSelect={pecsId => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))}
-              onClear={() => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))}
-            />
+            <Input value={item.text} onChange={e => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, text: e.target.value } : i))} placeholder="Текст элемента" className="rounded-xl h-11" />
+            <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
           <div className="flex flex-col items-center gap-1 shrink-0 mt-1">
             <label className="text-xs font-semibold text-muted-foreground">Лишний?</label>
-            <Switch
-              checked={item.isOdd}
-              onCheckedChange={v => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, isOdd: v } : i))}
-            />
+            <Switch checked={item.isOdd} onCheckedChange={v => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, isOdd: v } : i))} />
           </div>
           <button onClick={() => setOddItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
             <Trash2 className="h-4 w-4" />
@@ -161,27 +172,12 @@ const TaskEditorPage: React.FC = () => {
               <Trash2 className="h-4 w-4" />
             </button>
           </div>
-          <PecsPreview
-            pecsId={pair.pecsId}
-            onSelect={pecsId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId } : p))}
-            onClear={() => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId: undefined } : p))}
-          />
-          <select
-            className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium"
-            value={pair.mediaId ?? ''}
-            onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId: Number(e.target.value) } : p))}
-          >
+          <PecsPreview pecsList={pecsList} pecsId={pair.pecsId} onSelect={pecsId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId } : p))} onClear={() => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId: undefined } : p))} />
+          <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={pair.mediaId ?? ''} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId: Number(e.target.value) } : p))}>
             <option value="" disabled>Выберите медиа...</option>
-            {MOCK_MEDIA.map(m => (
-              <option key={m.PK_MediaId} value={m.PK_MediaId}>{m.Descripti}</option>
-            ))}
+            {mediaList.map(m => <option key={m.PK_MediaId} value={m.PK_MediaId}>{m.Descripti}</option>)}
           </select>
-          <Input
-            value={pair.word}
-            onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))}
-            placeholder="Слово для соотнесения"
-            className="rounded-xl h-11"
-          />
+          <Input value={pair.word} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))} placeholder="Слово для соотнесения" className="rounded-xl h-11" />
         </div>
       ))}
     </div>
@@ -203,17 +199,8 @@ const TaskEditorPage: React.FC = () => {
             <span className="text-sm font-bold text-primary">{idx + 1}</span>
           </div>
           <div className="flex-1 space-y-2">
-            <Input
-              value={item.value}
-              onChange={e => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))}
-              placeholder="Значение элемента"
-              className="rounded-xl h-11"
-            />
-            <PecsPreview
-              pecsId={item.pecsId}
-              onSelect={pecsId => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))}
-              onClear={() => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))}
-            />
+            <Input value={item.value} onChange={e => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента" className="rounded-xl h-11" />
+            <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
           <button onClick={() => setSeqItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
             <Trash2 className="h-4 w-4" />
@@ -237,23 +224,9 @@ const TaskEditorPage: React.FC = () => {
         <div key={item.id} className="flex gap-3 items-start p-3 bg-muted/50 rounded-xl border border-border">
           <span className="text-lg font-bold text-muted-foreground mt-1">{idx + 1}</span>
           <div className="flex-1 space-y-2">
-            <Input
-              value={item.value}
-              onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))}
-              placeholder="Значение элемента"
-              className="rounded-xl h-11"
-            />
-            <Input
-              value={item.sortKey}
-              onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, sortKey: e.target.value } : i))}
-              placeholder="Ключ сортировки (категория)"
-              className="rounded-xl h-11"
-            />
-            <PecsPreview
-              pecsId={item.pecsId}
-              onSelect={pecsId => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))}
-              onClear={() => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))}
-            />
+            <Input value={item.value} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента" className="rounded-xl h-11" />
+            <Input value={item.sortKey} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, sortKey: e.target.value } : i))} placeholder="Ключ сортировки (категория)" className="rounded-xl h-11" />
+            <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
           <button onClick={() => setSortItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
             <Trash2 className="h-4 w-4" />
@@ -279,8 +252,8 @@ const TaskEditorPage: React.FC = () => {
       </button>
 
       <div className="flex gap-6">
+        {/* Left: Editor */}
         <div className="flex-1 space-y-6">
-          {/* Title & description */}
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <h2 className="text-lg font-bold text-foreground mb-4">
               {isNew ? '✨ Новое задание' : '✏️ Редактирование задания'}
@@ -292,40 +265,23 @@ const TaskEditorPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Описание</Label>
-                <textarea
-                  value={description}
-                  onChange={e => setDescription(e.target.value)}
-                  placeholder="Описание задания..."
-                  className="w-full min-h-[100px] rounded-xl border-2 border-input bg-background px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
-                />
+                <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Описание задания..." className="w-full min-h-[100px] rounded-xl border-2 border-input bg-background px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" />
               </div>
             </div>
           </div>
 
-          {/* Task type selector */}
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <h3 className="text-sm font-bold text-foreground mb-4">Тип задания</h3>
             <div className="grid grid-cols-2 gap-3">
               {TASK_TYPE_OPTIONS.map(opt => (
-                <button
-                  key={opt.value}
-                  onClick={() => setTaskType(opt.value)}
-                  className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${
-                    taskType === opt.value
-                      ? 'border-primary bg-primary/5 shadow-sm'
-                      : 'border-border hover:border-primary/30'
-                  }`}
-                >
+                <button key={opt.value} onClick={() => setTaskType(opt.value)} className={`p-4 rounded-xl border-2 text-left transition-all duration-200 ${taskType === opt.value ? 'border-primary bg-primary/5 shadow-sm' : 'border-border hover:border-primary/30'}`}>
                   <span className="text-2xl mb-1 block">{opt.emoji}</span>
-                  <span className={`text-sm font-bold ${taskType === opt.value ? 'text-primary' : 'text-foreground'}`}>
-                    {opt.label}
-                  </span>
+                  <span className={`text-sm font-bold ${taskType === opt.value ? 'text-primary' : 'text-foreground'}`}>{opt.label}</span>
                 </button>
               ))}
             </div>
           </div>
 
-          {/* Task type specific content */}
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <h3 className="text-sm font-bold text-foreground mb-4">
               {TASK_TYPE_OPTIONS.find(o => o.value === taskType)?.emoji} Содержание задания
@@ -334,8 +290,8 @@ const TaskEditorPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right panel — settings */}
-        <div className="w-[280px] shrink-0 space-y-6">
+        {/* Right: Settings + Preview */}
+        <div className="w-[320px] shrink-0 space-y-6">
           <div className="bg-card rounded-2xl border-2 border-border p-5">
             <h3 className="text-sm font-bold text-foreground mb-4">⚙️ Настройки</h3>
             <div className="space-y-5">
@@ -343,26 +299,16 @@ const TaskEditorPage: React.FC = () => {
                 <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Сложность</p>
                 <div className="space-y-1.5">
                   {(['Easy', 'Medium', 'Hard'] as const).map(level => (
-                    <button
-                      key={level}
-                      onClick={() => setDifficulty(level)}
-                      className={`w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
-                        difficulty === level
-                          ? 'bg-primary text-primary-foreground shadow-sm'
-                          : 'text-muted-foreground hover:bg-muted'
-                      }`}
-                    >
+                    <button key={level} onClick={() => setDifficulty(level)} className={`w-full text-left px-4 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${difficulty === level ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'}`}>
                       {difficultyLabels[level].emoji} {difficultyLabels[level].label}
                     </button>
                   ))}
                 </div>
               </div>
-
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-bold">Визуальные подсказки</Label>
                 <Switch checked={showHints} onCheckedChange={setShowHints} />
               </div>
-
               <div>
                 <div className="flex justify-between mb-2">
                   <Label className="text-sm font-bold">Кол-во элементов</Label>
@@ -373,7 +319,19 @@ const TaskEditorPage: React.FC = () => {
             </div>
           </div>
 
-          <Button className="w-full h-12 gap-2 text-base font-bold rounded-xl transition-all duration-200 active:scale-[0.98]">
+          {/* Live Preview */}
+          <TaskPreview
+            taskType={taskType}
+            title={title}
+            difficulty={difficulty}
+            showHints={showHints}
+            oddItems={oddItems}
+            matchPairs={matchPairs}
+            seqItems={seqItems}
+            sortItems={sortItems}
+          />
+
+          <Button onClick={handleSave} className="w-full h-12 gap-2 text-base font-bold rounded-xl transition-all duration-200 active:scale-[0.98]">
             <Save className="h-5 w-5" /> Сохранить
           </Button>
         </div>
