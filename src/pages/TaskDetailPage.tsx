@@ -481,10 +481,10 @@ const TaskDetailPage: React.FC = () => {
           )}
 
           {/* Fallback if no items loaded */}
-          {taskType === 'find_odd' && findOddItems.length === 0 &&
-            taskType === 'match_image_word' && matchPairs.length === 0 &&
-            taskType === 'sequence' && seqItems.length === 0 &&
-            taskType === 'sort' && sortItems.length === 0 && (
+          {((taskType === 'find_odd' && findOddItems.length === 0) ||
+            (taskType === 'match_image_word' && matchPairs.length === 0) ||
+            (taskType === 'sequence' && seqItems.length === 0) ||
+            (taskType === 'sort' && sortItems.length === 0)) && (
             <div className="text-center py-8">
               <p className="text-4xl mb-3">📭</p>
               <p className="text-muted-foreground font-bold">Нет данных для этого задания</p>
