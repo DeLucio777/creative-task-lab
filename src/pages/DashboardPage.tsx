@@ -52,14 +52,16 @@ const DashboardPage: React.FC = () => {
             </button>
           ))}
         </div>
-        <FilterPanel
-          difficulty={difficulty}
-          setDifficulty={setDifficulty}
-          rasTypes={rasTypes}
-          setRasTypes={setRasTypes}
-          search={search}
-          setSearch={setSearch}
-        />
+        {activeTab === 'catalog' && (
+          <FilterPanel
+            difficulty={difficulty}
+            setDifficulty={setDifficulty}
+            rasTypes={rasTypes}
+            setRasTypes={setRasTypes}
+            search={search}
+            setSearch={setSearch}
+          />
+        )}
       </div>
 
       {activeTab === 'catalog' && (

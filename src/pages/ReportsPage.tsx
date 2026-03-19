@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '@/services/api';
-import type { Task } from '@/types/models';
+import type { Task, User, Role } from '@/types/models';
 import { Calendar, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,9 +9,13 @@ const ReportsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
 
   useEffect(() => {
     api.getTasks().then(setTasks);
+    api.getUsers().then(setUsers);
+    api.getRoles().then(setRoles);
   }, []);
 
   const taskCount = useMemo(() => tasks.length, [tasks]);
@@ -54,6 +58,18 @@ const ReportsPage: React.FC = () => {
                 ? `с ${new Date(dateFrom).toLocaleDateString('ru')} по ${new Date(dateTo).toLocaleDateString('ru')}`
                 : 'За всё время'}
             </p>
+          </div>
+        </div>
+
+        {/* Stats summary using users & roles data */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-card rounded-2xl border-2 border-border p-5 text-center">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Пользователей</p>
+            <p className="text-3xl font-extrabold text-foreground">{users.length}</p>
+          </div>
+          <div className="bg-card rounded-2xl border-2 border-border p-5 text-center">
+            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Ролей</p>
+            <p className="text-3xl font-extrabold text-foreground">{roles.length}</p>
           </div>
         </div>
       </div>

@@ -5,7 +5,8 @@ import type {
 } from '@/types/models';
 import {
   MOCK_TASKS, MOCK_TEMPLATES, MOCK_PECS, MOCK_MEDIA,
-  MOCK_USERS, MOCK_ROLES
+  MOCK_USERS, MOCK_ROLES,
+  MOCK_FIND_ODD_ITEMS, MOCK_MATCH_PAIRS, MOCK_SEQUENCE_ITEMS, MOCK_SORT_ITEMS
 } from '@/data/mockData';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -34,10 +35,26 @@ export const api = {
   getPecs: () => fetchWithFallback<CatalogPECS[]>('/api/pecs', MOCK_PECS),
   getMedia: () => fetchWithFallback<MediaCatalog[]>('/api/media', MOCK_MEDIA),
 
-  getTaskFindOddItems: (taskId: number) => fetchWithFallback<FindOddOneOutItem[]>(`/api/tasks/${taskId}/find-odd-items`, []),
-  getTaskMatchPairs: (taskId: number) => fetchWithFallback<MatchImageWordPair[]>(`/api/tasks/${taskId}/match-pairs`, []),
-  getTaskSequenceItems: (taskId: number) => fetchWithFallback<SequenceItem[]>(`/api/tasks/${taskId}/sequence-items`, []),
-  getTaskSortItems: (taskId: number) => fetchWithFallback<SortItem[]>(`/api/tasks/${taskId}/sort-items`, []),
+  getTaskFindOddItems: (taskId: number) =>
+    fetchWithFallback<FindOddOneOutItem[]>(
+      `/api/tasks/${taskId}/find-odd-items`,
+      MOCK_FIND_ODD_ITEMS.filter(i => i.FK_TaskId === taskId)
+    ),
+  getTaskMatchPairs: (taskId: number) =>
+    fetchWithFallback<MatchImageWordPair[]>(
+      `/api/tasks/${taskId}/match-pairs`,
+      MOCK_MATCH_PAIRS.filter(i => i.FK_TaskId === taskId)
+    ),
+  getTaskSequenceItems: (taskId: number) =>
+    fetchWithFallback<SequenceItem[]>(
+      `/api/tasks/${taskId}/sequence-items`,
+      MOCK_SEQUENCE_ITEMS.filter(i => i.FK_TaskId === taskId)
+    ),
+  getTaskSortItems: (taskId: number) =>
+    fetchWithFallback<SortItem[]>(
+      `/api/tasks/${taskId}/sort-items`,
+      MOCK_SORT_ITEMS.filter(i => i.FK_TaskId === taskId)
+    ),
 
   // POST
   login: async (login: string, password: string): Promise<User | null> => {

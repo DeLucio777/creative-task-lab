@@ -1,4 +1,4 @@
-import type { Task, TaskTemplate, CatalogPECS, MediaCatalog, User, Role } from '@/types/models';
+import type { Task, TaskTemplate, CatalogPECS, MediaCatalog, User, Role, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem } from '@/types/models';
 
 export const MOCK_ROLES: Role[] = [
   { PK_RoleId: 1, RoleName: 'Администратор' },
@@ -71,4 +71,35 @@ export const MOCK_PECS: CatalogPECS[] = [
 export const MOCK_MEDIA: MediaCatalog[] = [
   { PK_MediaId: 1, FileType: 'image/png', FilePath: '/placeholder.svg', Descripti: 'Фрукты', UploadDate: '2024-03-01' },
   { PK_MediaId: 2, FileType: 'image/png', FilePath: '/placeholder.svg', Descripti: 'Животные', UploadDate: '2024-03-05' },
+];
+
+// Mock task-specific items
+export const MOCK_FIND_ODD_ITEMS: FindOddOneOutItem[] = [
+  { PK_ItemId: 1, FK_TaskId: 3, ItemText: 'Кошка', IsOddOne: false, FK_pecsId: 2 },
+  { PK_ItemId: 2, FK_TaskId: 3, ItemText: 'Собака', IsOddOne: false },
+  { PK_ItemId: 3, FK_TaskId: 3, ItemText: 'Яблоко', IsOddOne: true, FK_pecsId: 1 },
+  { PK_ItemId: 4, FK_TaskId: 3, ItemText: 'Хомяк', IsOddOne: false },
+];
+
+export const MOCK_MATCH_PAIRS: MatchImageWordPair[] = [
+  { PK_PairId: 1, FK_TaskId: 4, FK_MediaId: 1, FK_pecsId: 3, Words: 'Радость' },
+  { PK_PairId: 2, FK_TaskId: 4, FK_MediaId: 2, FK_pecsId: 2, Words: 'Кошка' },
+];
+
+export const MOCK_SEQUENCE_ITEMS: SequenceItem[] = [
+  { PK_SeqItemId: 1, FK_TaskId: 1, ItemOrder: 1, ItemValue: 'Проснуться', FK_pecsId: 4 },
+  { PK_SeqItemId: 2, FK_TaskId: 1, ItemOrder: 2, ItemValue: 'Умыться' },
+  { PK_SeqItemId: 3, FK_TaskId: 1, ItemOrder: 3, ItemValue: 'Почистить зубы' },
+  { PK_SeqItemId: 4, FK_TaskId: 1, ItemOrder: 4, ItemValue: 'Одеться' },
+  { PK_SeqItemId: 5, FK_TaskId: 5, ItemOrder: 1, ItemValue: 'Взять тарелку' },
+  { PK_SeqItemId: 6, FK_TaskId: 5, ItemOrder: 2, ItemValue: 'Положить хлеб' },
+  { PK_SeqItemId: 7, FK_TaskId: 5, ItemOrder: 3, ItemValue: 'Добавить сыр' },
+  { PK_SeqItemId: 8, FK_TaskId: 5, ItemOrder: 4, ItemValue: 'Налить сок' },
+];
+
+export const MOCK_SORT_ITEMS: SortItem[] = [
+  { PK_SortItemId: 1, FK_TaskId: 2, ItemValue: 'Яблоко', SortKey: 'Красные', FK_pecsId: 1 },
+  { PK_SortItemId: 2, FK_TaskId: 2, ItemValue: 'Банан', SortKey: 'Жёлтые' },
+  { PK_SortItemId: 3, FK_TaskId: 2, ItemValue: 'Вишня', SortKey: 'Красные' },
+  { PK_SortItemId: 4, FK_TaskId: 2, ItemValue: 'Лимон', SortKey: 'Жёлтые' },
 ];
