@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useState, type ReactNode } from 'react';
 import type { User } from '@/types/models';
-import { MOCK_USERS } from '@/data/mockData';
+import { api } from '@/services/api';
 
 interface AuthContextType {
   user: User | null;
   isGuest: boolean;
-  login: (username: string, password: string) => boolean;
+  login: (username: string, password: string) => Promise<boolean>;
   loginAsGuest: () => void;
   logout: () => void;
 }
@@ -22,8 +22,8 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const [user, setUser] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
-  const login = (username: string, password: string) => {
-    const found = MOCK_USERS.find(u => u.UserLogin === username && u.UserPassword === password);
+  const login = async (username: string, password: string) => {
+    const found = await api.login(username, password);
     if (found) {
       setUser(found);
       setIsGuest(false);
