@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { api } from '@/services/api';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import { Button } from '@/components/ui/button';
@@ -26,7 +26,7 @@ const MediaLibraryPage: React.FC = () => {
     !search || m.Descripti?.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleUpload = async (file: File, name: string, category?: string) => {
+  const handleUpload = useCallback(async (file: File, name: string, category?: string) => {
     if (tab === 'pecs') {
       const result = await api.uploadPecs(file, name, category || 'Общее');
       if (result) setPecs(prev => [...prev, result]);
@@ -34,7 +34,8 @@ const MediaLibraryPage: React.FC = () => {
       const result = await api.uploadMedia(file, name);
       if (result) setMedia(prev => [...prev, result]);
     }
-  };
+    setUploadOpen(false);
+  }, [tab]);
 
   return (
     <div>
@@ -106,12 +107,14 @@ const MediaLibraryPage: React.FC = () => {
         </div>
       )}
 
-      <UploadDialog
-        open={uploadOpen}
-        onClose={() => setUploadOpen(false)}
-        onUpload={handleUpload}
-        type={tab}
-      />
+      {uploadOpen && (
+        <UploadDialog
+          open={uploadOpen}
+          onClose={() => setUploadOpen(false)}
+          onUpload={handleUpload}
+          type={tab}
+        />
+      )}
     </div>
   );
 };

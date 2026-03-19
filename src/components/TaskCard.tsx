@@ -1,6 +1,6 @@
-import React from 'react';
-import type { Task } from '@/types/models';
-import { MOCK_TEMPLATES } from '@/data/mockData';
+import React, { useEffect, useState } from 'react';
+import type { Task, TaskTemplate } from '@/types/models';
+import { api } from '@/services/api';
 import { useNavigate } from 'react-router-dom';
 
 const difficultyColors: Record<string, string> = {
@@ -15,9 +15,17 @@ const difficultyLabels: Record<string, string> = {
   Hard: '🔴 Сложный',
 };
 
-const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
+const TaskCard: React.FC<{ task: Task; templates?: TaskTemplate[] }> = ({ task, templates: propTemplates }) => {
   const navigate = useNavigate();
-  const template = MOCK_TEMPLATES.find(t => t.PK_TemplateId === task.FK_TemplateId);
+  const [templates, setTemplates] = useState<TaskTemplate[]>(propTemplates || []);
+
+  useEffect(() => {
+    if (!propTemplates) {
+      api.getTemplates().then(setTemplates);
+    }
+  }, [propTemplates]);
+
+  const template = templates.find(t => t.PK_TemplateId === task.FK_TemplateId);
 
   return (
     <div
