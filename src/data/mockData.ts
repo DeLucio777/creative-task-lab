@@ -103,3 +103,16 @@ export const MOCK_SORT_ITEMS: SortItem[] = [
   { PK_SortItemId: 3, FK_TaskId: 2, ItemValue: 'Вишня', SortKey: 'Красные' },
   { PK_SortItemId: 4, FK_TaskId: 2, ItemValue: 'Лимон', SortKey: 'Жёлтые' },
 ];
+
+export const MOCK_TASK_CONSTRUCTIONS: TaskConstruction[] = [
+  { PK_ConstructionId: 1, FK_TaskId: 1, ParameterName: 'DifficultyLevel', ParameterValue: 'Easy' },
+  { PK_ConstructionId: 2, FK_TaskId: 1, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 3, FK_TaskId: 2, ParameterName: 'DifficultyLevel', ParameterValue: 'Medium' },
+  { PK_ConstructionId: 4, FK_TaskId: 2, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 5, FK_TaskId: 3, ParameterName: 'DifficultyLevel', ParameterValue: 'Hard' },
+  { PK_ConstructionId: 6, FK_TaskId: 3, ParameterName: 'ShowHints', ParameterValue: 'false' },
+  { PK_ConstructionId: 7, FK_TaskId: 4, ParameterName: 'DifficultyLevel', ParameterValue: 'Easy' },
+  { PK_ConstructionId: 8, FK_TaskId: 4, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 9, FK_TaskId: 5, ParameterName: 'DifficultyLevel', ParameterValue: 'Medium' },
+  { PK_ConstructionId: 10, FK_TaskId: 5, ParameterName: 'ShowHints', ParameterValue: 'true' },
+];
