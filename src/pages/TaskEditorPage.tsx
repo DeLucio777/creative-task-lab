@@ -4,7 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { ArrowLeft, Save, Plus, Trash2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { ArrowLeft, Save, Plus, Trash2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
@@ -85,6 +86,8 @@ const TaskEditorPage: React.FC = () => {
   const [taskType, setTaskType] = useState<TaskType>('find_odd');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [showHints, setShowHints] = useState(true);
+  const [timerEnabled, setTimerEnabled] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(60);
   const [saving, setSaving] = useState(false);
 
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
@@ -112,9 +115,47 @@ const TaskEditorPage: React.FC = () => {
     Hard: { label: 'Сложный', emoji: '🔴' },
   };
 
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // --- Validation ---
+  const validate = (): string | null => {
+    if (!title.trim()) return 'Введите название задания';
+    if (!description.trim()) return 'Введите описание задания';
+
+    if (taskType === 'find_odd') {
+      const filled = oddItems.filter(i => i.text.trim());
+      if (filled.length < 3) return 'Для задания "Найди лишнее" нужно минимум 3 элемента с заполненным текстом';
+      const hasEmpty = oddItems.some(i => !i.text.trim());
+      if (hasEmpty) return 'Все элементы должны иметь заполненное название (NOT NULL)';
+      const hasOdd = oddItems.some(i => i.isOdd);
+      if (!hasOdd) return 'Отметьте хотя бы один элемент как "лишний"';
+    } else if (taskType === 'match_image_word') {
+      if (matchPairs.length < 2) return 'Для задания "Сопоставь" нужно минимум 2 пары';
+      const hasEmpty = matchPairs.some(p => !p.word.trim());
+      if (hasEmpty) return 'Все пары должны иметь заполненное слово (NOT NULL)';
+    } else if (taskType === 'sequence') {
+      if (seqItems.length < 2) return 'Для последовательности нужно минимум 2 элемента';
+      const hasEmpty = seqItems.some(i => !i.value.trim());
+      if (hasEmpty) return 'Все элементы последовательности должны иметь значение (NOT NULL)';
+    } else if (taskType === 'sort') {
+      if (sortItems.length < 2) return 'Для сортировки нужно минимум 2 элемента';
+      const hasEmptyValue = sortItems.some(i => !i.value.trim());
+      if (hasEmptyValue) return 'Все элементы сортировки должны иметь значение (NOT NULL)';
+      const hasEmptyKey = sortItems.some(i => !i.sortKey.trim());
+      if (hasEmptyKey) return 'Все элементы сортировки должны иметь ключ/категорию (NOT NULL)';
+    }
+
+    return null;
+  };
+
   const handleSave = async () => {
-    if (!title.trim()) {
-      toast.error('Введите название задания');
+    const error = validate();
+    if (error) {
+      toast.error(error);
       return;
     }
     setSaving(true);
@@ -124,6 +165,8 @@ const TaskEditorPage: React.FC = () => {
       const constructions = [
         { ParameterName: 'DifficultyLevel', ParameterValue: difficulty },
         { ParameterName: 'ShowHints', ParameterValue: String(showHints) },
+        { ParameterName: 'TimerEnabled', ParameterValue: String(timerEnabled) },
+        { ParameterName: 'TimerSeconds', ParameterValue: String(timerSeconds) },
       ];
 
       const payload: Parameters<typeof api.createFullTask>[0] = {
@@ -138,21 +181,13 @@ const TaskEditorPage: React.FC = () => {
       };
 
       if (taskType === 'find_odd') {
-        payload.findOddItems = oddItems
-          .filter(i => i.text.trim())
-          .map(i => ({ ItemText: i.text, IsOddOne: i.isOdd, FK_pecsId: i.pecsId }));
+        payload.findOddItems = oddItems.map(i => ({ ItemText: i.text, IsOddOne: i.isOdd, FK_pecsId: i.pecsId }));
       } else if (taskType === 'match_image_word') {
-        payload.matchPairs = matchPairs
-          .filter(p => p.word.trim())
-          .map(p => ({ FK_MediaId: p.mediaId, FK_pecsId: p.pecsId, Words: p.word }));
+        payload.matchPairs = matchPairs.map(p => ({ FK_MediaId: p.mediaId, FK_pecsId: p.pecsId, Words: p.word }));
       } else if (taskType === 'sequence') {
-        payload.sequenceItems = seqItems
-          .filter(i => i.value.trim())
-          .map((i, idx) => ({ ItemOrder: idx + 1, ItemValue: i.value, FK_pecsId: i.pecsId }));
+        payload.sequenceItems = seqItems.map((i, idx) => ({ ItemOrder: idx + 1, ItemValue: i.value, FK_pecsId: i.pecsId }));
       } else if (taskType === 'sort') {
-        payload.sortItems = sortItems
-          .filter(i => i.value.trim())
-          .map(i => ({ ItemValue: i.value, SortKey: i.sortKey, FK_pecsId: i.pecsId }));
+        payload.sortItems = sortItems.map(i => ({ ItemValue: i.value, SortKey: i.sortKey, FK_pecsId: i.pecsId }));
       }
 
       const result = await api.createFullTask(payload);
@@ -184,16 +219,18 @@ const TaskEditorPage: React.FC = () => {
         <div key={item.id} className="flex gap-3 items-start p-3 bg-muted/50 rounded-xl border border-border">
           <span className="text-lg font-bold text-muted-foreground mt-1">{idx + 1}</span>
           <div className="flex-1 space-y-2">
-            <Input value={item.text} onChange={e => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, text: e.target.value } : i))} placeholder="Текст элемента" className="rounded-xl h-11" />
+            <Input value={item.text} onChange={e => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, text: e.target.value } : i))} placeholder="Текст элемента *" className={`rounded-xl h-11 ${!item.text.trim() ? 'border-destructive' : ''}`} />
             <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
           <div className="flex flex-col items-center gap-1 shrink-0 mt-1">
             <label className="text-xs font-semibold text-muted-foreground">Лишний?</label>
             <Switch checked={item.isOdd} onCheckedChange={v => setOddItems(prev => prev.map(i => i.id === item.id ? { ...i, isOdd: v } : i))} />
           </div>
-          <button onClick={() => setOddItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {oddItems.length > 3 && (
+            <button onClick={() => setOddItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -213,16 +250,18 @@ const TaskEditorPage: React.FC = () => {
         <div key={pair.id} className="p-3 bg-muted/50 rounded-xl border border-border space-y-2">
           <div className="flex items-center justify-between">
             <span className="text-sm font-bold text-muted-foreground">Пара {idx + 1}</span>
-            <button onClick={() => setMatchPairs(prev => prev.filter(p => p.id !== pair.id))} className="text-muted-foreground hover:text-destructive">
-              <Trash2 className="h-4 w-4" />
-            </button>
+            {matchPairs.length > 2 && (
+              <button onClick={() => setMatchPairs(prev => prev.filter(p => p.id !== pair.id))} className="text-muted-foreground hover:text-destructive">
+                <Trash2 className="h-4 w-4" />
+              </button>
+            )}
           </div>
           <PecsPreview pecsList={pecsList} pecsId={pair.pecsId} onSelect={pecsId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId } : p))} onClear={() => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId: undefined } : p))} />
           <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={pair.mediaId ?? ''} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId: Number(e.target.value) } : p))}>
             <option value="" disabled>Выберите медиа...</option>
             {mediaList.map(m => <option key={m.PK_MediaId} value={m.PK_MediaId}>{m.Descripti}</option>)}
           </select>
-          <Input value={pair.word} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))} placeholder="Слово для соотнесения" className="rounded-xl h-11" />
+          <Input value={pair.word} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))} placeholder="Слово для соотнесения *" className={`rounded-xl h-11 ${!pair.word.trim() ? 'border-destructive' : ''}`} />
         </div>
       ))}
     </div>
@@ -244,12 +283,14 @@ const TaskEditorPage: React.FC = () => {
             <span className="text-sm font-bold text-primary">{idx + 1}</span>
           </div>
           <div className="flex-1 space-y-2">
-            <Input value={item.value} onChange={e => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента" className="rounded-xl h-11" />
+            <Input value={item.value} onChange={e => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента *" className={`rounded-xl h-11 ${!item.value.trim() ? 'border-destructive' : ''}`} />
             <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setSeqItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
-          <button onClick={() => setSeqItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {seqItems.length > 2 && (
+            <button onClick={() => setSeqItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -269,13 +310,15 @@ const TaskEditorPage: React.FC = () => {
         <div key={item.id} className="flex gap-3 items-start p-3 bg-muted/50 rounded-xl border border-border">
           <span className="text-lg font-bold text-muted-foreground mt-1">{idx + 1}</span>
           <div className="flex-1 space-y-2">
-            <Input value={item.value} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента" className="rounded-xl h-11" />
-            <Input value={item.sortKey} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, sortKey: e.target.value } : i))} placeholder="Ключ сортировки (категория)" className="rounded-xl h-11" />
+            <Input value={item.value} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, value: e.target.value } : i))} placeholder="Значение элемента *" className={`rounded-xl h-11 ${!item.value.trim() ? 'border-destructive' : ''}`} />
+            <Input value={item.sortKey} onChange={e => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, sortKey: e.target.value } : i))} placeholder="Ключ сортировки (категория) *" className={`rounded-xl h-11 ${!item.sortKey.trim() ? 'border-destructive' : ''}`} />
             <PecsPreview pecsList={pecsList} pecsId={item.pecsId} onSelect={pecsId => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId } : i))} onClear={() => setSortItems(prev => prev.map(i => i.id === item.id ? { ...i, pecsId: undefined } : i))} />
           </div>
-          <button onClick={() => setSortItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {sortItems.length > 2 && (
+            <button onClick={() => setSortItems(prev => prev.filter(i => i.id !== item.id))} className="text-muted-foreground hover:text-destructive mt-2">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ))}
     </div>
@@ -305,11 +348,11 @@ const TaskEditorPage: React.FC = () => {
             </h2>
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="font-semibold">Название</Label>
-                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Введите название задания" className="rounded-xl h-11" />
+                <Label className="font-semibold">Название <span className="text-destructive">*</span></Label>
+                <Input value={title} onChange={e => setTitle(e.target.value)} placeholder="Введите название задания" className={`rounded-xl h-11 ${!title.trim() && title !== '' ? 'border-destructive' : ''}`} />
               </div>
               <div className="space-y-2">
-                <Label className="font-semibold">Описание</Label>
+                <Label className="font-semibold">Описание <span className="text-destructive">*</span></Label>
                 <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Описание задания..." className="w-full min-h-[100px] rounded-xl border-2 border-input bg-background px-3 py-3 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none" />
               </div>
             </div>
@@ -353,6 +396,36 @@ const TaskEditorPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-bold">Визуальные подсказки</Label>
                 <Switch checked={showHints} onCheckedChange={setShowHints} />
+              </div>
+
+              {/* Timer setting */}
+              <div className="space-y-3 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Timer className="h-4 w-4 text-muted-foreground" />
+                    <Label className="text-sm font-bold">Таймер</Label>
+                  </div>
+                  <Switch checked={timerEnabled} onCheckedChange={setTimerEnabled} />
+                </div>
+                {timerEnabled && (
+                  <div className="space-y-2 pl-6">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-medium text-muted-foreground">Время на задание</span>
+                      <span className="text-sm font-bold text-primary">{formatTime(timerSeconds)}</span>
+                    </div>
+                    <Slider
+                      value={[timerSeconds]}
+                      onValueChange={([v]) => setTimerSeconds(v)}
+                      min={10}
+                      max={300}
+                      step={5}
+                    />
+                    <div className="flex justify-between text-xs text-muted-foreground">
+                      <span>0:10</span>
+                      <span>5:00</span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>
