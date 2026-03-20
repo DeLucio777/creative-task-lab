@@ -478,12 +478,12 @@ const TaskDetailPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" /> Назад
         </button>
         <div className="bg-card rounded-2xl border-2 border-border p-10">
-          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : '😔'}</p>
+          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Молодец!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Молодец!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время на задание закончилось.' : 'Не расстраивайся, попробуй снова!'}
           </p>
           <Progress value={result === 'correct' ? 100 : 30} className="h-3 mb-6" />
           <div className="flex gap-3 justify-center">
