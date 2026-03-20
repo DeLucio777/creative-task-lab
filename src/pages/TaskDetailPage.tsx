@@ -509,7 +509,15 @@ const TaskDetailPage: React.FC = () => {
         <div className="bg-card rounded-2xl border-2 border-border p-8">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-foreground">{task.Title}</h2>
-            {diff && <p className="text-sm text-muted-foreground font-medium mt-1">{diff.emoji} {diff.label}</p>}
+            <div className="flex items-center justify-center gap-4 mt-1">
+              {diff && <p className="text-sm text-muted-foreground font-medium">{diff.emoji} {diff.label}</p>}
+              {timerEnabled && timeLeft !== null && (
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${timeLeft <= 10 ? 'bg-destructive/10 text-destructive animate-pulse' : 'bg-primary/10 text-primary'}`}>
+                  <Timer className="h-4 w-4" />
+                  {formatTime(timeLeft)}
+                </div>
+              )}
+            </div>
           </div>
 
           {taskType === 'find_odd' && findOddItems.length > 0 && (
