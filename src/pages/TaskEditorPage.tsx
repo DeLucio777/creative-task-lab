@@ -354,7 +354,6 @@ const TaskEditorPage: React.FC = () => {
                 <Label className="text-sm font-bold">Визуальные подсказки</Label>
                 <Switch checked={showHints} onCheckedChange={setShowHints} />
               </div>
-              </div>
             </div>
           </div>
 
