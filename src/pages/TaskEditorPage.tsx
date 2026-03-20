@@ -354,12 +354,6 @@ const TaskEditorPage: React.FC = () => {
                 <Label className="text-sm font-bold">Визуальные подсказки</Label>
                 <Switch checked={showHints} onCheckedChange={setShowHints} />
               </div>
-              <div>
-                <div className="flex justify-between mb-2">
-                  <Label className="text-sm font-bold">Кол-во элементов</Label>
-                  <span className="text-sm font-bold tabular-nums text-primary">{elementCount[0]}</span>
-                </div>
-                <Slider value={elementCount} onValueChange={setElementCount} min={3} max={12} step={1} />
               </div>
             </div>
           </div>
