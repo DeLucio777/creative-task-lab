@@ -85,7 +85,7 @@ const TaskEditorPage: React.FC = () => {
   const [taskType, setTaskType] = useState<TaskType>('find_odd');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [showHints, setShowHints] = useState(true);
-  const [elementCount, setElementCount] = useState([6]);
+  const [saving, setSaving] = useState(false);
 
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
     { id: '1', text: '', isOdd: false },
