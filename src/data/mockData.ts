@@ -1,4 +1,4 @@
-import type { Task, TaskTemplate, CatalogPECS, MediaCatalog, User, Role, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem } from '@/types/models';
+import type { Task, TaskTemplate, CatalogPECS, MediaCatalog, User, Role, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, TaskConstruction } from '@/types/models';
 
 export const MOCK_ROLES: Role[] = [
   { PK_RoleId: 1, RoleName: 'Администратор' },
