@@ -357,9 +357,14 @@ const TaskDetailPage: React.FC = () => {
   const [task, setTask] = useState<Task | null>(null);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
+  const [constructions, setConstructions] = useState<TaskConstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Task-specific data
   const [findOddItems, setFindOddItems] = useState<FindOddOneOutItem[]>([]);
@@ -376,7 +381,8 @@ const TaskDetailPage: React.FC = () => {
       api.getTaskMatchPairs(taskId),
       api.getTaskSequenceItems(taskId),
       api.getTaskSortItems(taskId),
-    ]).then(([t, tmpl, pecs, odd, match, seq, sort]) => {
+      api.getTaskConstructions(taskId),
+    ]).then(([t, tmpl, pecs, odd, match, seq, sort, constr]) => {
       setTask(t);
       setTemplates(tmpl);
       setPecsList(pecs);
@@ -384,22 +390,61 @@ const TaskDetailPage: React.FC = () => {
       setMatchPairs(match);
       setSeqItems(seq);
       setSortItems(sort);
+      setConstructions(constr);
       setLoading(false);
     });
   }, [taskId]);
+
+  // Derive timer settings from constructions
+  const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
+  const timerSeconds = Number(constructions.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue) || 60;
+
+  // Start/stop timer when game starts
+  useEffect(() => {
+    if (started && timerEnabled && result === null) {
+      setTimeLeft(timerSeconds);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!started) setTimeLeft(null);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [started, timerEnabled, timerSeconds, result]);
+
+  // Handle timeout
+  useEffect(() => {
+    if (timeLeft === 0 && result === null) {
+      setResult('timeout');
+    }
+  }, [timeLeft, result]);
 
   const template = task ? templates.find(t => t.PK_TemplateId === task.FK_TemplateId) : null;
   const taskType = task ? templateToType[task.FK_TemplateId] : null;
 
   const handleComplete = useCallback((correct: boolean) => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
   }, []);
 
   const handleRestart = () => {
     setResult(null);
     setStarted(false);
-    // Re-trigger to reset game state
     setTimeout(() => setStarted(true), 50);
+  };
+
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
