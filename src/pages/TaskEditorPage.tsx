@@ -370,8 +370,8 @@ const TaskEditorPage: React.FC = () => {
             sortItems={sortItems}
           />
 
-          <Button onClick={handleSave} className="w-full h-12 gap-2 text-base font-bold rounded-xl transition-all duration-200 active:scale-[0.98]">
-            <Save className="h-5 w-5" /> Сохранить
+          <Button onClick={handleSave} disabled={saving} className="w-full h-12 gap-2 text-base font-bold rounded-xl transition-all duration-200 active:scale-[0.98]">
+            <Save className="h-5 w-5" /> {saving ? 'Сохранение...' : 'Сохранить'}
           </Button>
         </div>
       </div>
