@@ -113,15 +113,60 @@ const TaskEditorPage: React.FC = () => {
   };
 
   const handleSave = async () => {
-    const templateId = TASK_TYPE_OPTIONS.find(o => o.value === taskType)?.templateId || 1;
-    await api.createTask({
-      Title: title,
-      Descripti: description,
-      FK_TemplateId: templateId,
-      FK_UserId: 1,
-      DifficultyLevel: difficulty,
-    });
-    navigate('/dashboard');
+    if (!title.trim()) {
+      toast.error('Введите название задания');
+      return;
+    }
+    setSaving(true);
+    try {
+      const templateId = TASK_TYPE_OPTIONS.find(o => o.value === taskType)?.templateId || 1;
+
+      const constructions = [
+        { ParameterName: 'DifficultyLevel', ParameterValue: difficulty },
+        { ParameterName: 'ShowHints', ParameterValue: String(showHints) },
+      ];
+
+      const payload: Parameters<typeof api.createFullTask>[0] = {
+        task: {
+          Title: title,
+          Descripti: description,
+          FK_TemplateId: templateId,
+          FK_UserId: 1,
+          DifficultyLevel: difficulty,
+        },
+        constructions,
+      };
+
+      if (taskType === 'find_odd') {
+        payload.findOddItems = oddItems
+          .filter(i => i.text.trim())
+          .map(i => ({ ItemText: i.text, IsOddOne: i.isOdd, FK_pecsId: i.pecsId }));
+      } else if (taskType === 'match_image_word') {
+        payload.matchPairs = matchPairs
+          .filter(p => p.word.trim())
+          .map(p => ({ FK_MediaId: p.mediaId, FK_pecsId: p.pecsId, Words: p.word }));
+      } else if (taskType === 'sequence') {
+        payload.sequenceItems = seqItems
+          .filter(i => i.value.trim())
+          .map((i, idx) => ({ ItemOrder: idx + 1, ItemValue: i.value, FK_pecsId: i.pecsId }));
+      } else if (taskType === 'sort') {
+        payload.sortItems = sortItems
+          .filter(i => i.value.trim())
+          .map(i => ({ ItemValue: i.value, SortKey: i.sortKey, FK_pecsId: i.pecsId }));
+      }
+
+      const result = await api.createFullTask(payload);
+      if (result) {
+        toast.success('Задание сохранено!');
+        navigate('/dashboard');
+      } else {
+        toast.error('Ошибка при сохранении');
+      }
+    } catch {
+      toast.error('Ошибка при сохранении');
+    } finally {
+      setSaving(false);
+    }
   };
 
   // --- Render functions for each task type ---
