@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer } from 'lucide-react';
 import { api } from '@/services/api';
-import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS } from '@/types/models';
+import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
 import { Progress } from '@/components/ui/progress';
 
 const difficultyLabels: Record<string, { label: string; emoji: string }> = {
@@ -357,9 +357,14 @@ const TaskDetailPage: React.FC = () => {
   const [task, setTask] = useState<Task | null>(null);
   const [templates, setTemplates] = useState<TaskTemplate[]>([]);
   const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
+  const [constructions, setConstructions] = useState<TaskConstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [result, setResult] = useState<'correct' | 'wrong' | null>(null);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
+
+  // Timer state
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Task-specific data
   const [findOddItems, setFindOddItems] = useState<FindOddOneOutItem[]>([]);
@@ -376,7 +381,8 @@ const TaskDetailPage: React.FC = () => {
       api.getTaskMatchPairs(taskId),
       api.getTaskSequenceItems(taskId),
       api.getTaskSortItems(taskId),
-    ]).then(([t, tmpl, pecs, odd, match, seq, sort]) => {
+      api.getTaskConstructions(taskId),
+    ]).then(([t, tmpl, pecs, odd, match, seq, sort, constr]) => {
       setTask(t);
       setTemplates(tmpl);
       setPecsList(pecs);
@@ -384,22 +390,61 @@ const TaskDetailPage: React.FC = () => {
       setMatchPairs(match);
       setSeqItems(seq);
       setSortItems(sort);
+      setConstructions(constr);
       setLoading(false);
     });
   }, [taskId]);
+
+  // Derive timer settings from constructions
+  const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
+  const timerSeconds = Number(constructions.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue) || 60;
+
+  // Start/stop timer when game starts
+  useEffect(() => {
+    if (started && timerEnabled && result === null) {
+      setTimeLeft(timerSeconds);
+      timerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev === null) return null;
+          if (prev <= 1) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (!started) setTimeLeft(null);
+    }
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [started, timerEnabled, timerSeconds, result]);
+
+  // Handle timeout
+  useEffect(() => {
+    if (timeLeft === 0 && result === null) {
+      setResult('timeout');
+    }
+  }, [timeLeft, result]);
 
   const template = task ? templates.find(t => t.PK_TemplateId === task.FK_TemplateId) : null;
   const taskType = task ? templateToType[task.FK_TemplateId] : null;
 
   const handleComplete = useCallback((correct: boolean) => {
+    if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
   }, []);
 
   const handleRestart = () => {
     setResult(null);
     setStarted(false);
-    // Re-trigger to reset game state
     setTimeout(() => setStarted(true), 50);
+  };
+
+  const formatTime = (sec: number) => {
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${s.toString().padStart(2, '0')}`;
   };
 
   if (loading) {
@@ -433,12 +478,12 @@ const TaskDetailPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" /> Назад
         </button>
         <div className="bg-card rounded-2xl border-2 border-border p-10">
-          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : '😔'}</p>
+          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Молодец!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Молодец!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время на задание закончилось.' : 'Не расстраивайся, попробуй снова!'}
           </p>
           <Progress value={result === 'correct' ? 100 : 30} className="h-3 mb-6" />
           <div className="flex gap-3 justify-center">
@@ -464,7 +509,15 @@ const TaskDetailPage: React.FC = () => {
         <div className="bg-card rounded-2xl border-2 border-border p-8">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-foreground">{task.Title}</h2>
-            {diff && <p className="text-sm text-muted-foreground font-medium mt-1">{diff.emoji} {diff.label}</p>}
+            <div className="flex items-center justify-center gap-4 mt-1">
+              {diff && <p className="text-sm text-muted-foreground font-medium">{diff.emoji} {diff.label}</p>}
+              {timerEnabled && timeLeft !== null && (
+                <div className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-bold ${timeLeft <= 10 ? 'bg-destructive/10 text-destructive animate-pulse' : 'bg-primary/10 text-primary'}`}>
+                  <Timer className="h-4 w-4" />
+                  {formatTime(timeLeft)}
+                </div>
+              )}
+            </div>
           </div>
 
           {taskType === 'find_odd' && findOddItems.length > 0 && (
@@ -507,9 +560,14 @@ const TaskDetailPage: React.FC = () => {
         {template && (
           <p className="text-sm font-bold text-primary mb-2">📋 {template.TemplateName}</p>
         )}
-        {diff && (
-          <p className="text-sm text-muted-foreground font-medium mb-4">
+         {diff && (
+          <p className="text-sm text-muted-foreground font-medium mb-2">
             {diff.emoji} Уровень: {diff.label}
+          </p>
+        )}
+        {timerEnabled && (
+          <p className="text-sm text-muted-foreground font-medium mb-4 flex items-center gap-1.5">
+            <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
           </p>
         )}
         <p className="text-muted-foreground leading-relaxed mb-8 font-medium">{task.Descripti}</p>
