@@ -560,9 +560,14 @@ const TaskDetailPage: React.FC = () => {
         {template && (
           <p className="text-sm font-bold text-primary mb-2">📋 {template.TemplateName}</p>
         )}
-        {diff && (
-          <p className="text-sm text-muted-foreground font-medium mb-4">
+         {diff && (
+          <p className="text-sm text-muted-foreground font-medium mb-2">
             {diff.emoji} Уровень: {diff.label}
+          </p>
+        )}
+        {timerEnabled && (
+          <p className="text-sm text-muted-foreground font-medium mb-4 flex items-center gap-1.5">
+            <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
           </p>
         )}
         <p className="text-muted-foreground leading-relaxed mb-8 font-medium">{task.Descripti}</p>
