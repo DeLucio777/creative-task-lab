@@ -354,6 +354,8 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.FK_RoleId === 1;
   const taskId = Number(id);
 
   const [task, setTask] = useState<Task | null>(null);
