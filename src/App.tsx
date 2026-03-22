@@ -40,7 +40,7 @@ const AppRoutes = () => {
         <Route path="/editor/:id" element={<AuthenticatedOnly><TaskEditorPage /></AuthenticatedOnly>} />
         <Route path="/media-library" element={<AuthenticatedOnly><MediaLibraryPage /></AuthenticatedOnly>} />
         <Route path="/profile" element={<AuthenticatedOnly><ProfilePage /></AuthenticatedOnly>} />
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports" element={<AuthenticatedOnly><ReportsPage /></AuthenticatedOnly>} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2 } from 'lucide-react';
 import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
 import { Progress } from '@/components/ui/progress';
+import { toast } from 'sonner';
 
 const difficultyLabels: Record<string, { label: string; emoji: string }> = {
   Easy: { label: 'Лёгкий', emoji: '🟢' },
@@ -352,6 +354,8 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const isAdmin = user?.FK_RoleId === 1;
   const taskId = Number(id);
 
   const [task, setTask] = useState<Task | null>(null);
@@ -551,9 +555,26 @@ const TaskDetailPage: React.FC = () => {
   // Description screen (no difficulty selector - it's set at creation)
   return (
     <div className="max-w-2xl">
-      <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Каталог заданий
-      </button>
+      <div className="flex items-center justify-between mb-6">
+        <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" /> Каталог заданий
+        </button>
+        {isAdmin && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="rounded-xl font-bold gap-2"
+            onClick={async () => {
+              if (!confirm('Удалить задание?')) return;
+              const ok = await api.deleteTask(taskId);
+              if (ok) { toast.success('Задание удалено'); navigate('/dashboard'); }
+              else toast.error('Ошибка при удалении');
+            }}
+          >
+            <Trash2 className="h-4 w-4" /> Удалить
+          </Button>
+        )}
+      </div>
 
       <div className="bg-card rounded-2xl border-2 border-border p-8">
         <h1 className="text-2xl font-bold tracking-tight text-foreground mb-2">{task.Title}</h1>

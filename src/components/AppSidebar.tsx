@@ -13,7 +13,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard', icon: LayoutGrid, label: 'Каталог' },
   { to: '/editor/new', icon: FilePlus, label: 'Создать задание', guestHidden: true },
-  { to: '/reports', icon: BarChart3, label: 'Отчётность' },
+  { to: '/reports', icon: BarChart3, label: 'Отчётность', guestHidden: true },
   { to: '/profile', icon: User, label: 'Личный кабинет', guestHidden: true },
   { to: '/media-library', icon: Image, label: 'Библиотека медиа', guestHidden: true },
 ];
