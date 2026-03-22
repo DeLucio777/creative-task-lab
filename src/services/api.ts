@@ -257,4 +257,29 @@ export const api = {
       return res.ok ? await res.json() : null;
     } catch { return null; }
   },
+
+  deleteTask: async (taskId: number): Promise<boolean> => {
+    if (!API_BASE) {
+      const idx = MOCK_TASKS.findIndex(t => t.PK_TaskId === taskId);
+      if (idx === -1) return false;
+      MOCK_TASKS.splice(idx, 1);
+      for (let i = MOCK_FIND_ODD_ITEMS.length - 1; i >= 0; i--) if (MOCK_FIND_ODD_ITEMS[i].FK_TaskId === taskId) MOCK_FIND_ODD_ITEMS.splice(i, 1);
+      for (let i = MOCK_MATCH_PAIRS.length - 1; i >= 0; i--) if (MOCK_MATCH_PAIRS[i].FK_TaskId === taskId) MOCK_MATCH_PAIRS.splice(i, 1);
+      for (let i = MOCK_SEQUENCE_ITEMS.length - 1; i >= 0; i--) if (MOCK_SEQUENCE_ITEMS[i].FK_TaskId === taskId) MOCK_SEQUENCE_ITEMS.splice(i, 1);
+      for (let i = MOCK_SORT_ITEMS.length - 1; i >= 0; i--) if (MOCK_SORT_ITEMS[i].FK_TaskId === taskId) MOCK_SORT_ITEMS.splice(i, 1);
+      for (let i = MOCK_TASK_CONSTRUCTIONS.length - 1; i >= 0; i--) if (MOCK_TASK_CONSTRUCTIONS[i].FK_TaskId === taskId) MOCK_TASK_CONSTRUCTIONS.splice(i, 1);
+      return true;
+    }
+    try {
+      const res = await fetch(`${API_BASE}/api/tasks/${taskId}`, { method: 'DELETE' });
+      if (res.ok) return true;
+      throw new Error(`HTTP ${res.status}`);
+    } catch {
+      console.warn('API DELETE unavailable, deleting locally');
+      const idx = MOCK_TASKS.findIndex(t => t.PK_TaskId === taskId);
+      if (idx === -1) return false;
+      MOCK_TASKS.splice(idx, 1);
+      return true;
+    }
+  },
 };
