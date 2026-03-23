@@ -40,6 +40,7 @@ export interface Task {
   FK_TemplateId: number;
   FK_UserId: number;
   DifficultyLevel?: 'Easy' | 'Medium' | 'Hard';
+  CreatedDate?: string;
   Template?: TaskTemplate;
   User?: User;
 }
