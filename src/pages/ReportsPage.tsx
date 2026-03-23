@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { api } from '@/services/api';
 import type { Task, TaskTemplate } from '@/types/models';
-import { Calendar, FileText, TrendingUp } from 'lucide-react';
+import { Calendar, FileText, TrendingUp, Download } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import {
   ChartContainer,
   ChartTooltip,
@@ -11,6 +12,9 @@ import {
   type ChartConfig,
 } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType, BorderStyle } from 'docx';
+import { saveAs } from 'file-saver';
+import { toast } from 'sonner';
 
 const COLORS = [
   'hsl(var(--primary))',
@@ -27,6 +31,13 @@ const templateChartConfig: ChartConfig = {
   value: { label: 'Заданий' },
 };
 
+const difficultyLabel = (d?: string) => {
+  if (d === 'Easy') return 'Лёгкий';
+  if (d === 'Medium') return 'Средний';
+  if (d === 'Hard') return 'Сложный';
+  return 'Не указан';
+};
+
 const ReportsPage: React.FC = () => {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -38,10 +49,25 @@ const ReportsPage: React.FC = () => {
     api.getTemplates().then(setTemplates);
   }, []);
 
-  // Group tasks by difficulty for bar chart
+  // Filter tasks by date range
+  const filteredTasks = useMemo(() => {
+    return tasks.filter(t => {
+      if (!t.CreatedDate) return !dateFrom && !dateTo;
+      const created = new Date(t.CreatedDate);
+      if (dateFrom && created < new Date(dateFrom)) return false;
+      if (dateTo) {
+        const end = new Date(dateTo);
+        end.setHours(23, 59, 59, 999);
+        if (created > end) return false;
+      }
+      return true;
+    });
+  }, [tasks, dateFrom, dateTo]);
+
+  // Group filtered tasks by difficulty for bar chart
   const difficultyData = useMemo(() => {
     const counts: Record<string, number> = { Easy: 0, Medium: 0, Hard: 0 };
-    tasks.forEach(t => {
+    filteredTasks.forEach(t => {
       if (t.DifficultyLevel) counts[t.DifficultyLevel]++;
     });
     return [
@@ -49,21 +75,170 @@ const ReportsPage: React.FC = () => {
       { name: '🟡 Средний', count: counts.Medium },
       { name: '🔴 Сложный', count: counts.Hard },
     ];
-  }, [tasks]);
+  }, [filteredTasks]);
 
-  // Group tasks by template for pie chart
+  // Group filtered tasks by template for pie chart
   const templateData = useMemo(() => {
     return templates.map(tmpl => ({
       name: tmpl.TemplateName,
-      value: tasks.filter(t => t.FK_TemplateId === tmpl.PK_TemplateId).length,
+      value: filteredTasks.filter(t => t.FK_TemplateId === tmpl.PK_TemplateId).length,
     })).filter(d => d.value > 0);
-  }, [tasks, templates]);
+  }, [filteredTasks, templates]);
 
-  const taskCount = tasks.length;
+  const getTemplateName = (id: number) =>
+    templates.find(t => t.PK_TemplateId === id)?.TemplateName || `Шаблон #${id}`;
+
+  const handleExportDocx = async () => {
+    const periodText = dateFrom && dateTo
+      ? `с ${new Date(dateFrom).toLocaleDateString('ru')} по ${new Date(dateTo).toLocaleDateString('ru')}`
+      : 'За всё время';
+
+    const cellBorder = { style: BorderStyle.SINGLE, size: 1, color: '999999' };
+    const cellBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
+    const cellMargins = { top: 60, bottom: 60, left: 100, right: 100 };
+
+    // Summary table rows
+    const summaryRows = [
+      new TableRow({
+        children: [
+          new TableCell({
+            borders: cellBorders, margins: cellMargins,
+            width: { size: 4680, type: WidthType.DXA },
+            shading: { fill: 'D5E8F0', type: 'clear' as any },
+            children: [new Paragraph({ children: [new TextRun({ text: 'Показатель', bold: true, font: 'Arial', size: 22 })] })],
+          }),
+          new TableCell({
+            borders: cellBorders, margins: cellMargins,
+            width: { size: 4680, type: WidthType.DXA },
+            shading: { fill: 'D5E8F0', type: 'clear' as any },
+            children: [new Paragraph({ children: [new TextRun({ text: 'Значение', bold: true, font: 'Arial', size: 22 })] })],
+          }),
+        ],
+      }),
+      new TableRow({
+        children: [
+          new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: 'Всего заданий', font: 'Arial', size: 22 })] })] }),
+          new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(filteredTasks.length), font: 'Arial', size: 22, bold: true })] })] }),
+        ],
+      }),
+      ...difficultyData.map(d =>
+        new TableRow({
+          children: [
+            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: d.name.replace(/[🟢🟡🔴]\s?/, ''), font: 'Arial', size: 22 })] })] }),
+            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(d.count), font: 'Arial', size: 22 })] })] }),
+          ],
+        })
+      ),
+      ...templateData.map(d =>
+        new TableRow({
+          children: [
+            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: `Шаблон: ${d.name}`, font: 'Arial', size: 22 })] })] }),
+            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(d.value), font: 'Arial', size: 22 })] })] }),
+          ],
+        })
+      ),
+    ];
+
+    // Task detail table
+    const taskDetailRows = [
+      new TableRow({
+        children: ['#', 'Название', 'Сложность', 'Шаблон', 'Дата создания'].map(header =>
+          new TableCell({
+            borders: cellBorders, margins: cellMargins,
+            width: { size: Math.floor(9360 / 5), type: WidthType.DXA },
+            shading: { fill: 'D5E8F0', type: 'clear' as any },
+            children: [new Paragraph({ children: [new TextRun({ text: header, bold: true, font: 'Arial', size: 20 })] })],
+          })
+        ),
+      }),
+      ...filteredTasks.map((task, idx) =>
+        new TableRow({
+          children: [
+            String(idx + 1),
+            task.Title,
+            difficultyLabel(task.DifficultyLevel),
+            getTemplateName(task.FK_TemplateId),
+            task.CreatedDate ? new Date(task.CreatedDate).toLocaleDateString('ru') : '—',
+          ].map(text =>
+            new TableCell({
+              borders: cellBorders, margins: cellMargins,
+              width: { size: Math.floor(9360 / 5), type: WidthType.DXA },
+              children: [new Paragraph({ children: [new TextRun({ text, font: 'Arial', size: 20 })] })],
+            })
+          ),
+        })
+      ),
+    ];
+
+    const doc = new Document({
+      styles: {
+        default: { document: { run: { font: 'Arial', size: 24 } } },
+      },
+      sections: [{
+        properties: {
+          page: {
+            size: { width: 12240, height: 15840 },
+            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
+          },
+        },
+        children: [
+          new Paragraph({
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 },
+            children: [new TextRun({ text: 'Отчёт по заданиям', bold: true, size: 36, font: 'Arial' })],
+          }),
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+            children: [new TextRun({ text: `Период: ${periodText}`, size: 24, font: 'Arial', color: '666666' })],
+          }),
+          new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 300, after: 200 },
+            children: [new TextRun({ text: 'Сводка', bold: true, size: 28, font: 'Arial' })],
+          }),
+          new Table({
+            width: { size: 9360, type: WidthType.DXA },
+            columnWidths: [4680, 4680],
+            rows: summaryRows,
+          }),
+          new Paragraph({
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+            children: [new TextRun({ text: 'Список заданий', bold: true, size: 28, font: 'Arial' })],
+          }),
+          ...(filteredTasks.length > 0
+            ? [new Table({
+                width: { size: 9360, type: WidthType.DXA },
+                columnWidths: Array(5).fill(Math.floor(9360 / 5)),
+                rows: taskDetailRows,
+              })]
+            : [new Paragraph({ children: [new TextRun({ text: 'Нет заданий за выбранный период.', italics: true, font: 'Arial', size: 22 })] })]
+          ),
+          new Paragraph({
+            spacing: { before: 600 },
+            alignment: AlignmentType.RIGHT,
+            children: [new TextRun({ text: `Дата формирования: ${new Date().toLocaleDateString('ru')}`, size: 20, font: 'Arial', color: '999999' })],
+          }),
+        ],
+      }],
+    });
+
+    const buffer = await Packer.toBlob(doc);
+    saveAs(buffer, `report_${dateFrom || 'all'}_${dateTo || 'all'}.docx`);
+    toast.success('Отчёт экспортирован в DOCX');
+  };
 
   return (
     <div>
-      <h1 className="text-2xl font-bold tracking-tight text-foreground mb-6">📊 Отчётность</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">📊 Отчётность</h1>
+        <Button onClick={handleExportDocx} variant="outline" className="gap-2">
+          <Download className="h-4 w-4" />
+          Экспорт в DOCX
+        </Button>
+      </div>
       <div className="space-y-6">
         {/* Total tasks card */}
         <div className="bg-card rounded-2xl border-2 border-border p-6">
@@ -94,7 +269,7 @@ const ReportsPage: React.FC = () => {
           </div>
           <div className="bg-accent/50 rounded-xl p-6 text-center">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Всего заданий</p>
-            <p className="text-5xl font-extrabold text-primary">{taskCount}</p>
+            <p className="text-5xl font-extrabold text-primary">{filteredTasks.length}</p>
             <p className="text-xs text-muted-foreground font-medium mt-2">
               {dateFrom && dateTo
                 ? `с ${new Date(dateFrom).toLocaleDateString('ru')} по ${new Date(dateTo).toLocaleDateString('ru')}`
