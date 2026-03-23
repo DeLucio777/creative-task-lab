@@ -108,6 +108,7 @@ export const api = {
       FK_UserId: task.FK_UserId || 1,
       Descripti: task.Descripti,
       DifficultyLevel: task.DifficultyLevel,
+      CreatedDate: new Date().toISOString(),
     };
     MOCK_TASKS.push(newTask);
 
