@@ -24,6 +24,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
   const login = async (username: string, password: string) => {
     const found = await api.login(username, password);
+    // alert(found);
     if (found) {
       setUser(found);
       setIsGuest(false);
