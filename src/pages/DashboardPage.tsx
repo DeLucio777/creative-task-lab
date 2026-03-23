@@ -20,6 +20,7 @@ const DashboardPage: React.FC = () => {
   useEffect(() => {
     api.getTasks().then(data => { setTasks(data); setLoading(false); });
   }, []);
+
   const filtered = useMemo(() => {
     return tasks.filter(t => {
       if (difficulty.length > 0 && t.DifficultyLevel && !difficulty.includes(t.DifficultyLevel)) return false;
