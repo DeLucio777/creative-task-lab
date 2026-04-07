@@ -43,7 +43,7 @@ const LoginPage: React.FC = () => {
         <div className="text-center mb-8">
           <p className="text-4xl mb-3">🧩</p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Вход в систему</h1>
-          <p className="text-sm text-muted-foreground mt-2 font-medium">Платформа для создания заданий PECS</p>
+          <p className="text-sm text-muted-foreground mt-2 font-medium">Платформа для обучения детей с РАС</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
@@ -78,9 +78,10 @@ const LoginPage: React.FC = () => {
           </Button>
         </form>
 
-        <p className="text-xs text-muted-foreground text-center mt-6 font-medium">
-          Тестовый аккаунт: admin / admin123
-        </p>
+        <div className="mt-6 space-y-1">
+          <p className="text-xs text-muted-foreground text-center font-medium">Тестовые аккаунты:</p>
+          <p className="text-xs text-muted-foreground text-center">👑 admin / admin123 &nbsp;|&nbsp; 🎓 educator / edu123 &nbsp;|&nbsp; 👨‍👩‍👧 parent / parent123</p>
+        </div>
       </div>
     </div>
   );
