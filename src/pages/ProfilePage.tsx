@@ -1,10 +1,14 @@
 import React from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { MOCK_ROLES } from '@/data/mockData';
+
+const roleLabels: Record<string, string> = {
+  admin: 'Администратор',
+  educator: 'Педагог',
+  parent: 'Законный представитель',
+};
 
 const ProfilePage: React.FC = () => {
-  const { user, isGuest } = useAuth();
-  const role = MOCK_ROLES.find(r => r.PK_RoleId === user?.FK_RoleId);
+  const { user, role } = useAuth();
 
   return (
     <div className="max-w-lg">
@@ -16,7 +20,7 @@ const ProfilePage: React.FC = () => {
         </div>
         <div>
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Роль</p>
-          <p className="text-foreground font-bold text-lg">{role?.RoleName ?? `ID роли: ${user?.FK_RoleId}`}</p>
+          <p className="text-foreground font-bold text-lg">{roleLabels[role] ?? role}</p>
         </div>
       </div>
     </div>
