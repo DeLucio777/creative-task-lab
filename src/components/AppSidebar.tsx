@@ -17,9 +17,8 @@ interface NavItem {
 const navItems: NavItem[] = [
   { to: '/dashboard', icon: LayoutGrid, label: 'Каталог заданий', roles: ['admin', 'educator', 'parent'] },
   { to: '/editor/new', icon: FilePlus, label: 'Создать задание', roles: ['admin', 'educator'] },
-  { to: '/children', icon: Baby, label: 'Дети', roles: ['admin', 'educator'] },
+  { to: '/children', icon: Baby, label: 'Дети', roles: ['admin', 'educator', 'parent'] },
   { to: '/educators', icon: GraduationCap, label: 'Педагоги', roles: ['admin'] },
-  { to: '/representatives', icon: Users, label: 'Представители', roles: ['admin'] },
   { to: '/assignments', icon: ClipboardList, label: 'Назначения', roles: ['admin', 'educator', 'parent'] },
   { to: '/progress', icon: Trophy, label: 'Прогресс', roles: ['admin', 'educator', 'parent'] },
   { to: '/trajectories', icon: Route, label: 'Траектории', roles: ['admin', 'educator'] },

@@ -45,9 +45,9 @@ const AppRoutes = () => {
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/task/:id" element={<TaskDetailPage />} />
         <Route path="/editor/:id" element={<RoleGuard allowed={['admin', 'educator']}><TaskEditorPage /></RoleGuard>} />
-        <Route path="/children" element={<RoleGuard allowed={['admin', 'educator']}><ChildrenPage /></RoleGuard>} />
+        <Route path="/children" element={<RoleGuard allowed={['admin', 'educator', 'parent']}><ChildrenPage /></RoleGuard>} />
         <Route path="/educators" element={<RoleGuard allowed={['admin']}><EducatorsPage /></RoleGuard>} />
-        <Route path="/representatives" element={<RoleGuard allowed={['admin']}><RepresentativesPage /></RoleGuard>} />
+        <Route path="/representatives" element={<Navigate to="/children" replace />} />
         <Route path="/assignments" element={<RoleGuard allowed={['admin', 'educator', 'parent']}><AssignmentsPage /></RoleGuard>} />
         <Route path="/progress" element={<RoleGuard allowed={['admin', 'educator', 'parent']}><ProgressPage /></RoleGuard>} />
         <Route path="/trajectories" element={<RoleGuard allowed={['admin', 'educator']}><TrajectoriesPage /></RoleGuard>} />
