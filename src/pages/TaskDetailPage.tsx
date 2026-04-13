@@ -16,10 +16,10 @@ const difficultyLabels: Record<string, { label: string; emoji: string }> = {
 
 // Template ID → task type mapping
 const templateToType: Record<number, string> = {
-  3: 'find_odd',
-  4: 'match_image_word',
-  1: 'sequence',
-  2: 'sort',
+  1: 'find_odd',
+  2: 'match_image_word',
+  3: 'sequence',
+  4: 'sort',
 };
 
 // --- Interactive game components ---
