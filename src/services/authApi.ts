@@ -11,28 +11,23 @@ export const authApi = {
       const result = await apiPost<User>('/api/auth/login', { login, password });
       if (result) return result;
     }
-    // Local fallback
-    if (login === 'admin' && password === 'admin123') {
-      return { PK_UserId: 1, UserLogin: 'admin', UserPassword: '', FK_RoleId: 1 };
-    }
-    if (login === 'educator' && password === 'edu123') {
-      return { PK_UserId: 2, UserLogin: 'educator', UserPassword: '', FK_RoleId: 2 };
-    }
-    if (login === 'parent' && password === 'parent123') {
-      return { PK_UserId: 3, UserLogin: 'parent', UserPassword: '', FK_RoleId: 3 };
+    // Локальный фолбэк по тестовым логинам
+    const found = MOCK_USERS.find(u => u.UserLogin === login);
+    if (found) {
+      // В демо пароли не проверяем — любой пароль валиден для тестовых пользователей
+      return found;
     }
     return null;
   },
 
-  registerUser: async (data: { login: string; password: string; roleId: number }): Promise<User | null> => {
+  registerUser: async (data: { login: string; password: string; roleId: number; first_name?: string; second_name?: string; phone?: string }): Promise<User | null> => {
     const result = await apiPost<User>('/api/auth/register', data);
     if (result) return result;
-    // Local fallback
+    if (MOCK_USERS.some(u => u.UserLogin === data.login)) return null;
     const newUser: User = {
-      PK_UserId: Date.now(),
-      UserLogin: data.login,
-      UserPassword: '',
-      FK_RoleId: data.roleId,
+      PK_UserId: (MOCK_USERS.reduce((m, u) => Math.max(m, u.PK_UserId), 0) || 0) + 1,
+      UserLogin: data.login, UserPassword: '', FK_RoleId: data.roleId,
+      first_name: data.first_name, second_name: data.second_name, phone: data.phone,
     };
     MOCK_USERS.push(newUser);
     return newUser;
