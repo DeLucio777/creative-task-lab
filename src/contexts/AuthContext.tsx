@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   loginAsGuest: () => void;
   logout: () => void;
+  setUser: (u: User) => void;
 }
 
 const roleMap: Record<number, AppRole> = { 1: 'admin', 2: 'educator', 3: 'parent' };
@@ -22,26 +23,26 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
   const [isGuest, setIsGuest] = useState(false);
 
   const role: AppRole = user ? (roleMap[user.FK_RoleId ?? 3] ?? 'parent') : 'parent';
 
   const login = async (username: string, password: string) => {
     const found = await api.login(username, password);
-    if (found) { setUser(found); setIsGuest(false); return true; }
+    if (found) { setUserState(found); setIsGuest(false); return true; }
     return false;
   };
 
   const loginAsGuest = () => {
-    setUser({ PK_UserId: 0, UserLogin: 'Гость', UserPassword: '', FK_RoleId: 3 });
+    setUserState({ PK_UserId: 0, UserLogin: 'Гость', UserPassword: '', FK_RoleId: 3, first_name: 'Гость' });
     setIsGuest(true);
   };
 
-  const logout = () => { setUser(null); setIsGuest(false); };
+  const logout = () => { setUserState(null); setIsGuest(false); };
 
   return (
-    <AuthContext.Provider value={{ user, isGuest, role, login, loginAsGuest, logout }}>
+    <AuthContext.Provider value={{ user, isGuest, role, login, loginAsGuest, logout, setUser: setUserState }}>
       {children}
     </AuthContext.Provider>
   );
