@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { educatorsApi } from '@/services/entitiesApi';
+import { authApi } from '@/services/authApi';
 import type { Educator } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +13,7 @@ const EducatorsPage: React.FC = () => {
   const [educators, setEducators] = useState<Educator[]>([]);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ FullName: '', Specialization: '', Phone: '', Email: '' });
+  const [form, setForm] = useState({ FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' });
 
   useEffect(() => { educatorsApi.getAll().then(setEducators); }, []);
 
@@ -20,9 +21,21 @@ const EducatorsPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.FullName.trim()) { toast.error('Введите ФИО'); return; }
-    const created = await educatorsApi.create(form);
-    if (created) { setEducators(prev => [...prev, created]); toast.success('Педагог добавлен'); }
-    setDialogOpen(false);
+    if (!form.UserLogin.trim() || !form.UserPassword.trim()) { toast.error('Укажите логин и пароль для входа'); return; }
+    // Регистрация пользователя + создание педагога
+    const u = await authApi.registerUser({
+      login: form.UserLogin, password: form.UserPassword, roleId: 2,
+      first_name: form.FullName.split(' ')[1], second_name: form.FullName.split(' ')[0], phone: form.Phone,
+    });
+    if (!u) { toast.error('Логин уже занят'); return; }
+    const created = await educatorsApi.create({
+      FullName: form.FullName, Specialization: form.Specialization, Phone: form.Phone, Email: form.Email, FK_UserId: u.PK_UserId,
+    });
+    if (created) {
+      setEducators(prev => [...prev, created]);
+      toast.success('Педагог зарегистрирован');
+      setDialogOpen(false);
+    }
   };
 
   const handleDelete = async (id: number) => {
@@ -36,8 +49,8 @@ const EducatorsPage: React.FC = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">🎓 Педагоги</h1>
-        <Button onClick={() => { setForm({ FullName: '', Specialization: '', Phone: '', Email: '' }); setDialogOpen(true); }} className="gap-2 rounded-xl font-bold h-11">
-          <Plus className="h-4 w-4" /> Добавить
+        <Button onClick={() => { setForm({ FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' }); setDialogOpen(true); }} className="gap-2 rounded-xl font-bold h-11">
+          <Plus className="h-4 w-4" /> Зарегистрировать
         </Button>
       </div>
 
@@ -48,7 +61,7 @@ const EducatorsPage: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(edu => (
-          <div key={edu.PK_EducatorId} className="bg-card border-2 border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-md transition-all">
+          <div key={edu.PK_EducatorId} className="bg-card border-2 border-border rounded-2xl p-5">
             <div className="flex items-start justify-between mb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center">
@@ -76,14 +89,23 @@ const EducatorsPage: React.FC = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader><DialogTitle>Добавить педагога</DialogTitle></DialogHeader>
+        <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Регистрация педагога</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="space-y-2"><Label className="font-semibold">ФИО *</Label><Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2"><Label className="font-semibold">ФИО *</Label><Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} className="rounded-xl h-11" placeholder="Фамилия Имя Отчество" /></div>
             <div className="space-y-2"><Label className="font-semibold">Специализация</Label><Input value={form.Specialization} onChange={e => setForm(f => ({ ...f, Specialization: e.target.value }))} className="rounded-xl h-11" /></div>
-            <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: e.target.value }))} className="rounded-xl h-11" /></div>
-            <div className="space-y-2"><Label className="font-semibold">Email</Label><Input value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} className="rounded-xl h-11" /></div>
-            <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="font-semibold">Email</Label><Input value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} className="rounded-xl h-11" /></div>
+            </div>
+            <div className="border-t border-border pt-4 space-y-3">
+              <p className="text-sm font-bold text-foreground">🔐 Учётные данные для входа</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} className="rounded-xl h-11" /></div>
+                <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} className="rounded-xl h-11" /></div>
+              </div>
+            </div>
+            <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">Зарегистрировать</Button>
           </div>
         </DialogContent>
       </Dialog>
