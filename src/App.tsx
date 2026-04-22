@@ -19,7 +19,6 @@ import EducatorsPage from "@/pages/EducatorsPage";
 import GroupsPage from "@/pages/GroupsPage";
 import AssignmentsPage from "@/pages/AssignmentsPage";
 import ProgressPage from "@/pages/ProgressPage";
-import TrajectoriesPage from "@/pages/TrajectoriesPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,8 +69,6 @@ const AppRoutes = () => {
         <Route path="/assignments" element={<RoleGuard allowed={['admin', 'educator']}><AssignmentsPage /></RoleGuard>} />
         {/* Прогресс — все авторизованные */}
         <Route path="/progress" element={<ProgressPage />} />
-        {/* Траектории — педагог/админ */}
-        <Route path="/trajectories" element={<RoleGuard allowed={['admin', 'educator']}><TrajectoriesPage /></RoleGuard>} />
         {/* Медиа-библиотека — педагог/админ */}
         <Route path="/media-library" element={<RoleGuard allowed={['admin', 'educator']}><MediaLibraryPage /></RoleGuard>} />
         {/* Профиль — все */}

@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, FilePlus, BarChart3, Image, LogOut, User,
-  Users, GraduationCap, Baby, ClipboardList, Trophy, Route, Home, UsersRound,
+  Users, GraduationCap, Baby, ClipboardList, Trophy, Home, UsersRound,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppRole } from '@/types/models';
@@ -29,7 +29,6 @@ const navItems: NavItem[] = [
 
   // Цепочки/назначения и прогресс
   { to: '/assignments', icon: ClipboardList, label: 'Назначить цепочку', roles: ['admin', 'educator'] },
-  { to: '/trajectories', icon: Route, label: 'Траектории', roles: ['admin', 'educator'] },
   { to: '/progress', icon: Trophy, label: 'Прогресс', roles: ['admin', 'educator', 'parent'] },
 
   // Медиа и отчёты
