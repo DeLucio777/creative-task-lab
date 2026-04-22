@@ -262,6 +262,25 @@ export const taskListsApi = {
     return it || null;
   },
 
+  /** Помечает выполненными все элементы цепочек данного пользователя по taskId. */
+  markTaskCompletedForUser: async (taskId: number, userId: number) => {
+    const updated = MOCK_TASK_LIST_ITEMS.filter(i => i.task_id === taskId && i.user_id === userId && !i.complited);
+    updated.forEach(i => { i.complited = true; });
+    return updated;
+  },
+
+  /** Возвращает статусы цепочек пользователя: { listId: { total, done, isDone } }. */
+  getStatusesForUser: async (userId: number) => {
+    const map: Record<number, { total: number; done: number; isDone: boolean }> = {};
+    MOCK_TASK_LIST_ITEMS.filter(i => i.user_id === userId).forEach(i => {
+      if (!map[i.task_list_id]) map[i.task_list_id] = { total: 0, done: 0, isDone: false };
+      map[i.task_list_id].total++;
+      if (i.complited) map[i.task_list_id].done++;
+    });
+    Object.values(map).forEach(s => { s.isDone = s.total > 0 && s.done === s.total; });
+    return map;
+  },
+
   delete: async (listId: number) => {
     const idx = MOCK_TASK_LISTS.findIndex(l => l.PK_id === listId);
     if (idx >= 0) { MOCK_TASK_LISTS.splice(idx, 1);
