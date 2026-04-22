@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2 } from 'lucide-react';
 import { api } from '@/services/api';
+import { taskListsApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
 import { Progress } from '@/components/ui/progress';
@@ -434,10 +435,27 @@ const TaskDetailPage: React.FC = () => {
   const template = task ? templates.find(t => t.PK_TemplateId === task.FK_TemplateId) : null;
   const taskType = task ? templateToType[task.FK_TemplateId] : null;
 
-  const handleComplete = useCallback((correct: boolean) => {
+  const handleComplete = useCallback(async (correct: boolean) => {
     if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
-  }, []);
+
+    // При успешном выполнении — отметить шаги цепочки и проверить, завершилась ли цепочка целиком
+    if (correct && user) {
+      const updated = await taskListsApi.markTaskCompletedForUser(taskId, user.PK_UserId);
+      if (updated.length > 0) {
+        const statuses = await taskListsApi.getStatusesForUser(user.PK_UserId);
+        const finishedLists = updated
+          .map(u => u.task_list_id)
+          .filter((v, i, arr) => arr.indexOf(v) === i)
+          .filter(listId => statuses[listId]?.isDone);
+        if (finishedLists.length > 0) {
+          toast.success(`🎉 Цепочка заданий завершена!`);
+        } else {
+          toast.success('Шаг цепочки выполнен ✅');
+        }
+      }
+    }
+  }, [taskId, user]);
 
   const handleRestart = () => {
     setResult(null);

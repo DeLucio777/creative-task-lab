@@ -18,7 +18,12 @@ const DashboardPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getTasks().then(data => { setTasks(data); setLoading(false); });
+    api.getTasks().then(data => {
+      // В общем каталоге показываем только опубликованные задания.
+      // Приватные задания доступны автору в его личном кабинете.
+      setTasks(data.filter(t => t.IsPublished));
+      setLoading(false);
+    });
   }, []);
 
   const filtered = useMemo(() => {
