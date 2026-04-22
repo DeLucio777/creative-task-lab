@@ -40,13 +40,19 @@ const AssignmentsPage: React.FC = () => {
 
   const canManage = role === 'admin' || role === 'educator';
 
+  const loadItemsFor = async (allLists: TaskList[]) => {
+    const allItems: TaskListItem[] = [];
+    for (const l of allLists) allItems.push(...await taskListsApi.getItems(l.PK_id));
+    setItems(allItems);
+  };
+
   const reload = async () => {
+    let visibleLists: TaskList[] = [];
     if (role === 'educator' && user) {
       const ed = await educatorsApi.getByUserId(user.PK_UserId);
       setEducator(ed);
       if (ed) {
-        const ls = await taskListsApi.getByTeacher(user.PK_UserId);
-        setLists(ls);
+        visibleLists = await taskListsApi.getByTeacher(user.PK_UserId);
         const gs = await groupsApi.getByEducator(ed.PK_EducatorId);
         setGroups(gs);
         const allMembers: ChildGroupMember[] = [];
@@ -54,17 +60,12 @@ const AssignmentsPage: React.FC = () => {
         setGroupMembers(allMembers);
       }
     } else if (role === 'admin') {
-      setLists(await taskListsApi.getAll());
+      visibleLists = await taskListsApi.getAll();
       setGroups(await groupsApi.getAll());
     }
+    setLists(visibleLists);
+    await loadItemsFor(visibleLists);
   };
-
-  const reloadItems = () =>
-    taskListsApi.getAll().then(async all => {
-      const allItems: TaskListItem[] = [];
-      for (const l of all) allItems.push(...await taskListsApi.getItems(l.PK_id));
-      setItems(allItems);
-    });
 
   useEffect(() => {
     reload();
@@ -72,7 +73,6 @@ const AssignmentsPage: React.FC = () => {
     tasksApi.getTemplates().then(setTemplates);
     childrenApi.getAll().then(setChildren);
     representativesApi.getAll().then(setReps);
-    reloadItems();
   }, [user, role]);
 
   const openCreate = () => {
