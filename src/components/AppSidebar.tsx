@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, FilePlus, BarChart3, Image, LogOut, User,
-  Users, GraduationCap, Baby, ClipboardList, Trophy, Route,
+  Users, GraduationCap, Baby, ClipboardList, Trophy, Route, Home, UsersRound,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppRole } from '@/types/models';
@@ -11,19 +11,32 @@ interface NavItem {
   to: string;
   icon: React.ElementType;
   label: string;
-  roles: AppRole[]; // какие роли видят пункт
+  roles: AppRole[];
 }
 
 const navItems: NavItem[] = [
-  { to: '/dashboard', icon: LayoutGrid, label: 'Каталог заданий', roles: ['admin', 'educator', 'parent'] },
+  // Родитель/ребёнок — главная
+  { to: '/home', icon: Home, label: 'Мои задания', roles: ['parent'] },
+
+  // Каталог — только педагог/админ
+  { to: '/dashboard', icon: LayoutGrid, label: 'Каталог заданий', roles: ['admin', 'educator'] },
   { to: '/editor/new', icon: FilePlus, label: 'Создать задание', roles: ['admin', 'educator'] },
-  { to: '/children', icon: Baby, label: 'Дети', roles: ['admin', 'educator', 'parent'] },
+
+  // Управление учениками
+  { to: '/children', icon: Baby, label: 'Дети', roles: ['admin', 'educator'] },
+  { to: '/groups', icon: UsersRound, label: 'Группы', roles: ['admin', 'educator'] },
   { to: '/educators', icon: GraduationCap, label: 'Педагоги', roles: ['admin'] },
-  { to: '/assignments', icon: ClipboardList, label: 'Назначения', roles: ['admin', 'educator', 'parent'] },
-  { to: '/progress', icon: Trophy, label: 'Прогресс', roles: ['admin', 'educator', 'parent'] },
+
+  // Цепочки/назначения и прогресс
+  { to: '/assignments', icon: ClipboardList, label: 'Назначить цепочку', roles: ['admin', 'educator'] },
   { to: '/trajectories', icon: Route, label: 'Траектории', roles: ['admin', 'educator'] },
+  { to: '/progress', icon: Trophy, label: 'Прогресс', roles: ['admin', 'educator', 'parent'] },
+
+  // Медиа и отчёты
   { to: '/media-library', icon: Image, label: 'Медиа-библиотека', roles: ['admin', 'educator'] },
   { to: '/reports', icon: BarChart3, label: 'Отчётность', roles: ['admin', 'educator'] },
+
+  // Профиль — у всех
   { to: '/profile', icon: User, label: 'Личный кабинет', roles: ['admin', 'educator', 'parent'] },
 ];
 
@@ -34,7 +47,7 @@ const AppSidebar: React.FC = () => {
   const handleLogout = () => { logout(); navigate('/'); };
 
   const visibleItems = navItems.filter(item => {
-    if (isGuest) return item.to === '/dashboard';
+    if (isGuest) return item.to === '/home';
     return item.roles.includes(role);
   });
 
@@ -44,12 +57,16 @@ const AppSidebar: React.FC = () => {
     parent: 'Представитель',
   };
 
+  const displayName = user?.first_name || user?.second_name
+    ? `${user?.second_name ?? ''} ${user?.first_name ?? ''}`.trim()
+    : user?.UserLogin ?? 'Гость';
+
   return (
     <aside className="w-[260px] h-screen bg-card border-r border-border flex flex-col shrink-0">
       <div className="p-6 border-b border-border">
         <h2 className="text-xl font-bold tracking-tight text-foreground">🧩 PECS Editor</h2>
         <p className="text-xs text-muted-foreground mt-1 font-medium">
-          {user?.UserLogin ?? 'Гость'} • {isGuest ? 'Гость' : roleLabel[role]}
+          {displayName} • {isGuest ? 'Гость' : roleLabel[role]}
         </p>
       </div>
 
