@@ -4,28 +4,41 @@ import type { Child, Educator, LegalRepresentative } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Trash2, Edit2, Baby, Users } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Baby, Users, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 
 const ChildrenPage: React.FC = () => {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
   const [educators, setEducators] = useState<Educator[]>([]);
   const [representatives, setRepresentatives] = useState<LegalRepresentative[]>([]);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
+  const [viewingChild, setViewingChild] = useState<Child | null>(null);
   const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
 
-  const canEdit = role === 'admin' || role === 'educator';
+  // Только админ может изменять/добавлять/удалять детей. Педагог — только просмотр своих.
+  const canEdit = role === 'admin';
+  const isEducator = role === 'educator';
 
   useEffect(() => {
-    childrenApi.getAll().then(setChildren);
-    educatorsApi.getAll().then(setEducators);
-    representativesApi.getAll().then(setRepresentatives);
-  }, []);
+    (async () => {
+      const [allChildren, allEducators, allReps] = await Promise.all([
+        childrenApi.getAll(), educatorsApi.getAll(), representativesApi.getAll(),
+      ]);
+      setEducators(allEducators);
+      setRepresentatives(allReps);
+      if (isEducator && user) {
+        const me = allEducators.find(e => e.FK_UserId === user.PK_UserId);
+        setChildren(me ? allChildren.filter(c => c.FK_EducatorId === me.PK_EducatorId) : []);
+      } else {
+        setChildren(allChildren);
+      }
+    })();
+  }, [user, role, isEducator]);
 
   const filtered = children.filter(c =>
     !search || c.FullName.toLowerCase().includes(search.toLowerCase())
