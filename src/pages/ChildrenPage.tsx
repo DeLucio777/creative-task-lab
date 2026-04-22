@@ -212,6 +212,47 @@ const ChildrenPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Диалог просмотра для педагога */}
+      <Dialog open={!!viewingChild} onOpenChange={(o) => !o && setViewingChild(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Профиль ребёнка</DialogTitle>
+          </DialogHeader>
+          {viewingChild && (() => {
+            const rep = getRepName(viewingChild.FK_RepresentativeId);
+            const edu = getEduName(viewingChild.FK_EducatorId);
+            return (
+              <div className="space-y-3 mt-2 text-sm">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <Baby className="h-6 w-6 text-primary" />
+                  </div>
+                  <div>
+                    <p className="font-bold text-foreground text-base">{viewingChild.FullName}</p>
+                    <p className="text-xs text-muted-foreground">{getAge(viewingChild.BirthDate)}</p>
+                  </div>
+                </div>
+                {viewingChild.BirthDate && <p><span className="font-semibold">📅 Дата рождения:</span> {new Date(viewingChild.BirthDate).toLocaleDateString('ru')}</p>}
+                {viewingChild.SpeechLevel && <p><span className="font-semibold">🗣️ Речь:</span> {viewingChild.SpeechLevel}</p>}
+                {viewingChild.PerceptionFeatures && <p><span className="font-semibold">👁️ Восприятие:</span> {viewingChild.PerceptionFeatures}</p>}
+                {edu && <p><span className="font-semibold">🎓 Педагог:</span> {edu.FullName}</p>}
+                {rep && (
+                  <div className="pt-2 border-t border-border space-y-1">
+                    <p className="font-semibold">👪 Представитель</p>
+                    <p>{rep.FullName} {rep.RelationType && `(${rep.RelationType})`}</p>
+                    {rep.Phone && <p className="text-muted-foreground">📞 {rep.Phone}</p>}
+                    {rep.Email && <p className="text-muted-foreground">📧 {rep.Email}</p>}
+                  </div>
+                )}
+                <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
+                  Изменения может вносить только администратор.
+                </p>
+              </div>
+            );
+          })()}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
