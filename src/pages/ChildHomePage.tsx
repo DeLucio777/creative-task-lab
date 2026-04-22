@@ -98,13 +98,19 @@ const ChildHomePage: React.FC = () => {
             const done = items.filter(i => i.complited).length;
             const pct = items.length > 0 ? Math.round((done / items.length) * 100) : 0;
             return (
-              <div key={list.PK_id} className="bg-card border-2 border-border rounded-2xl p-5">
+              <div key={list.PK_id} className={`bg-card border-2 rounded-2xl p-5 transition-all ${pct === 100 ? 'border-success bg-success/5' : 'border-border'}`}>
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <p className="font-bold text-foreground">{list.Title}</p>
-                    {list.Descripti && <p className="text-xs text-muted-foreground">{list.Descripti}</p>}
+                  <div className="flex items-center gap-2">
+                    {pct === 100 && <CheckCircle2 className="h-5 w-5 text-success shrink-0" />}
+                    <div>
+                      <p className="font-bold text-foreground">
+                        {list.Title}
+                        {pct === 100 && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-bold">Выполнено</span>}
+                      </p>
+                      {list.Descripti && <p className="text-xs text-muted-foreground">{list.Descripti}</p>}
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-primary">{done}/{items.length}</span>
+                  <span className="text-xs font-bold text-primary shrink-0">{done}/{items.length}</span>
                 </div>
                 <Progress value={pct} className="h-2 mb-3" />
                 <div className="flex flex-wrap gap-1.5">
