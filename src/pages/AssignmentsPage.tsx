@@ -137,14 +137,12 @@ const AssignmentsPage: React.FC = () => {
     setDialogOpen(false);
     toast.success(`Цепочка назначена ${targetUserIds.size} ученикам`);
     reload();
-    reloadItems();
   };
 
   const handleDelete = async (listId: number) => {
     if (await taskListsApi.delete(listId)) {
       toast.success('Цепочка удалена');
       reload();
-      reloadItems();
     }
   };
 
