@@ -137,6 +137,11 @@ const ChildrenPage: React.FC = () => {
                     <button onClick={() => handleDelete(child.PK_ChildId)} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></button>
                   </div>
                 )}
+                {isEducator && (
+                  <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                )}
               </div>
               {child.SpeechLevel && <p className="text-xs text-muted-foreground mb-1">🗣️ Речь: {child.SpeechLevel}</p>}
               {child.PerceptionFeatures && <p className="text-xs text-muted-foreground mb-1">👁️ Восприятие: {child.PerceptionFeatures}</p>}
