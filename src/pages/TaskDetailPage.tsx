@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2 } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
 import { api } from '@/services/api';
 import { taskListsApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -366,6 +366,12 @@ const TaskDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
   const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
+
+  // Подсказка
+  const [hintShown, setHintShown] = useState(false);
+
+  // Следующее задание в цепочке
+  const [nextInChain, setNextInChain] = useState<{ listId: number; nextTaskId: number; position: number } | null>(null);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
