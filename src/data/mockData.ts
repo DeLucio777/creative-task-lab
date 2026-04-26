@@ -93,11 +93,26 @@ export const MOCK_TASKS: Task[] = [
 
 /* ── Конструкции заданий ── */
 export const MOCK_TASK_CONSTRUCTIONS: TaskConstruction[] = [
-  { PK_ConstructionId: 1, FK_TaskId: 1, ParameterName: 'category',   ParameterValue: 'фрукты' },
-  { PK_ConstructionId: 2, FK_TaskId: 1, ParameterName: 'itemCount',  ParameterValue: '4' },
-  { PK_ConstructionId: 3, FK_TaskId: 2, ParameterName: 'pairsCount', ParameterValue: '5' },
-  { PK_ConstructionId: 4, FK_TaskId: 3, ParameterName: 'stepsCount', ParameterValue: '5' },
-  { PK_ConstructionId: 5, FK_TaskId: 4, ParameterName: 'categories', ParameterValue: 'одежда,еда' },
+  { PK_ConstructionId: 1,  FK_TaskId: 1, ParameterName: 'category',   ParameterValue: 'фрукты' },
+  { PK_ConstructionId: 2,  FK_TaskId: 1, ParameterName: 'itemCount',  ParameterValue: '4' },
+  { PK_ConstructionId: 3,  FK_TaskId: 2, ParameterName: 'pairsCount', ParameterValue: '5' },
+  { PK_ConstructionId: 4,  FK_TaskId: 3, ParameterName: 'stepsCount', ParameterValue: '5' },
+  { PK_ConstructionId: 5,  FK_TaskId: 4, ParameterName: 'categories', ParameterValue: 'одежда,еда' },
+  // Подсказки (новое поле HintText)
+  { PK_ConstructionId: 10, FK_TaskId: 1, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 11, FK_TaskId: 1, ParameterName: 'HintText',  ParameterValue: 'Фрукты — это сладкие плоды растений. Что из этого не растёт на дереве? 🍎' },
+  { PK_ConstructionId: 12, FK_TaskId: 2, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 13, FK_TaskId: 2, ParameterName: 'HintText',  ParameterValue: 'Внимательно посмотри на картинку и подбери название животного. 🐾' },
+  { PK_ConstructionId: 14, FK_TaskId: 3, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 15, FK_TaskId: 3, ParameterName: 'HintText',  ParameterValue: 'Подумай, что обычно делают сразу после пробуждения. Шаги идут по порядку. ⏰' },
+  { PK_ConstructionId: 16, FK_TaskId: 4, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 17, FK_TaskId: 4, ParameterName: 'HintText',  ParameterValue: 'Одежду носят, а еду — едят. Распредели предметы в правильную корзину. 👕🥕' },
+  { PK_ConstructionId: 18, FK_TaskId: 5, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 19, FK_TaskId: 5, ParameterName: 'HintText',  ParameterValue: 'Транспорт — это то, на чём ездят. У какого предмета нет двигателя? 🚗' },
+  { PK_ConstructionId: 20, FK_TaskId: 6, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 21, FK_TaskId: 6, ParameterName: 'HintText',  ParameterValue: 'Сначала смотри на цвет, потом на форму. Назови вслух, что видишь. 🎨' },
+  { PK_ConstructionId: 22, FK_TaskId: 7, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 23, FK_TaskId: 7, ParameterName: 'HintText',  ParameterValue: 'Сначала надевают то, что ближе к телу. В конце — обувь. 👟' },
 ];
 
 /* ── Элементы заданий ── */
