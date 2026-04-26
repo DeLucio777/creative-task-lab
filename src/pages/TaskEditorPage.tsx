@@ -19,11 +19,18 @@ interface SeqItem { id: string; order: number; value: string; pecsId?: number; }
 interface SortItemData { id: string; value: string; sortKey: string; pecsId?: number; }
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string; emoji: string; templateId: number }[] = [
-  { value: 'find_odd', label: 'Найди лишнее', emoji: '🔍', templateId: 3 },
-  { value: 'match_image_word', label: 'Сопоставь картинку и слово', emoji: '🖼️', templateId: 4 },
-  { value: 'sequence', label: 'Продолжи последовательность', emoji: '🔢', templateId: 1 },
-  { value: 'sort', label: 'Сортировка по признаку', emoji: '📂', templateId: 2 },
+  { value: 'find_odd',         label: 'Найди лишнее',                   emoji: '🔍', templateId: 1 },
+  { value: 'match_image_word', label: 'Сопоставь картинку и слово',     emoji: '🖼️', templateId: 2 },
+  { value: 'sequence',         label: 'Продолжи последовательность',     emoji: '🔢', templateId: 3 },
+  { value: 'sort',             label: 'Сортировка по признаку',          emoji: '📂', templateId: 4 },
 ];
+
+const templateToType: Record<number, TaskType> = {
+  1: 'find_odd',
+  2: 'match_image_word',
+  3: 'sequence',
+  4: 'sort',
+};
 
 // --- PECS Preview subcomponent ---
 const PecsPreview: React.FC<{
