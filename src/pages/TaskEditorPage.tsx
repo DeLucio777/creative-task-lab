@@ -98,6 +98,8 @@ const TaskEditorPage: React.FC = () => {
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [saving, setSaving] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(!isNew);
+  const [originalAuthorId, setOriginalAuthorId] = useState<number | null>(null);
+  const [originalIsPublished, setOriginalIsPublished] = useState<boolean | undefined>(undefined);
 
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
     { id: '1', text: '', isOdd: false },
