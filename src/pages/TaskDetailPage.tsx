@@ -677,6 +677,11 @@ const TaskDetailPage: React.FC = () => {
             <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
           </p>
         )}
+        {hasHint && (
+          <p className="text-sm text-warning font-bold mb-4 flex items-center gap-1.5">
+            <Lightbulb className="h-4 w-4" /> В задании есть подсказка — нажми на лампочку, если потребуется помощь
+          </p>
+        )}
         <p className="text-muted-foreground leading-relaxed mb-8 font-medium">{task.Descripti}</p>
 
         <Button
