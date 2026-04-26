@@ -64,13 +64,13 @@ const ProfilePage: React.FC = () => {
     const updated = await usersApi.update(user.PK_UserId, payload);
     if (updated) {
       setUser(updated);
-      // Синхронизировать связанные сущности (только если изменено ФИО — т.е. для админа)
-      if (canEditName && role === 'educator' && educatorRec) {
-        const fullName = `${form.second_name} ${form.first_name}`.trim();
-        await educatorsApi.update(educatorRec.PK_EducatorId, { FullName: fullName, Phone: form.phone });
-      } else if (!canEditName && role === 'educator' && educatorRec) {
-        // педагог обновляет только телефон в карточке
-        await educatorsApi.update(educatorRec.PK_EducatorId, { Phone: form.phone });
+      // Синхронизировать связанные сущности педагога (телефон всегда; ФИО только если разрешено)
+      if (role === 'educator' && educatorRec) {
+        const eduPayload: { FullName?: string; Phone?: string } = { Phone: form.phone };
+        if (canEditName) {
+          eduPayload.FullName = `${form.second_name} ${form.first_name}`.trim();
+        }
+        await educatorsApi.update(educatorRec.PK_EducatorId, eduPayload);
       }
       toast.success('Профиль сохранён');
     }
