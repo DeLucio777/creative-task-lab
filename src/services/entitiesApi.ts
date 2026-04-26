@@ -281,6 +281,26 @@ export const taskListsApi = {
     return map;
   },
 
+  /**
+   * Возвращает следующее по позиции задание в цепочке для конкретного пользователя.
+   * Учитывает: тот же task_list, position > текущей, ещё не выполнено.
+   * Возвращает { listId, nextTaskId, position } либо null.
+   */
+  getNextInChainsForUser: async (currentTaskId: number, userId: number) => {
+    // Все цепочки пользователя, где встречается текущее задание
+    const myItems = MOCK_TASK_LIST_ITEMS.filter(i => i.user_id === userId);
+    const currents = myItems.filter(i => i.task_id === currentTaskId);
+    for (const cur of currents) {
+      const next = myItems
+        .filter(i => i.task_list_id === cur.task_list_id && i.position > cur.position)
+        .sort((a, b) => a.position - b.position)[0];
+      if (next) {
+        return { listId: cur.task_list_id, nextTaskId: next.task_id, position: next.position };
+      }
+    }
+    return null;
+  },
+
   delete: async (listId: number) => {
     const idx = MOCK_TASK_LISTS.findIndex(l => l.PK_id === listId);
     if (idx >= 0) { MOCK_TASK_LISTS.splice(idx, 1);
