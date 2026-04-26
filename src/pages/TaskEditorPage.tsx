@@ -97,6 +97,7 @@ const TaskEditorPage: React.FC = () => {
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(!isNew);
 
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
     { id: '1', text: '', isOdd: false },
