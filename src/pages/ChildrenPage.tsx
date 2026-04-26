@@ -106,6 +106,8 @@ const ChildrenPage: React.FC = () => {
       setSpeechEditChild(null);
     }
   };
+
+  const getAge = (birthDate?: string) => {
     if (!birthDate) return '—';
     const diff = Date.now() - new Date(birthDate).getTime();
     return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))} лет`;
