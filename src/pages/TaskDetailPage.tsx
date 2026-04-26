@@ -636,19 +636,29 @@ const TaskDetailPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" /> Каталог заданий
         </button>
         {isAdmin && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="rounded-xl font-bold gap-2"
-            onClick={async () => {
-              if (!confirm('Удалить задание?')) return;
-              const ok = await api.deleteTask(taskId);
-              if (ok) { toast.success('Задание удалено'); navigate('/dashboard'); }
-              else toast.error('Ошибка при удалении');
-            }}
-          >
-            <Trash2 className="h-4 w-4" /> Удалить
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl font-bold gap-2"
+              onClick={() => navigate(`/editor/${taskId}`)}
+            >
+              <Pencil className="h-4 w-4" /> Редактировать
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-xl font-bold gap-2"
+              onClick={async () => {
+                if (!confirm('Удалить задание?')) return;
+                const ok = await api.deleteTask(taskId);
+                if (ok) { toast.success('Задание удалено'); navigate('/dashboard'); }
+                else toast.error('Ошибка при удалении');
+              }}
+            >
+              <Trash2 className="h-4 w-4" /> Удалить
+            </Button>
+          </div>
         )}
       </div>
 
