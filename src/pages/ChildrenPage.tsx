@@ -92,7 +92,20 @@ const ChildrenPage: React.FC = () => {
     }
   };
 
-  const getAge = (birthDate?: string) => {
+  const openSpeechEdit = (child: Child) => {
+    setSpeechEditChild(child);
+    setSpeechValue(child.SpeechLevel || '');
+  };
+
+  const handleSpeechSave = async () => {
+    if (!speechEditChild) return;
+    const updated = await childrenApi.update(speechEditChild.PK_ChildId, { SpeechLevel: speechValue });
+    if (updated) {
+      setChildren(prev => prev.map(c => c.PK_ChildId === speechEditChild.PK_ChildId ? { ...c, SpeechLevel: speechValue } : c));
+      toast.success('Уровень речи обновлён');
+      setSpeechEditChild(null);
+    }
+  };
     if (!birthDate) return '—';
     const diff = Date.now() - new Date(birthDate).getTime();
     return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))} лет`;
