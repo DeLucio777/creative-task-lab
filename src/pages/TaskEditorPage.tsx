@@ -237,9 +237,11 @@ const TaskEditorPage: React.FC = () => {
         payload.sortItems = sortItems.map(i => ({ ItemValue: i.value, SortKey: i.sortKey, FK_pecsId: i.pecsId }));
       }
 
-      const result = await api.createFullTask(payload);
+      const result = isNew
+        ? await api.createFullTask(payload)
+        : await api.updateFullTask(Number(id), payload);
       if (result) {
-        toast.success('Задание сохранено!');
+        toast.success(isNew ? 'Задание создано!' : 'Задание обновлено!');
         navigate('/dashboard');
       } else {
         toast.error('Ошибка при сохранении');
