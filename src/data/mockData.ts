@@ -19,29 +19,29 @@ export const MOCK_ROLES: Role[] = [
 export const MOCK_USERS: User[] = [
   // Админ
   { PK_UserId: 1, UserLogin: 'admin', UserPassword: '', FK_RoleId: 1,
-    first_name: 'Александр', second_name: 'Орлов', phone: '+7 (900) 000-00-01' },
+    first_name: 'Александр', second_name: 'Орлов', phone: '+375 (29) 000-00-01' },
   // Педагоги
   { PK_UserId: 2, UserLogin: 'educator', UserPassword: '', FK_RoleId: 2,
-    first_name: 'Елена', second_name: 'Смирнова', phone: '+7 (900) 111-22-33' },
+    first_name: 'Елена', second_name: 'Смирнова', phone: '+375 (29) 111-22-33' },
   { PK_UserId: 4, UserLogin: 'ivanova', UserPassword: '', FK_RoleId: 2,
-    first_name: 'Мария', second_name: 'Иванова', phone: '+7 (900) 444-55-66' },
+    first_name: 'Мария', second_name: 'Иванова', phone: '+375 (44) 444-55-66' },
   // Представители (родители) — они же «дети» с точки зрения логина
   { PK_UserId: 3, UserLogin: 'parent', UserPassword: '', FK_RoleId: 3,
-    first_name: 'Анна', second_name: 'Козлова', phone: '+7 (900) 777-88-99' },
+    first_name: 'Анна', second_name: 'Козлова', phone: '+375 (33) 777-88-99' },
   { PK_UserId: 5, UserLogin: 'petrov', UserPassword: '', FK_RoleId: 3,
-    first_name: 'Дмитрий', second_name: 'Петров', phone: '+7 (900) 222-33-44' },
+    first_name: 'Дмитрий', second_name: 'Петров', phone: '+375 (25) 222-33-44' },
 ];
 
 /* ── Педагоги (расширение User) ── */
 export const MOCK_EDUCATORS: Educator[] = [
-  { PK_EducatorId: 1, FK_UserId: 2, FullName: 'Смирнова Елена Петровна', Specialization: 'Дефектолог', Phone: '+7 (900) 111-22-33', Email: 'smirnova@edu.ru' },
-  { PK_EducatorId: 2, FK_UserId: 4, FullName: 'Иванова Мария Сергеевна', Specialization: 'Логопед',     Phone: '+7 (900) 444-55-66', Email: 'ivanova@edu.ru' },
+  { PK_EducatorId: 1, FK_UserId: 2, FullName: 'Смирнова Елена Петровна', Specialization: 'Дефектолог', Phone: '+375 (29) 111-22-33', Email: 'smirnova@edu.by' },
+  { PK_EducatorId: 2, FK_UserId: 4, FullName: 'Иванова Мария Сергеевна', Specialization: 'Логопед',     Phone: '+375 (44) 444-55-66', Email: 'ivanova@edu.by' },
 ];
 
 /* ── Представители ── */
 export const MOCK_REPRESENTATIVES: LegalRepresentative[] = [
-  { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+7 (900) 777-88-99', Email: 'kozlova@mail.ru' },
-  { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+7 (900) 222-33-44', Email: 'petrov@mail.ru' },
+  { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+375 (33) 777-88-99', Email: 'kozlova@mail.by' },
+  { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+375 (25) 222-33-44', Email: 'petrov@mail.by' },
 ];
 
 /* ── Дети ── */
