@@ -155,9 +155,14 @@ const ChildrenPage: React.FC = () => {
                   </div>
                 )}
                 {isEducator && (
-                  <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={() => openSpeechEdit(child)} className="p-1.5 rounded-lg hover:bg-primary/10" title="Изменить уровень речи">
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                    </button>
+                    <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </div>
                 )}
               </div>
               {child.SpeechLevel && <p className="text-xs text-muted-foreground mb-1">🗣️ Речь: {child.SpeechLevel}</p>}
