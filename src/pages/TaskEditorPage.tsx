@@ -225,8 +225,9 @@ const TaskEditorPage: React.FC = () => {
           Title: title,
           Descripti: description,
           FK_TemplateId: templateId,
-          FK_UserId: 1,
+          FK_UserId: originalAuthorId ?? 1,
           DifficultyLevel: difficulty,
+          ...(originalIsPublished !== undefined ? { IsPublished: originalIsPublished } : {}),
         },
         constructions,
       };
