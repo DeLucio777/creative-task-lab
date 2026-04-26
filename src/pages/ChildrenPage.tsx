@@ -4,7 +4,7 @@ import type { Child, Educator, LegalRepresentative } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Trash2, Edit2, Baby, Users, Eye } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Baby, Users, Eye, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,9 +20,11 @@ const ChildrenPage: React.FC = () => {
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
   const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
 
-  // Только админ может изменять/добавлять/удалять детей. Педагог — только просмотр своих.
+  // Админ — полный CRUD. Педагог — может только редактировать уровень речи у своих детей.
   const canEdit = role === 'admin';
   const isEducator = role === 'educator';
+  const [speechEditChild, setSpeechEditChild] = useState<Child | null>(null);
+  const [speechValue, setSpeechValue] = useState('');
 
   useEffect(() => {
     (async () => {
