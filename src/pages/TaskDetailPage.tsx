@@ -460,12 +460,17 @@ const TaskDetailPage: React.FC = () => {
           toast.success('Шаг цепочки выполнен ✅');
         }
       }
+      // Найти следующее задание в цепочке для кнопки «Далее»
+      const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
+      setNextInChain(nxt);
     }
   }, [taskId, user]);
 
   const handleRestart = () => {
     setResult(null);
     setStarted(false);
+    setHintShown(false);
+    setNextInChain(null);
     setTimeout(() => setStarted(true), 50);
   };
 
