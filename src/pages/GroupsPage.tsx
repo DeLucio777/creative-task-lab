@@ -35,18 +35,23 @@ const GroupsPage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-    childrenApi.getAll().then(setChildren);
     if (role === 'admin') {
-      // админ видит все группы
+      // админ видит всех детей и все группы
+      childrenApi.getAll().then(setChildren);
       groupsApi.getAll().then(async list => {
         const cards: GroupCard[] = [];
         for (const g of list) cards.push({ group: g, members: await groupsApi.getMembers(g.PK_GroupId) });
         setGroups(cards);
       });
     } else if (role === 'educator') {
-      educatorsApi.getByUserId(user.PK_UserId).then(e => {
+      educatorsApi.getByUserId(user.PK_UserId).then(async e => {
         setEducator(e);
-        if (e) reload(e.PK_EducatorId);
+        if (e) {
+          // педагог видит в выборе только своих детей
+          const all = await childrenApi.getAll();
+          setChildren(all.filter(c => c.FK_EducatorId === e.PK_EducatorId));
+          reload(e.PK_EducatorId);
+        }
       });
     }
   }, [user, role]);
