@@ -118,6 +118,43 @@ const TaskEditorPage: React.FC = () => {
     { id: '2', value: '', sortKey: '' },
   ]);
 
+  // Загрузка существующего задания (для админа при редактировании)
+  useEffect(() => {
+    if (isNew || !id) return;
+    const taskId = Number(id);
+    if (isNaN(taskId)) return;
+    Promise.all([
+      api.getTask(taskId),
+      api.getTaskConstructions(taskId),
+      api.getTaskFindOddItems(taskId),
+      api.getTaskMatchPairs(taskId),
+      api.getTaskSequenceItems(taskId),
+      api.getTaskSortItems(taskId),
+    ]).then(([t, constr, odd, match, seq, sort]) => {
+      if (!t) { setLoadingExisting(false); return; }
+      setTitle(t.Title || '');
+      setDescription(t.Descripti || '');
+      setDifficulty((t.DifficultyLevel as 'Easy' | 'Medium' | 'Hard') || 'Easy');
+      const detected = templateToType[t.FK_TemplateId] || 'find_odd';
+      setTaskType(detected);
+
+      const cShow = constr.find(c => c.ParameterName === 'ShowHints')?.ParameterValue;
+      const cHint = constr.find(c => c.ParameterName === 'HintText')?.ParameterValue;
+      const cTOn  = constr.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue;
+      const cTSec = constr.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue;
+      setShowHints(cShow !== 'false');
+      setHintText(cHint || '');
+      setTimerEnabled(cTOn === 'true');
+      if (cTSec) setTimerSeconds(Number(cTSec) || 60);
+
+      if (odd.length > 0)   setOddItems(odd.map(i => ({ id: String(i.PK_ItemId), text: i.ItemText, isOdd: i.IsOddOne, pecsId: i.FK_pecsId })));
+      if (match.length > 0) setMatchPairs(match.map(p => ({ id: String(p.PK_PairId), mediaId: p.FK_MediaId, pecsId: p.FK_pecsId, word: p.Words })));
+      if (seq.length > 0)   setSeqItems(seq.map(i => ({ id: String(i.PK_SeqItemId), order: i.ItemOrder, value: i.ItemValue, pecsId: i.FK_pecsId })));
+      if (sort.length > 0)  setSortItems(sort.map(i => ({ id: String(i.PK_SortItemId), value: i.ItemValue, sortKey: i.SortKey, pecsId: i.FK_pecsId })));
+      setLoadingExisting(false);
+    });
+  }, [id, isNew]);
+
   const difficultyLabels: Record<string, { label: string; emoji: string }> = {
     Easy: { label: 'Лёгкий', emoji: '🟢' },
     Medium: { label: 'Средний', emoji: '🟡' },
