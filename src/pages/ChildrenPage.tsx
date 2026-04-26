@@ -4,7 +4,7 @@ import type { Child, Educator, LegalRepresentative } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Trash2, Edit2, Baby, Users, Eye } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Baby, Users, Eye, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,9 +20,11 @@ const ChildrenPage: React.FC = () => {
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
   const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
 
-  // Только админ может изменять/добавлять/удалять детей. Педагог — только просмотр своих.
+  // Админ — полный CRUD. Педагог — может только редактировать уровень речи у своих детей.
   const canEdit = role === 'admin';
   const isEducator = role === 'educator';
+  const [speechEditChild, setSpeechEditChild] = useState<Child | null>(null);
+  const [speechValue, setSpeechValue] = useState('');
 
   useEffect(() => {
     (async () => {
@@ -90,6 +92,21 @@ const ChildrenPage: React.FC = () => {
     }
   };
 
+  const openSpeechEdit = (child: Child) => {
+    setSpeechEditChild(child);
+    setSpeechValue(child.SpeechLevel || '');
+  };
+
+  const handleSpeechSave = async () => {
+    if (!speechEditChild) return;
+    const updated = await childrenApi.update(speechEditChild.PK_ChildId, { SpeechLevel: speechValue });
+    if (updated) {
+      setChildren(prev => prev.map(c => c.PK_ChildId === speechEditChild.PK_ChildId ? { ...c, SpeechLevel: speechValue } : c));
+      toast.success('Уровень речи обновлён');
+      setSpeechEditChild(null);
+    }
+  };
+
   const getAge = (birthDate?: string) => {
     if (!birthDate) return '—';
     const diff = Date.now() - new Date(birthDate).getTime();
@@ -138,9 +155,14 @@ const ChildrenPage: React.FC = () => {
                   </div>
                 )}
                 {isEducator && (
-                  <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
-                    <Eye className="h-4 w-4 text-muted-foreground" />
-                  </button>
+                  <div className="flex gap-1">
+                    <button onClick={() => openSpeechEdit(child)} className="p-1.5 rounded-lg hover:bg-primary/10" title="Изменить уровень речи">
+                      <MessageSquare className="h-4 w-4 text-primary" />
+                    </button>
+                    <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
+                      <Eye className="h-4 w-4 text-muted-foreground" />
+                    </button>
+                  </div>
                 )}
               </div>
               {child.SpeechLevel && <p className="text-xs text-muted-foreground mb-1">🗣️ Речь: {child.SpeechLevel}</p>}
@@ -246,11 +268,36 @@ const ChildrenPage: React.FC = () => {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
-                  Изменения может вносить только администратор.
+                  Полное редактирование доступно администратору. Педагог может изменять только уровень речи.
                 </p>
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог редактирования уровня речи (педагог) */}
+      <Dialog open={!!speechEditChild} onOpenChange={(o) => !o && setSpeechEditChild(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Уровень речи: {speechEditChild?.FullName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="font-semibold">Уровень речевого развития</Label>
+              <Input
+                value={speechValue}
+                onChange={e => setSpeechValue(e.target.value)}
+                placeholder="Например: базовый, развитый, невербальный..."
+                className="rounded-xl h-11"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Педагог может редактировать только это поле. Остальные данные ребёнка изменяет администратор.
+              </p>
+            </div>
+            <Button onClick={handleSpeechSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

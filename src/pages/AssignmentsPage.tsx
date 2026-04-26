@@ -71,8 +71,17 @@ const AssignmentsPage: React.FC = () => {
     reload();
     tasksApi.getTasks().then(setTasks);
     tasksApi.getTemplates().then(setTemplates);
-    childrenApi.getAll().then(setChildren);
     representativesApi.getAll().then(setReps);
+    // Дети: педагог видит только своих, админ — всех
+    if (role === 'educator' && user) {
+      (async () => {
+        const ed = await educatorsApi.getByUserId(user.PK_UserId);
+        const all = await childrenApi.getAll();
+        setChildren(ed ? all.filter(c => c.FK_EducatorId === ed.PK_EducatorId) : []);
+      })();
+    } else {
+      childrenApi.getAll().then(setChildren);
+    }
   }, [user, role]);
 
   const openCreate = () => {

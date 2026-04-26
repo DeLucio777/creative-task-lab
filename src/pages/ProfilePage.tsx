@@ -21,6 +21,8 @@ const ProfilePage: React.FC = () => {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({ first_name: '', second_name: '', phone: '' });
+  // ФИО может менять только администратор. Педагог и родитель — только телефон.
+  const canEditName = role === 'admin';
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [myLists, setMyLists] = useState<TaskList[]>([]);
   const [myGroups, setMyGroups] = useState<ChildGroup[]>([]);
@@ -55,13 +57,20 @@ const ProfilePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    const updated = await usersApi.update(user.PK_UserId, form);
+    // Если ФИО редактировать нельзя — сохраняем только телефон
+    const payload = canEditName
+      ? form
+      : { phone: form.phone };
+    const updated = await usersApi.update(user.PK_UserId, payload);
     if (updated) {
       setUser(updated);
-      // Синхронизировать связанные сущности
-      const fullName = `${form.second_name} ${form.first_name}`.trim();
+      // Синхронизировать связанные сущности педагога (телефон всегда; ФИО только если разрешено)
       if (role === 'educator' && educatorRec) {
-        await educatorsApi.update(educatorRec.PK_EducatorId, { FullName: fullName, Phone: form.phone });
+        const eduPayload: { FullName?: string; Phone?: string } = { Phone: form.phone };
+        if (canEditName) {
+          eduPayload.FullName = `${form.second_name} ${form.first_name}`.trim();
+        }
+        await educatorsApi.update(educatorRec.PK_EducatorId, eduPayload);
       }
       toast.success('Профиль сохранён');
     }
@@ -95,12 +104,24 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label className="font-semibold">Фамилия</Label>
-            <Input value={form.second_name} onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))} className="rounded-xl h-11" />
+            <Label className="font-semibold">Фамилия {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Input
+              value={form.second_name}
+              onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))}
+              disabled={!canEditName}
+              readOnly={!canEditName}
+              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+            />
           </div>
           <div className="space-y-2">
-            <Label className="font-semibold">Имя</Label>
-            <Input value={form.first_name} onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))} className="rounded-xl h-11" />
+            <Label className="font-semibold">Имя {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Input
+              value={form.first_name}
+              onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
+              disabled={!canEditName}
+              readOnly={!canEditName}
+              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+            />
           </div>
           <div className="space-y-2">
             <Label className="font-semibold">Телефон</Label>
