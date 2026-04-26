@@ -268,11 +268,36 @@ const ChildrenPage: React.FC = () => {
                   </div>
                 )}
                 <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
-                  Изменения может вносить только администратор.
+                  Полное редактирование доступно администратору. Педагог может изменять только уровень речи.
                 </p>
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог редактирования уровня речи (педагог) */}
+      <Dialog open={!!speechEditChild} onOpenChange={(o) => !o && setSpeechEditChild(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader>
+            <DialogTitle>Уровень речи: {speechEditChild?.FullName}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="font-semibold">Уровень речевого развития</Label>
+              <Input
+                value={speechValue}
+                onChange={e => setSpeechValue(e.target.value)}
+                placeholder="Например: базовый, развитый, невербальный..."
+                className="rounded-xl h-11"
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground">
+                Педагог может редактировать только это поле. Остальные данные ребёнка изменяет администратор.
+              </p>
+            </div>
+            <Button onClick={handleSpeechSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
