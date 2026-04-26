@@ -86,6 +86,7 @@ const TaskEditorPage: React.FC = () => {
   const [taskType, setTaskType] = useState<TaskType>('find_odd');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [showHints, setShowHints] = useState(true);
+  const [hintText, setHintText] = useState('');
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [saving, setSaving] = useState(false);
@@ -165,6 +166,7 @@ const TaskEditorPage: React.FC = () => {
       const constructions = [
         { ParameterName: 'DifficultyLevel', ParameterValue: difficulty },
         { ParameterName: 'ShowHints', ParameterValue: String(showHints) },
+        { ParameterName: 'HintText', ParameterValue: showHints ? hintText.trim() : '' },
         { ParameterName: 'TimerEnabled', ParameterValue: String(timerEnabled) },
         { ParameterName: 'TimerSeconds', ParameterValue: String(timerSeconds) },
       ];
@@ -393,9 +395,19 @@ const TaskEditorPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-bold">Визуальные подсказки</Label>
-                <Switch checked={showHints} onCheckedChange={setShowHints} />
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-bold">💡 Подсказка</Label>
+                  <Switch checked={showHints} onCheckedChange={setShowHints} />
+                </div>
+                {showHints && (
+                  <textarea
+                    value={hintText}
+                    onChange={e => setHintText(e.target.value)}
+                    placeholder="Текст подсказки, который увидит ребёнок..."
+                    className="w-full min-h-[80px] rounded-xl border-2 border-input bg-background px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  />
+                )}
               </div>
 
               {/* Timer setting */}
