@@ -406,9 +406,12 @@ const TaskDetailPage: React.FC = () => {
     });
   }, [taskId]);
 
-  // Derive timer settings from constructions
+  // Derive timer + hint settings from constructions
   const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
   const timerSeconds = Number(constructions.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue) || 60;
+  const hintEnabled  = constructions.find(c => c.ParameterName === 'ShowHints')?.ParameterValue === 'true';
+  const hintText     = constructions.find(c => c.ParameterName === 'HintText')?.ParameterValue || '';
+  const hasHint      = hintEnabled && hintText.trim().length > 0;
 
   // Start/stop timer when game starts
   useEffect(() => {
