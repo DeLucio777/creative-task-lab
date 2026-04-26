@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Plus, Search, Trash2, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
 
 const EducatorsPage: React.FC = () => {
   const [educators, setEducators] = useState<Educator[]>([]);
@@ -21,6 +22,7 @@ const EducatorsPage: React.FC = () => {
 
   const handleSave = async () => {
     if (!form.FullName.trim()) { toast.error('Введите ФИО'); return; }
+    if (form.Phone && !isValidBelarusPhone(form.Phone)) { toast.error('Телефон должен быть в формате +375 (XX) XXX-XX-XX'); return; }
     if (!form.UserLogin.trim() || !form.UserPassword.trim()) { toast.error('Укажите логин и пароль для входа'); return; }
     // Регистрация пользователя + создание педагога
     const u = await authApi.registerUser({
@@ -95,7 +97,7 @@ const EducatorsPage: React.FC = () => {
             <div className="space-y-2"><Label className="font-semibold">ФИО *</Label><Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} className="rounded-xl h-11" placeholder="Фамилия Имя Отчество" /></div>
             <div className="space-y-2"><Label className="font-semibold">Специализация</Label><Input value={form.Specialization} onChange={e => setForm(f => ({ ...f, Specialization: e.target.value }))} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: formatBelarusPhone(e.target.value) }))} onFocus={() => { if (!form.Phone) setForm(f => ({ ...f, Phone: '+375 ' })); }} placeholder={BY_PHONE_PLACEHOLDER} inputMode="tel" className={`rounded-xl h-11 ${form.Phone && !isValidBelarusPhone(form.Phone) ? 'border-destructive' : ''}`} /></div>
               <div className="space-y-2"><Label className="font-semibold">Email</Label><Input value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} className="rounded-xl h-11" /></div>
             </div>
             <div className="border-t border-border pt-4 space-y-3">

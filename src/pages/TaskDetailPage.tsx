@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2 } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
 import { api } from '@/services/api';
 import { taskListsApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
@@ -367,6 +367,12 @@ const TaskDetailPage: React.FC = () => {
   const [started, setStarted] = useState(false);
   const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
 
+  // Подсказка
+  const [hintShown, setHintShown] = useState(false);
+
+  // Следующее задание в цепочке
+  const [nextInChain, setNextInChain] = useState<{ listId: number; nextTaskId: number; position: number } | null>(null);
+
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -400,9 +406,12 @@ const TaskDetailPage: React.FC = () => {
     });
   }, [taskId]);
 
-  // Derive timer settings from constructions
+  // Derive timer + hint settings from constructions
   const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
   const timerSeconds = Number(constructions.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue) || 60;
+  const hintEnabled  = constructions.find(c => c.ParameterName === 'ShowHints')?.ParameterValue === 'true';
+  const hintText     = constructions.find(c => c.ParameterName === 'HintText')?.ParameterValue || '';
+  const hasHint      = hintEnabled && hintText.trim().length > 0;
 
   // Start/stop timer when game starts
   useEffect(() => {
@@ -454,12 +463,17 @@ const TaskDetailPage: React.FC = () => {
           toast.success('Шаг цепочки выполнен ✅');
         }
       }
+      // Найти следующее задание в цепочке для кнопки «Далее»
+      const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
+      setNextInChain(nxt);
     }
   }, [taskId, user]);
 
   const handleRestart = () => {
     setResult(null);
     setStarted(false);
+    setHintShown(false);
+    setNextInChain(null);
     setTimeout(() => setStarted(true), 50);
   };
 
@@ -496,7 +510,7 @@ const TaskDetailPage: React.FC = () => {
   if (result) {
     return (
       <div className="max-w-lg mx-auto text-center py-12">
-        <button onClick={() => { setStarted(false); setResult(null); }} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-8 transition-colors">
+        <button onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-8 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Назад
         </button>
         <div className="bg-card rounded-2xl border-2 border-border p-10">
@@ -508,14 +522,33 @@ const TaskDetailPage: React.FC = () => {
             {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время на задание закончилось.' : 'Не расстраивайся, попробуй снова!'}
           </p>
           <Progress value={result === 'correct' ? 100 : 30} className="h-3 mb-6" />
-          <div className="flex gap-3 justify-center">
-            <Button variant="outline" onClick={() => { setStarted(false); setResult(null); }} className="rounded-xl font-bold gap-2">
+          <div className="flex flex-wrap gap-3 justify-center">
+            <Button variant="outline" onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="rounded-xl font-bold gap-2">
               <ArrowLeft className="h-4 w-4" /> К описанию
             </Button>
-            <Button onClick={handleRestart} className="rounded-xl font-bold gap-2">
+            <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2">
               <RotateCcw className="h-4 w-4" /> Ещё раз
             </Button>
+            {result === 'correct' && nextInChain && (
+              <Button
+                onClick={() => {
+                  setHintShown(false);
+                  setNextInChain(null);
+                  setResult(null);
+                  setStarted(false);
+                  navigate(`/task/${nextInChain.nextTaskId}`);
+                }}
+                className="rounded-xl font-bold gap-2"
+              >
+                Далее <ArrowRight className="h-4 w-4" />
+              </Button>
+            )}
           </div>
+          {result === 'correct' && nextInChain && (
+            <p className="mt-4 text-xs font-semibold text-muted-foreground">
+              Следующий шаг цепочки № {nextInChain.position} ждёт тебя!
+            </p>
+          )}
         </div>
       </div>
     );
@@ -525,9 +558,21 @@ const TaskDetailPage: React.FC = () => {
   if (started) {
     return (
       <div className="max-w-2xl mx-auto">
-        <button onClick={() => setStarted(false)} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors">
+        <button onClick={() => { setStarted(false); setHintShown(false); }} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors">
           <ArrowLeft className="h-4 w-4" /> Назад к описанию
         </button>
+
+        {/* Подсказка над заданием */}
+        {hasHint && hintShown && (
+          <div className="mb-4 p-4 rounded-2xl border-2 border-warning bg-warning/10 flex items-start gap-3">
+            <Lightbulb className="h-5 w-5 text-warning shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-xs font-bold text-warning uppercase tracking-wider mb-1">Подсказка</p>
+              <p className="text-sm font-medium text-foreground leading-relaxed">{hintText}</p>
+            </div>
+          </div>
+        )}
+
         <div className="bg-card rounded-2xl border-2 border-border p-8">
           <div className="text-center mb-6">
             <h2 className="text-xl font-bold text-foreground">{task.Title}</h2>
@@ -540,6 +585,19 @@ const TaskDetailPage: React.FC = () => {
                 </div>
               )}
             </div>
+
+            {/* Заметная кнопка-лампочка */}
+            {hasHint && (
+              <Button
+                type="button"
+                variant={hintShown ? 'outline' : 'default'}
+                onClick={() => setHintShown(s => !s)}
+                className="mt-4 gap-2 rounded-2xl font-bold bg-warning hover:bg-warning/90 text-warning-foreground border-2 border-warning"
+              >
+                <Lightbulb className="h-5 w-5" />
+                {hintShown ? 'Скрыть подсказку' : 'Подсказка'}
+              </Button>
+            )}
           </div>
 
           {taskType === 'find_odd' && findOddItems.length > 0 && (
@@ -578,19 +636,29 @@ const TaskDetailPage: React.FC = () => {
           <ArrowLeft className="h-4 w-4" /> Каталог заданий
         </button>
         {isAdmin && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="rounded-xl font-bold gap-2"
-            onClick={async () => {
-              if (!confirm('Удалить задание?')) return;
-              const ok = await api.deleteTask(taskId);
-              if (ok) { toast.success('Задание удалено'); navigate('/dashboard'); }
-              else toast.error('Ошибка при удалении');
-            }}
-          >
-            <Trash2 className="h-4 w-4" /> Удалить
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="rounded-xl font-bold gap-2"
+              onClick={() => navigate(`/editor/${taskId}`)}
+            >
+              <Pencil className="h-4 w-4" /> Редактировать
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="rounded-xl font-bold gap-2"
+              onClick={async () => {
+                if (!confirm('Удалить задание?')) return;
+                const ok = await api.deleteTask(taskId);
+                if (ok) { toast.success('Задание удалено'); navigate('/dashboard'); }
+                else toast.error('Ошибка при удалении');
+              }}
+            >
+              <Trash2 className="h-4 w-4" /> Удалить
+            </Button>
+          </div>
         )}
       </div>
 
@@ -607,6 +675,11 @@ const TaskDetailPage: React.FC = () => {
         {timerEnabled && (
           <p className="text-sm text-muted-foreground font-medium mb-4 flex items-center gap-1.5">
             <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
+          </p>
+        )}
+        {hasHint && (
+          <p className="text-sm text-warning font-bold mb-4 flex items-center gap-1.5">
+            <Lightbulb className="h-4 w-4" /> В задании есть подсказка — нажми на лампочку, если потребуется помощь
           </p>
         )}
         <p className="text-muted-foreground leading-relaxed mb-8 font-medium">{task.Descripti}</p>

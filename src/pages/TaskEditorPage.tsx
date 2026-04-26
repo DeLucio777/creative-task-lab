@@ -19,11 +19,18 @@ interface SeqItem { id: string; order: number; value: string; pecsId?: number; }
 interface SortItemData { id: string; value: string; sortKey: string; pecsId?: number; }
 
 const TASK_TYPE_OPTIONS: { value: TaskType; label: string; emoji: string; templateId: number }[] = [
-  { value: 'find_odd', label: 'Найди лишнее', emoji: '🔍', templateId: 3 },
-  { value: 'match_image_word', label: 'Сопоставь картинку и слово', emoji: '🖼️', templateId: 4 },
-  { value: 'sequence', label: 'Продолжи последовательность', emoji: '🔢', templateId: 1 },
-  { value: 'sort', label: 'Сортировка по признаку', emoji: '📂', templateId: 2 },
+  { value: 'find_odd',         label: 'Найди лишнее',                   emoji: '🔍', templateId: 1 },
+  { value: 'match_image_word', label: 'Сопоставь картинку и слово',     emoji: '🖼️', templateId: 2 },
+  { value: 'sequence',         label: 'Продолжи последовательность',     emoji: '🔢', templateId: 3 },
+  { value: 'sort',             label: 'Сортировка по признаку',          emoji: '📂', templateId: 4 },
 ];
+
+const templateToType: Record<number, TaskType> = {
+  1: 'find_odd',
+  2: 'match_image_word',
+  3: 'sequence',
+  4: 'sort',
+};
 
 // --- PECS Preview subcomponent ---
 const PecsPreview: React.FC<{
@@ -86,9 +93,13 @@ const TaskEditorPage: React.FC = () => {
   const [taskType, setTaskType] = useState<TaskType>('find_odd');
   const [difficulty, setDifficulty] = useState<'Easy' | 'Medium' | 'Hard'>('Easy');
   const [showHints, setShowHints] = useState(true);
+  const [hintText, setHintText] = useState('');
   const [timerEnabled, setTimerEnabled] = useState(false);
   const [timerSeconds, setTimerSeconds] = useState(60);
   const [saving, setSaving] = useState(false);
+  const [loadingExisting, setLoadingExisting] = useState(!isNew);
+  const [originalAuthorId, setOriginalAuthorId] = useState<number | null>(null);
+  const [originalIsPublished, setOriginalIsPublished] = useState<boolean | undefined>(undefined);
 
   const [oddItems, setOddItems] = useState<FindOddItem[]>([
     { id: '1', text: '', isOdd: false },
@@ -108,6 +119,45 @@ const TaskEditorPage: React.FC = () => {
     { id: '1', value: '', sortKey: '' },
     { id: '2', value: '', sortKey: '' },
   ]);
+
+  // Загрузка существующего задания (для админа при редактировании)
+  useEffect(() => {
+    if (isNew || !id) return;
+    const taskId = Number(id);
+    if (isNaN(taskId)) return;
+    Promise.all([
+      api.getTask(taskId),
+      api.getTaskConstructions(taskId),
+      api.getTaskFindOddItems(taskId),
+      api.getTaskMatchPairs(taskId),
+      api.getTaskSequenceItems(taskId),
+      api.getTaskSortItems(taskId),
+    ]).then(([t, constr, odd, match, seq, sort]) => {
+      if (!t) { setLoadingExisting(false); return; }
+      setTitle(t.Title || '');
+      setDescription(t.Descripti || '');
+      setDifficulty((t.DifficultyLevel as 'Easy' | 'Medium' | 'Hard') || 'Easy');
+      setOriginalAuthorId(t.FK_UserId);
+      setOriginalIsPublished(t.IsPublished);
+      const detected = templateToType[t.FK_TemplateId] || 'find_odd';
+      setTaskType(detected);
+
+      const cShow = constr.find(c => c.ParameterName === 'ShowHints')?.ParameterValue;
+      const cHint = constr.find(c => c.ParameterName === 'HintText')?.ParameterValue;
+      const cTOn  = constr.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue;
+      const cTSec = constr.find(c => c.ParameterName === 'TimerSeconds')?.ParameterValue;
+      setShowHints(cShow !== 'false');
+      setHintText(cHint || '');
+      setTimerEnabled(cTOn === 'true');
+      if (cTSec) setTimerSeconds(Number(cTSec) || 60);
+
+      if (odd.length > 0)   setOddItems(odd.map(i => ({ id: String(i.PK_ItemId), text: i.ItemText, isOdd: i.IsOddOne, pecsId: i.FK_pecsId })));
+      if (match.length > 0) setMatchPairs(match.map(p => ({ id: String(p.PK_PairId), mediaId: p.FK_MediaId, pecsId: p.FK_pecsId, word: p.Words })));
+      if (seq.length > 0)   setSeqItems(seq.map(i => ({ id: String(i.PK_SeqItemId), order: i.ItemOrder, value: i.ItemValue, pecsId: i.FK_pecsId })));
+      if (sort.length > 0)  setSortItems(sort.map(i => ({ id: String(i.PK_SortItemId), value: i.ItemValue, sortKey: i.SortKey, pecsId: i.FK_pecsId })));
+      setLoadingExisting(false);
+    });
+  }, [id, isNew]);
 
   const difficultyLabels: Record<string, { label: string; emoji: string }> = {
     Easy: { label: 'Лёгкий', emoji: '🟢' },
@@ -165,6 +215,7 @@ const TaskEditorPage: React.FC = () => {
       const constructions = [
         { ParameterName: 'DifficultyLevel', ParameterValue: difficulty },
         { ParameterName: 'ShowHints', ParameterValue: String(showHints) },
+        { ParameterName: 'HintText', ParameterValue: showHints ? hintText.trim() : '' },
         { ParameterName: 'TimerEnabled', ParameterValue: String(timerEnabled) },
         { ParameterName: 'TimerSeconds', ParameterValue: String(timerSeconds) },
       ];
@@ -174,8 +225,9 @@ const TaskEditorPage: React.FC = () => {
           Title: title,
           Descripti: description,
           FK_TemplateId: templateId,
-          FK_UserId: 1,
+          FK_UserId: originalAuthorId ?? 1,
           DifficultyLevel: difficulty,
+          ...(originalIsPublished !== undefined ? { IsPublished: originalIsPublished } : {}),
         },
         constructions,
       };
@@ -190,9 +242,11 @@ const TaskEditorPage: React.FC = () => {
         payload.sortItems = sortItems.map(i => ({ ItemValue: i.value, SortKey: i.sortKey, FK_pecsId: i.pecsId }));
       }
 
-      const result = await api.createFullTask(payload);
+      const result = isNew
+        ? await api.createFullTask(payload)
+        : await api.updateFullTask(Number(id), payload);
       if (result) {
-        toast.success('Задание сохранено!');
+        toast.success(isNew ? 'Задание создано!' : 'Задание обновлено!');
         navigate('/dashboard');
       } else {
         toast.error('Ошибка при сохранении');
@@ -393,9 +447,19 @@ const TaskEditorPage: React.FC = () => {
                   ))}
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <Label className="text-sm font-bold">Визуальные подсказки</Label>
-                <Switch checked={showHints} onCheckedChange={setShowHints} />
+              <div className="space-y-2 pt-2 border-t border-border">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-bold">💡 Подсказка</Label>
+                  <Switch checked={showHints} onCheckedChange={setShowHints} />
+                </div>
+                {showHints && (
+                  <textarea
+                    value={hintText}
+                    onChange={e => setHintText(e.target.value)}
+                    placeholder="Текст подсказки, который увидит ребёнок..."
+                    className="w-full min-h-[80px] rounded-xl border-2 border-input bg-background px-3 py-2 text-sm font-medium focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
+                  />
+                )}
               </div>
 
               {/* Timer setting */}

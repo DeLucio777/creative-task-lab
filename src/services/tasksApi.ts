@@ -106,4 +106,46 @@ export const tasksApi = {
     if (task) { task.IsPublished = published; return true; }
     return false;
   },
+
+  /**
+   * Полное обновление задания (для админа): метаданные + конструкции + элементы по типу.
+   * Заменяет существующие элементы новыми.
+   */
+  updateFullTask: async (taskId: number, payload: {
+    task: Partial<Task>;
+    constructions: { ParameterName: string; ParameterValue: string }[];
+    findOddItems?: { ItemText: string; IsOddOne: boolean; FK_pecsId?: number }[];
+    matchPairs?: { FK_MediaId?: number; FK_pecsId?: number; Words: string }[];
+    sequenceItems?: { ItemOrder: number; ItemValue: string; FK_pecsId?: number }[];
+    sortItems?: { ItemValue: string; SortKey: string; FK_pecsId?: number }[];
+  }): Promise<Task | null> => {
+    const result = await apiPost<Task>(`/api/tasks/${taskId}/full`, payload);
+    if (result) return result;
+
+    const idx = MOCK_TASKS.findIndex(t => t.PK_TaskId === taskId);
+    if (idx === -1) return null;
+    Object.assign(MOCK_TASKS[idx], payload.task);
+
+    // Удаляем все связанные данные и пересоздаём
+    [MOCK_TASK_CONSTRUCTIONS, MOCK_FIND_ODD_ITEMS, MOCK_MATCH_PAIRS, MOCK_SEQUENCE_ITEMS, MOCK_SORT_ITEMS]
+      .forEach(arr => { for (let i = arr.length - 1; i >= 0; i--) if ((arr[i] as any).FK_TaskId === taskId) arr.splice(i, 1); });
+
+    payload.constructions.forEach((c, i) => {
+      MOCK_TASK_CONSTRUCTIONS.push({ PK_ConstructionId: Date.now() + i, FK_TaskId: taskId, ...c });
+    });
+    payload.findOddItems?.forEach((it, i) => {
+      MOCK_FIND_ODD_ITEMS.push({ PK_ItemId: Date.now() + i + 100, FK_TaskId: taskId, ...it });
+    });
+    payload.matchPairs?.forEach((p, i) => {
+      MOCK_MATCH_PAIRS.push({ PK_PairId: Date.now() + i + 200, FK_TaskId: taskId, FK_MediaId: p.FK_MediaId || 0, ...p });
+    });
+    payload.sequenceItems?.forEach((it, i) => {
+      MOCK_SEQUENCE_ITEMS.push({ PK_SeqItemId: Date.now() + i + 300, FK_TaskId: taskId, ...it });
+    });
+    payload.sortItems?.forEach((it, i) => {
+      MOCK_SORT_ITEMS.push({ PK_SortItemId: Date.now() + i + 400, FK_TaskId: taskId, ...it });
+    });
+
+    return MOCK_TASKS[idx];
+  },
 };

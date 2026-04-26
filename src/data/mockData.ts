@@ -19,29 +19,29 @@ export const MOCK_ROLES: Role[] = [
 export const MOCK_USERS: User[] = [
   // Админ
   { PK_UserId: 1, UserLogin: 'admin', UserPassword: '', FK_RoleId: 1,
-    first_name: 'Александр', second_name: 'Орлов', phone: '+7 (900) 000-00-01' },
+    first_name: 'Александр', second_name: 'Орлов', phone: '+375 (29) 000-00-01' },
   // Педагоги
   { PK_UserId: 2, UserLogin: 'educator', UserPassword: '', FK_RoleId: 2,
-    first_name: 'Елена', second_name: 'Смирнова', phone: '+7 (900) 111-22-33' },
+    first_name: 'Елена', second_name: 'Смирнова', phone: '+375 (29) 111-22-33' },
   { PK_UserId: 4, UserLogin: 'ivanova', UserPassword: '', FK_RoleId: 2,
-    first_name: 'Мария', second_name: 'Иванова', phone: '+7 (900) 444-55-66' },
+    first_name: 'Мария', second_name: 'Иванова', phone: '+375 (44) 444-55-66' },
   // Представители (родители) — они же «дети» с точки зрения логина
   { PK_UserId: 3, UserLogin: 'parent', UserPassword: '', FK_RoleId: 3,
-    first_name: 'Анна', second_name: 'Козлова', phone: '+7 (900) 777-88-99' },
+    first_name: 'Анна', second_name: 'Козлова', phone: '+375 (33) 777-88-99' },
   { PK_UserId: 5, UserLogin: 'petrov', UserPassword: '', FK_RoleId: 3,
-    first_name: 'Дмитрий', second_name: 'Петров', phone: '+7 (900) 222-33-44' },
+    first_name: 'Дмитрий', second_name: 'Петров', phone: '+375 (25) 222-33-44' },
 ];
 
 /* ── Педагоги (расширение User) ── */
 export const MOCK_EDUCATORS: Educator[] = [
-  { PK_EducatorId: 1, FK_UserId: 2, FullName: 'Смирнова Елена Петровна', Specialization: 'Дефектолог', Phone: '+7 (900) 111-22-33', Email: 'smirnova@edu.ru' },
-  { PK_EducatorId: 2, FK_UserId: 4, FullName: 'Иванова Мария Сергеевна', Specialization: 'Логопед',     Phone: '+7 (900) 444-55-66', Email: 'ivanova@edu.ru' },
+  { PK_EducatorId: 1, FK_UserId: 2, FullName: 'Смирнова Елена Петровна', Specialization: 'Дефектолог', Phone: '+375 (29) 111-22-33', Email: 'smirnova@edu.by' },
+  { PK_EducatorId: 2, FK_UserId: 4, FullName: 'Иванова Мария Сергеевна', Specialization: 'Логопед',     Phone: '+375 (44) 444-55-66', Email: 'ivanova@edu.by' },
 ];
 
 /* ── Представители ── */
 export const MOCK_REPRESENTATIVES: LegalRepresentative[] = [
-  { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+7 (900) 777-88-99', Email: 'kozlova@mail.ru' },
-  { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+7 (900) 222-33-44', Email: 'petrov@mail.ru' },
+  { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+375 (33) 777-88-99', Email: 'kozlova@mail.by' },
+  { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+375 (25) 222-33-44', Email: 'petrov@mail.by' },
 ];
 
 /* ── Дети ── */
@@ -93,11 +93,26 @@ export const MOCK_TASKS: Task[] = [
 
 /* ── Конструкции заданий ── */
 export const MOCK_TASK_CONSTRUCTIONS: TaskConstruction[] = [
-  { PK_ConstructionId: 1, FK_TaskId: 1, ParameterName: 'category',   ParameterValue: 'фрукты' },
-  { PK_ConstructionId: 2, FK_TaskId: 1, ParameterName: 'itemCount',  ParameterValue: '4' },
-  { PK_ConstructionId: 3, FK_TaskId: 2, ParameterName: 'pairsCount', ParameterValue: '5' },
-  { PK_ConstructionId: 4, FK_TaskId: 3, ParameterName: 'stepsCount', ParameterValue: '5' },
-  { PK_ConstructionId: 5, FK_TaskId: 4, ParameterName: 'categories', ParameterValue: 'одежда,еда' },
+  { PK_ConstructionId: 1,  FK_TaskId: 1, ParameterName: 'category',   ParameterValue: 'фрукты' },
+  { PK_ConstructionId: 2,  FK_TaskId: 1, ParameterName: 'itemCount',  ParameterValue: '4' },
+  { PK_ConstructionId: 3,  FK_TaskId: 2, ParameterName: 'pairsCount', ParameterValue: '5' },
+  { PK_ConstructionId: 4,  FK_TaskId: 3, ParameterName: 'stepsCount', ParameterValue: '5' },
+  { PK_ConstructionId: 5,  FK_TaskId: 4, ParameterName: 'categories', ParameterValue: 'одежда,еда' },
+  // Подсказки (новое поле HintText)
+  { PK_ConstructionId: 10, FK_TaskId: 1, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 11, FK_TaskId: 1, ParameterName: 'HintText',  ParameterValue: 'Фрукты — это сладкие плоды растений. Что из этого не растёт на дереве? 🍎' },
+  { PK_ConstructionId: 12, FK_TaskId: 2, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 13, FK_TaskId: 2, ParameterName: 'HintText',  ParameterValue: 'Внимательно посмотри на картинку и подбери название животного. 🐾' },
+  { PK_ConstructionId: 14, FK_TaskId: 3, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 15, FK_TaskId: 3, ParameterName: 'HintText',  ParameterValue: 'Подумай, что обычно делают сразу после пробуждения. Шаги идут по порядку. ⏰' },
+  { PK_ConstructionId: 16, FK_TaskId: 4, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 17, FK_TaskId: 4, ParameterName: 'HintText',  ParameterValue: 'Одежду носят, а еду — едят. Распредели предметы в правильную корзину. 👕🥕' },
+  { PK_ConstructionId: 18, FK_TaskId: 5, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 19, FK_TaskId: 5, ParameterName: 'HintText',  ParameterValue: 'Транспорт — это то, на чём ездят. У какого предмета нет двигателя? 🚗' },
+  { PK_ConstructionId: 20, FK_TaskId: 6, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 21, FK_TaskId: 6, ParameterName: 'HintText',  ParameterValue: 'Сначала смотри на цвет, потом на форму. Назови вслух, что видишь. 🎨' },
+  { PK_ConstructionId: 22, FK_TaskId: 7, ParameterName: 'ShowHints', ParameterValue: 'true' },
+  { PK_ConstructionId: 23, FK_TaskId: 7, ParameterName: 'HintText',  ParameterValue: 'Сначала надевают то, что ближе к телу. В конце — обувь. 👟' },
 ];
 
 /* ── Элементы заданий ── */
