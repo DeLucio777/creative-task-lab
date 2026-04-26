@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock } from 'lucide-react';
+import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
@@ -127,8 +128,18 @@ const ProfilePage: React.FC = () => {
             <Label className="font-semibold">Телефон</Label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} className="rounded-xl h-11 pl-9" />
+              <Input
+                value={form.phone}
+                onChange={e => setForm(f => ({ ...f, phone: formatBelarusPhone(e.target.value) }))}
+                onFocus={() => { if (!form.phone) setForm(f => ({ ...f, phone: '+375 ' })); }}
+                placeholder={BY_PHONE_PLACEHOLDER}
+                inputMode="tel"
+                className={`rounded-xl h-11 pl-9 ${form.phone && !isValidBelarusPhone(form.phone) ? 'border-destructive' : ''}`}
+              />
             </div>
+            {form.phone && !isValidBelarusPhone(form.phone) && (
+              <p className="text-xs text-destructive font-medium">Формат: +375 (XX) XXX-XX-XX</p>
+            )}
           </div>
         </div>
 
