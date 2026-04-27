@@ -389,13 +389,9 @@ const TaskEditorPage: React.FC = () => {
 
   return (
     <div>
-      <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Назад
-      </button>
-
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: Editor */}
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 min-w-0 space-y-6">
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <h2 className="text-lg font-bold text-foreground mb-4">
               {isNew ? '✨ Новое задание' : '✏️ Редактирование задания'}
