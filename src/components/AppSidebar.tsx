@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutGrid, FilePlus, BarChart3, Image, LogOut, User,
-  Users, GraduationCap, Baby, ClipboardList, Trophy, Home, UsersRound,
+  GraduationCap, Baby, ClipboardList, Trophy, Home, UsersRound,
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import type { AppRole } from '@/types/models';
@@ -27,8 +27,8 @@ const navItems: NavItem[] = [
   { to: '/groups', icon: UsersRound, label: 'Группы', roles: ['admin', 'educator'] },
   { to: '/educators', icon: GraduationCap, label: 'Педагоги', roles: ['admin'] },
 
-  // Цепочки/назначения и прогресс
-  { to: '/assignments', icon: ClipboardList, label: 'Назначить цепочку', roles: ['admin', 'educator'] },
+  // Цепочки/назначения — только педагог (у админа скрыто)
+  { to: '/assignments', icon: ClipboardList, label: 'Назначить цепочку', roles: ['educator'] },
   { to: '/progress', icon: Trophy, label: 'Прогресс', roles: ['admin', 'educator', 'parent'] },
 
   // Медиа и отчёты
@@ -39,11 +39,15 @@ const navItems: NavItem[] = [
   { to: '/profile', icon: User, label: 'Личный кабинет', roles: ['admin', 'educator', 'parent'] },
 ];
 
-const AppSidebar: React.FC = () => {
+interface Props {
+  onNavigate?: () => void;
+}
+
+const AppSidebar: React.FC<Props> = ({ onNavigate }) => {
   const { user, isGuest, role, logout } = useAuth();
   const navigate = useNavigate();
 
-  const handleLogout = () => { logout(); navigate('/'); };
+  const handleLogout = () => { logout(); onNavigate?.(); navigate('/'); };
 
   const visibleItems = navItems.filter(item => {
     if (isGuest) return item.to === '/home';
@@ -61,7 +65,7 @@ const AppSidebar: React.FC = () => {
     : user?.UserLogin ?? 'Гость';
 
   return (
-    <aside className="w-[260px] h-screen bg-card border-r border-border flex flex-col shrink-0">
+    <aside className="w-full h-full bg-card flex flex-col">
       <div className="p-6 border-b border-border">
         <h2 className="text-xl font-bold tracking-tight text-foreground">🧩 PECS Editor</h2>
         <p className="text-xs text-muted-foreground mt-1 font-medium">
@@ -74,6 +78,7 @@ const AppSidebar: React.FC = () => {
           <NavLink
             key={item.to}
             to={item.to}
+            onClick={() => onNavigate?.()}
             className={({ isActive }) =>
               `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 ${
                 isActive
