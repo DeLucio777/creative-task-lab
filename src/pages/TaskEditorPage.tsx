@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Save, Plus, Trash2, Timer } from 'lucide-react';
+import { Save, Plus, Trash2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
