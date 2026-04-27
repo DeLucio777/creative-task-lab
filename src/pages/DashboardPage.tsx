@@ -41,13 +41,13 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-8">
-        <div className="flex gap-1">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6 sm:mb-8">
+        <div className="flex gap-1 flex-wrap">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`px-5 py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
+              className={`px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold rounded-xl transition-all duration-200 ${
                 activeTab === tab.id
                   ? 'bg-primary text-primary-foreground shadow-sm'
                   : 'text-muted-foreground hover:bg-muted'
