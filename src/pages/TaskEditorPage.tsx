@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Save, Plus, Trash2, Timer } from 'lucide-react';
+import { Save, Plus, Trash2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
@@ -389,13 +389,9 @@ const TaskEditorPage: React.FC = () => {
 
   return (
     <div>
-      <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-6 transition-colors">
-        <ArrowLeft className="h-4 w-4" /> Назад
-      </button>
-
-      <div className="flex gap-6">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left: Editor */}
-        <div className="flex-1 space-y-6">
+        <div className="flex-1 min-w-0 space-y-6">
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <h2 className="text-lg font-bold text-foreground mb-4">
               {isNew ? '✨ Новое задание' : '✏️ Редактирование задания'}
@@ -433,7 +429,7 @@ const TaskEditorPage: React.FC = () => {
         </div>
 
         {/* Right: Settings + Preview */}
-        <div className="w-[320px] shrink-0 space-y-6">
+        <div className="w-full lg:w-[320px] lg:shrink-0 space-y-6">
           <div className="bg-card rounded-2xl border-2 border-border p-5">
             <h3 className="text-sm font-bold text-foreground mb-4">⚙️ Настройки</h3>
             <div className="space-y-5">
