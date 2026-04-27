@@ -429,7 +429,7 @@ const TaskEditorPage: React.FC = () => {
         </div>
 
         {/* Right: Settings + Preview */}
-        <div className="w-[320px] shrink-0 space-y-6">
+        <div className="w-full lg:w-[320px] lg:shrink-0 space-y-6">
           <div className="bg-card rounded-2xl border-2 border-border p-5">
             <h3 className="text-sm font-bold text-foreground mb-4">⚙️ Настройки</h3>
             <div className="space-y-5">
