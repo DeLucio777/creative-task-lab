@@ -8,14 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, ListTodo, Trash2, Users, Search, ArrowUp, ArrowDown, X, CheckCircle2 } from 'lucide-react';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Plus, ListTodo, Trash2, Users, Search, ArrowUp, ArrowDown, X, CheckCircle2, ChevronDown, Baby, UsersRound } from 'lucide-react';
 import { toast } from 'sonner';
 
 const difficultyLabel: Record<string, string> = { Easy: '🟢 Лёгкий', Medium: '🟡 Средний', Hard: '🔴 Сложный' };
 
+const setsEqual = (a: number[], b: number[]) =>
+  a.length === b.length && a.every(x => b.includes(x));
+
 const AssignmentsPage: React.FC = () => {
   const { user, role } = useAuth();
-  const [educator, setEducator] = useState<Educator | null>(null);
+  const [, setEducator] = useState<Educator | null>(null);
   const [lists, setLists] = useState<TaskList[]>([]);
   const [items, setItems] = useState<TaskListItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -25,6 +30,8 @@ const AssignmentsPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [reps, setReps] = useState<LegalRepresentative[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [tab, setTab] = useState<'individual' | 'groups'>('individual');
+  const [openGroupChainIds, setOpenGroupChainIds] = useState<Set<number>>(new Set());
 
   // форма
   const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '' });
@@ -72,7 +79,6 @@ const AssignmentsPage: React.FC = () => {
     tasksApi.getTasks().then(setTasks);
     tasksApi.getTemplates().then(setTemplates);
     representativesApi.getAll().then(setReps);
-    // Дети: педагог видит только своих, админ — всех
     if (role === 'educator' && user) {
       (async () => {
         const ed = await educatorsApi.getByUserId(user.PK_UserId);
@@ -91,7 +97,6 @@ const AssignmentsPage: React.FC = () => {
     setDialogOpen(true);
   };
 
-  // Доступные задания (с учётом фильтров)
   const availableTasks = useMemo(() => {
     let base = tasks;
     if (onlyMine && user) base = base.filter(t => t.FK_UserId === user.PK_UserId || t.IsPublished);
@@ -155,13 +160,105 @@ const AssignmentsPage: React.FC = () => {
     }
   };
 
-  const getChildNameByUserId = (uid: number) => {
+  const getChildByUserId = (uid: number) => {
     const rep = reps.find(r => r.FK_UserId === uid);
-    const child = children.find(c => c.FK_RepresentativeId === rep?.PK_RepresentativeId);
+    return children.find(c => c.FK_RepresentativeId === rep?.PK_RepresentativeId);
+  };
+  const getChildNameByUserId = (uid: number) => {
+    const child = getChildByUserId(uid);
+    const rep = reps.find(r => r.FK_UserId === uid);
     return child?.FullName || rep?.FullName || `User #${uid}`;
   };
-
   const getTaskTitle = (tid: number) => tasks.find(t => t.PK_TaskId === tid)?.Title || `#${tid}`;
+
+  /* ── Группировка цепочек по типу: индивидуальные / групповые ── */
+  type Enriched = {
+    list: TaskList;
+    listItems: TaskListItem[];
+    recipientUserIds: number[];
+    matchedGroup: ChildGroup | null;
+    perChild: { userId: number; total: number; done: number; isDone: boolean }[];
+    total: number; done: number; allDone: boolean;
+  };
+
+  const enrichedLists: Enriched[] = useMemo(() => {
+    return lists.map(l => {
+      const listItems = items.filter(i => i.task_list_id === l.PK_id);
+      const recipientUserIds = [...new Set(listItems.map(i => i.user_id))];
+
+      // Подбираем группу, члены которой (через rep→user) точно равны получателям
+      let matchedGroup: ChildGroup | null = null;
+      for (const g of groups) {
+        const members = groupMembers.filter(m => m.FK_GroupId === g.PK_GroupId);
+        const memberUserIds = members
+          .map(m => {
+            const c = children.find(ch => ch.PK_ChildId === m.FK_ChildId);
+            const r = reps.find(rr => rr.PK_RepresentativeId === c?.FK_RepresentativeId);
+            return r?.FK_UserId;
+          })
+          .filter((x): x is number => typeof x === 'number');
+        if (memberUserIds.length > 1 && setsEqual(memberUserIds, recipientUserIds)) {
+          matchedGroup = g; break;
+        }
+      }
+
+      const perChild = recipientUserIds.map(uid => {
+        const u = listItems.filter(i => i.user_id === uid);
+        const done = u.filter(i => i.complited).length;
+        return { userId: uid, total: u.length, done, isDone: u.length > 0 && done === u.length };
+      });
+      const total = listItems.length;
+      const done = listItems.filter(i => i.complited).length;
+      const allDone = total > 0 && done === total;
+      return { list: l, listItems, recipientUserIds, matchedGroup, perChild, total, done, allDone };
+    });
+  }, [lists, items, groups, groupMembers, children, reps]);
+
+  const individualLists = enrichedLists.filter(e => !e.matchedGroup);
+  const groupLists = enrichedLists.filter(e => e.matchedGroup);
+
+  const toggleOpenGroupChain = (id: number) => {
+    setOpenGroupChainIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+
+  /* ── UI карточки ── */
+  const ChainHeader = ({ e, icon }: { e: Enriched; icon: React.ReactNode }) => (
+    <div className="flex items-start gap-3 flex-1 min-w-0">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${e.allDone ? 'bg-success/15' : 'bg-primary/10'}`}>
+        {e.allDone ? <CheckCircle2 className="h-5 w-5 text-success" /> : icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="font-bold text-foreground truncate">
+          {e.list.Title}
+          {e.allDone && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-bold">Завершена</span>}
+        </p>
+        {e.list.Descripti && <p className="text-xs text-muted-foreground truncate">{e.list.Descripti}</p>}
+        <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
+          <span className="text-muted-foreground"><Users className="h-3 w-3 inline mr-1" />{e.recipientUserIds.length} учеников</span>
+          <span className="text-success font-semibold">✓ {e.done}/{e.total} шагов</span>
+          {e.list.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(e.list.date_complite).toLocaleDateString('ru')}</span>}
+        </div>
+      </div>
+    </div>
+  );
+
+  const DeleteWhenDone = ({ e }: { e: Enriched }) => (
+    e.allDone ? (
+      <Button onClick={() => handleDelete(e.list.PK_id)} variant="destructive" className="rounded-xl gap-2 font-bold shrink-0">
+        <Trash2 className="h-4 w-4" /> Удалить завершённую
+      </Button>
+    ) : (
+      canManage && (
+        <button onClick={() => handleDelete(e.list.PK_id)} className="p-1.5 rounded-lg hover:bg-destructive/10 shrink-0" aria-label="Удалить">
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </button>
+      )
+    )
+  );
 
   return (
     <div>
@@ -174,65 +271,86 @@ const AssignmentsPage: React.FC = () => {
         )}
       </div>
 
-      <div className="space-y-3">
-        {lists.map(l => {
-          const myItems = items.filter(i => i.task_list_id === l.PK_id);
-          const recipients = [...new Set(myItems.map(i => i.user_id))];
-          // Считаем «выполнено учениками»: ребёнок завершил, если все его шаги done
-          const doneByUser = recipients.filter(uid => {
-            const u = myItems.filter(i => i.user_id === uid);
-            return u.length > 0 && u.every(i => i.complited);
-          }).length;
-          const total = myItems.length;
-          const done = myItems.filter(i => i.complited).length;
-          const allDone = total > 0 && done === total;
-          return (
-            <div key={l.PK_id} className={`bg-card border-2 rounded-2xl p-5 transition-all ${allDone ? 'border-success bg-success/5' : 'border-border'}`}>
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-start gap-3">
-                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${allDone ? 'bg-success/15' : 'bg-primary/10'}`}>
-                    {allDone ? <CheckCircle2 className="h-5 w-5 text-success" /> : <ListTodo className="h-5 w-5 text-primary" />}
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">
-                      {l.Title}
-                      {allDone && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-bold">Завершена</span>}
-                    </p>
-                    {l.Descripti && <p className="text-xs text-muted-foreground">{l.Descripti}</p>}
-                    <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
-                      <span className="text-muted-foreground"><Users className="h-3 w-3 inline mr-1" />{recipients.length} учеников · завершили {doneByUser}</span>
-                      <span className="text-success font-semibold">✓ {done}/{total} шагов</span>
-                      {l.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(l.date_complite).toLocaleDateString('ru')}</span>}
-                    </div>
-                  </div>
-                </div>
-                {canManage && (
-                  <button onClick={() => handleDelete(l.PK_id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
-                    <Trash2 className="h-4 w-4 text-destructive" />
-                  </button>
-                )}
+      <Tabs value={tab} onValueChange={(v) => setTab(v as 'individual' | 'groups')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="individual" className="gap-2"><Baby className="h-4 w-4" /> Отдельные дети ({individualLists.length})</TabsTrigger>
+          <TabsTrigger value="groups" className="gap-2"><UsersRound className="h-4 w-4" /> Группы ({groupLists.length})</TabsTrigger>
+        </TabsList>
+
+        {/* === Отдельные дети === */}
+        <TabsContent value="individual" className="space-y-3">
+          {individualLists.map(e => (
+            <div key={e.list.PK_id} className={`bg-card border-2 rounded-2xl p-5 transition-all ${e.allDone ? 'border-success bg-success/5' : 'border-border'}`}>
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <ChainHeader e={e} icon={<ListTodo className="h-5 w-5 text-primary" />} />
+                <DeleteWhenDone e={e} />
               </div>
               <div className="flex flex-wrap gap-1.5">
-                {recipients.map(uid => {
-                  const userItems = myItems.filter(i => i.user_id === uid);
-                  const userDone = userItems.every(i => i.complited);
-                  return (
-                    <span key={uid} className={`px-2.5 py-1 rounded-lg text-xs font-bold ${userDone ? 'bg-success/15 text-success' : 'bg-accent/40 text-accent-foreground'}`}>
-                      {userDone && '✓ '}{getChildNameByUserId(uid)}
-                    </span>
-                  );
-                })}
+                {e.perChild.map(pc => (
+                  <span key={pc.userId} className={`px-2.5 py-1 rounded-lg text-xs font-bold ${pc.isDone ? 'bg-success/15 text-success' : 'bg-accent/40 text-accent-foreground'}`}>
+                    {pc.isDone && '✓ '}{getChildNameByUserId(pc.userId)} · {pc.done}/{pc.total}
+                  </span>
+                ))}
               </div>
             </div>
-          );
-        })}
-        {lists.length === 0 && (
-          <div className="text-center py-16">
-            <p className="text-4xl mb-3">📋</p>
-            <p className="text-muted-foreground font-bold">Нет назначенных цепочек</p>
-          </div>
-        )}
-      </div>
+          ))}
+          {individualLists.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">📋</p>
+              <p className="text-muted-foreground font-bold">Нет цепочек у отдельных детей</p>
+            </div>
+          )}
+        </TabsContent>
+
+        {/* === Группы === */}
+        <TabsContent value="groups" className="space-y-3">
+          {groupLists.map(e => {
+            const isOpen = openGroupChainIds.has(e.list.PK_id);
+            return (
+              <Collapsible key={e.list.PK_id} open={isOpen} onOpenChange={() => toggleOpenGroupChain(e.list.PK_id)}>
+                <div className={`bg-card border-2 rounded-2xl p-5 transition-all ${e.allDone ? 'border-success bg-success/5' : 'border-border'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <ChainHeader e={e} icon={<UsersRound className="h-5 w-5 text-primary" />} />
+                    <DeleteWhenDone e={e} />
+                  </div>
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="text-xs px-2.5 py-1 rounded-lg bg-primary/10 text-primary font-bold">
+                      {e.matchedGroup?.GroupName}
+                    </span>
+                    <CollapsibleTrigger asChild>
+                      <button className="text-xs font-bold text-muted-foreground hover:text-foreground flex items-center gap-1 ml-auto">
+                        {isOpen ? 'Скрыть детей' : 'Показать детей группы'}
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                      </button>
+                    </CollapsibleTrigger>
+                  </div>
+                  <CollapsibleContent className="mt-3 space-y-1.5 border-t border-border pt-3">
+                    {e.perChild.map(pc => (
+                      <div key={pc.userId} className={`flex items-center justify-between rounded-xl px-3 py-2 ${pc.isDone ? 'bg-success/10' : 'bg-muted/40'}`}>
+                        <div className="flex items-center gap-2">
+                          {pc.isDone
+                            ? <CheckCircle2 className="h-4 w-4 text-success" />
+                            : <ListTodo className="h-4 w-4 text-muted-foreground" />}
+                          <span className="font-bold text-sm">{getChildNameByUserId(pc.userId)}</span>
+                        </div>
+                        <span className={`text-xs font-bold ${pc.isDone ? 'text-success' : 'text-muted-foreground'}`}>
+                          {pc.isDone ? 'Цепочка выполнена' : `${pc.done}/${pc.total} шагов`}
+                        </span>
+                      </div>
+                    ))}
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
+            );
+          })}
+          {groupLists.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-4xl mb-3">👥</p>
+              <p className="text-muted-foreground font-bold">Нет цепочек, назначенных группам</p>
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="rounded-2xl max-w-3xl max-h-[90vh] overflow-y-auto">
@@ -260,7 +378,6 @@ const AssignmentsPage: React.FC = () => {
                 <span className="text-xs font-bold text-primary">Выбрано: {selectedTasks.length}</span>
               </div>
 
-              {/* Фильтры */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -283,7 +400,6 @@ const AssignmentsPage: React.FC = () => {
               </label>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {/* Доступные */}
                 <div>
                   <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Доступные ({availableTasks.length})</p>
                   <div className="border-2 border-border rounded-xl bg-card max-h-64 overflow-y-auto divide-y divide-border">
@@ -314,7 +430,6 @@ const AssignmentsPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Выбранные с порядком */}
                 <div>
                   <p className="text-xs font-bold text-muted-foreground uppercase mb-2">Цепочка ({selectedTasks.length})</p>
                   <div className="border-2 border-dashed border-primary/30 rounded-xl bg-primary/5 max-h-64 overflow-y-auto p-2 space-y-1.5">
