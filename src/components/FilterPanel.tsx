@@ -57,7 +57,7 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
       </Button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-2 w-80 bg-card rounded-2xl border-2 border-border p-5 z-50 shadow-lg">
+        <div className="absolute right-0 top-full mt-2 w-[min(20rem,calc(100vw-2rem))] bg-card rounded-2xl border-2 border-border p-5 z-50 shadow-lg">
           <div className="flex justify-between items-center mb-4">
             <h4 className="font-bold text-foreground">🔍 Фильтры</h4>
             <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-foreground">
