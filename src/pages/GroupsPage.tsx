@@ -85,8 +85,8 @@ const GroupsPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">👥 Группы учеников</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">👥 Группы учеников</h1>
         {role === 'educator' && (
           <Button onClick={() => setCreateOpen(true)} className="gap-2 rounded-xl font-bold h-11">
             <Plus className="h-4 w-4" /> Создать группу
