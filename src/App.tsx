@@ -65,8 +65,8 @@ const AppRoutes = () => {
         <Route path="/educators" element={<RoleGuard allowed={['admin']}><EducatorsPage /></RoleGuard>} />
         {/* Группы — педагог/админ */}
         <Route path="/groups" element={<RoleGuard allowed={['admin', 'educator']}><GroupsPage /></RoleGuard>} />
-        {/* Назначения цепочек — педагог/админ */}
-        <Route path="/assignments" element={<RoleGuard allowed={['admin', 'educator']}><AssignmentsPage /></RoleGuard>} />
+        {/* Назначения цепочек — только педагог */}
+        <Route path="/assignments" element={<RoleGuard allowed={['educator']}><AssignmentsPage /></RoleGuard>} />
         {/* Прогресс — все авторизованные */}
         <Route path="/progress" element={<ProgressPage />} />
         {/* Медиа-библиотека — педагог/админ */}
