@@ -78,6 +78,7 @@ export interface Child {
   FK_EducatorId?: number;
   Representative?: LegalRepresentative;
   Educator?: Educator;
+  RegisteredDate?: string;
 }
 
 export interface SensoryProfile {
