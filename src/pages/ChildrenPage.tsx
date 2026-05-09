@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { childrenApi, educatorsApi, representativesApi } from '@/services/entitiesApi';
+import { authApi } from '@/services/authApi';
 import type { Child, Educator, LegalRepresentative } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,8 @@ import { Plus, Search, Trash2, Edit2, Baby, Users, Eye, MessageSquare } from 'lu
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { fullNameSchema, loginSchema, passwordSchema, validate } from '@/lib/validation';
+import { z } from 'zod';
 
 const ChildrenPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -18,7 +21,7 @@ const ChildrenPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
-  const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
+  const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
 
   // Админ — полный CRUD. Педагог — может только редактировать уровень речи у своих детей.
   const canEdit = role === 'admin';
