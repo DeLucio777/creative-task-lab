@@ -47,14 +47,19 @@ export const MOCK_EDUCATORS: Educator[] = [
 export const MOCK_REPRESENTATIVES: LegalRepresentative[] = [
   { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+375 (33) 777-88-99', Email: 'kozlova@mail.by' },
   { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+375 (25) 222-33-44', Email: 'petrov@mail.by' },
+  { PK_RepresentativeId: 3, FK_UserId: 6, FullName: 'Петров Иван Дмитриевич', RelationType: 'сам', Phone: '+375 (25) 333-44-55', Email: 'ivan.petrov@mail.by' },
+  { PK_RepresentativeId: 4, FK_UserId: 7, FullName: 'Петрова Анна Дмитриевна', RelationType: 'сама', Phone: '+375 (25) 444-55-66', Email: 'anya.petrova@mail.by' },
 ];
 
 /* ── Дети ── */
 export const MOCK_CHILDREN: Child[] = [
-  { PK_ChildId: 1, FullName: 'Козлов Артём',  BirthDate: '2018-03-15', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Чувствительность к громким звукам', FK_RepresentativeId: 1, FK_EducatorId: 1 },
-  { PK_ChildId: 2, FullName: 'Козлова Мия',   BirthDate: '2019-07-22', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает визуальные подсказки',  FK_RepresentativeId: 1, FK_EducatorId: 1 },
-  { PK_ChildId: 3, FullName: 'Петров Максим', BirthDate: '2017-11-05', SpeechLevel: 'Минимальный', PerceptionFeatures: 'Тактильная гиперчувствительность',   FK_RepresentativeId: 2, FK_EducatorId: 2 },
-  { PK_ChildId: 4, FullName: 'Сидорова Алиса',BirthDate: '2020-01-30', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Норма', FK_EducatorId: 1 },
+  { PK_ChildId: 1, FullName: 'Козлов Артём',  BirthDate: '2018-03-15', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Чувствительность к громким звукам', FK_RepresentativeId: 1, FK_EducatorId: 1, RegisteredDate: '2025-09-01' },
+  { PK_ChildId: 2, FullName: 'Козлова Мия',   BirthDate: '2019-07-22', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает визуальные подсказки',  FK_RepresentativeId: 1, FK_EducatorId: 1, RegisteredDate: '2025-09-15' },
+  { PK_ChildId: 3, FullName: 'Петров Максим', BirthDate: '2017-11-05', SpeechLevel: 'Минимальный', PerceptionFeatures: 'Тактильная гиперчувствительность',   FK_RepresentativeId: 2, FK_EducatorId: 2, RegisteredDate: '2025-10-05' },
+  { PK_ChildId: 4, FullName: 'Сидорова Алиса',BirthDate: '2020-01-30', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Норма', FK_EducatorId: 1, RegisteredDate: '2025-11-10' },
+  // Закреплены за педагогом ivanova (FK_EducatorId: 2)
+  { PK_ChildId: 5, FullName: 'Петров Иван',   BirthDate: '2018-05-12', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Любит ритм и музыку',                FK_RepresentativeId: 3, FK_EducatorId: 2, RegisteredDate: '2026-01-12' },
+  { PK_ChildId: 6, FullName: 'Петрова Анна',  BirthDate: '2019-09-08', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает спокойные цвета',       FK_RepresentativeId: 4, FK_EducatorId: 2, RegisteredDate: '2026-02-20' },
 ];
 
 /* ── Сенсорные профили ── */
