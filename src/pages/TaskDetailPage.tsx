@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
 import { api } from '@/services/api';
-import { taskListsApi } from '@/services/entitiesApi';
+import { taskListsApi, userInfoApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
 import { Progress } from '@/components/ui/progress';
@@ -448,26 +448,30 @@ const TaskDetailPage: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
 
-    // При успешном выполнении — отметить шаги цепочки и проверить, завершилась ли цепочка целиком
+    if (user) {
+      // Обновляем статистику ребёнка
+      const info = await userInfoApi.getByUser(user.PK_UserId);
+      const cur = info || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
+      await userInfoApi.save(user.PK_UserId, {
+        ...cur,
+        complited_tasks_count: (cur.complited_tasks_count || 0) + (correct ? 1 : 0),
+        miss_tasks_count: (cur.miss_tasks_count || 0) + (correct ? 0 : 1),
+        helpe_used_count: (cur.helpe_used_count || 0) + (hintShown ? 1 : 0),
+      });
+    }
+
     if (correct && user) {
       const updated = await taskListsApi.markTaskCompletedForUser(taskId, user.PK_UserId);
       if (updated.length > 0) {
         const statuses = await taskListsApi.getStatusesForUser(user.PK_UserId);
-        const finishedLists = updated
-          .map(u => u.task_list_id)
-          .filter((v, i, arr) => arr.indexOf(v) === i)
-          .filter(listId => statuses[listId]?.isDone);
-        if (finishedLists.length > 0) {
-          toast.success(`🎉 Цепочка заданий завершена!`);
-        } else {
-          toast.success('Шаг цепочки выполнен ✅');
-        }
+        const finishedLists = updated.map(u => u.task_list_id).filter((v, i, arr) => arr.indexOf(v) === i).filter(listId => statuses[listId]?.isDone);
+        if (finishedLists.length > 0) toast.success('🎉 Цепочка заданий завершена!');
+        else toast.success('Шаг цепочки выполнен ✅');
       }
-      // Найти следующее задание в цепочке для кнопки «Далее»
       const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
       setNextInChain(nxt);
     }
-  }, [taskId, user]);
+  }, [taskId, user, hintShown]);
 
   const handleRestart = () => {
     setResult(null);

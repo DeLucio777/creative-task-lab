@@ -1,345 +1,246 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { api } from '@/services/api';
-import type { Task, TaskTemplate } from '@/types/models';
-import { Calendar, FileText, TrendingUp, Download } from 'lucide-react';
+import { tasksApi } from '@/services/tasksApi';
+import { childrenApi, educatorsApi, progressApi, assignmentsApi, taskListsApi } from '@/services/entitiesApi';
+import type { Task, Child, Educator, ProgressRecord, TaskAssignment, TaskList } from '@/types/models';
+import { Calendar, Download, FileText, BarChart3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  type ChartConfig,
-} from '@/components/ui/chart';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, PieChart, Pie, Cell } from 'recharts';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
-const COLORS = [
-  'hsl(var(--primary))',
-  'hsl(var(--secondary))',
-  'hsl(var(--accent))',
-  'hsl(var(--destructive))',
-];
+type Row = (string | number)[];
+type ReportData = { title: string; headers: string[]; rows: Row[] };
 
-const chartConfig: ChartConfig = {
-  count: { label: 'Заданий', color: 'hsl(var(--primary))' },
+const inDate = (iso: string | undefined, from: string, to: string) => {
+  if (!iso) return !from && !to;
+  const d = new Date(iso);
+  if (from && d < new Date(from)) return false;
+  if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); if (d > e) return false; }
+  return true;
 };
 
-const templateChartConfig: ChartConfig = {
-  value: { label: 'Заданий' },
+const exportXLSX = (data: ReportData) => {
+  const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Отчёт');
+  XLSX.writeFile(wb, `${data.title}.xlsx`);
+  toast.success('Экспортировано в Excel');
 };
 
-const difficultyLabel = (d?: string) => {
-  if (d === 'Easy') return 'Лёгкий';
-  if (d === 'Medium') return 'Средний';
-  if (d === 'Hard') return 'Сложный';
-  return 'Не указан';
+const exportPDF = (data: ReportData) => {
+  const doc = new jsPDF();
+  doc.setFont('helvetica');
+  doc.setFontSize(14);
+  doc.text(data.title, 14, 16);
+  autoTable(doc, { head: [data.headers], body: data.rows.map(r => r.map(String)), startY: 22, styles: { fontSize: 9 } });
+  doc.save(`${data.title}.pdf`);
+  toast.success('Экспортировано в PDF');
 };
+
+const exportDOCX = async (data: ReportData) => {
+  const border = { style: BorderStyle.SINGLE, size: 1, color: '999999' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+  const margins = { top: 60, bottom: 60, left: 100, right: 100 };
+  const headerRow = new TableRow({
+    children: data.headers.map(h => new TableCell({
+      borders, margins, shading: { fill: 'D5E8F0', type: 'clear' as never },
+      children: [new Paragraph({ children: [new TextRun({ text: h, bold: true, font: 'Arial', size: 20 })] })],
+    })),
+  });
+  const bodyRows = data.rows.map(r => new TableRow({
+    children: r.map(c => new TableCell({
+      borders, margins,
+      children: [new Paragraph({ children: [new TextRun({ text: String(c), font: 'Arial', size: 20 })] })],
+    })),
+  }));
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{
+      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      children: [
+        new Paragraph({ heading: HeadingLevel.HEADING_1, alignment: AlignmentType.CENTER, children: [new TextRun({ text: data.title, bold: true, size: 32, font: 'Arial' })] }),
+        new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Сформировано: ${new Date().toLocaleDateString('ru')}`, size: 18, font: 'Arial', color: '888888' })] }),
+        new Paragraph({ children: [new TextRun({ text: '' })] }),
+        new Table({ width: { size: 9360, type: WidthType.DXA }, rows: [headerRow, ...bodyRows] }),
+      ],
+    }],
+  });
+  const blob = await Packer.toBlob(doc);
+  saveAs(blob, `${data.title}.docx`);
+  toast.success('Экспортировано в Word');
+};
+
+const ExportButtons: React.FC<{ data: ReportData }> = ({ data }) => (
+  <div className="flex flex-wrap gap-2">
+    <Button onClick={() => exportPDF(data)} variant="outline" size="sm" className="gap-1.5"><Download className="h-3.5 w-3.5" /> PDF</Button>
+    <Button onClick={() => exportXLSX(data)} variant="outline" size="sm" className="gap-1.5"><Download className="h-3.5 w-3.5" /> Excel</Button>
+    <Button onClick={() => exportDOCX(data)} variant="outline" size="sm" className="gap-1.5"><Download className="h-3.5 w-3.5" /> Word</Button>
+  </div>
+);
+
+const TablePreview: React.FC<{ data: ReportData }> = ({ data }) => (
+  <div className="overflow-x-auto rounded-xl border-2 border-border">
+    <table className="w-full text-sm">
+      <thead className="bg-accent/30">
+        <tr>{data.headers.map(h => <th key={h} className="text-left px-3 py-2 font-bold">{h}</th>)}</tr>
+      </thead>
+      <tbody>
+        {data.rows.map((r, i) => (
+          <tr key={i} className="border-t border-border">
+            {r.map((c, j) => <td key={j} className="px-3 py-2">{String(c)}</td>)}
+          </tr>
+        ))}
+        {data.rows.length === 0 && (
+          <tr><td colSpan={data.headers.length} className="px-3 py-6 text-center text-muted-foreground">Нет данных</td></tr>
+        )}
+      </tbody>
+    </table>
+  </div>
+);
 
 const ReportsPage: React.FC = () => {
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [educators, setEducators] = useState<Educator[]>([]);
+  const [progress, setProgress] = useState<ProgressRecord[]>([]);
+  const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
+  const [lists, setLists] = useState<TaskList[]>([]);
+
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
+  const [childId, setChildId] = useState<number>(0);
+  const [educatorId, setEducatorId] = useState<number>(0);
 
   useEffect(() => {
-    api.getTasks().then(setTasks);
-    api.getTemplates().then(setTemplates);
+    Promise.all([tasksApi.getTasks(), childrenApi.getAll(), educatorsApi.getAll(), progressApi.getAll(), assignmentsApi.getAll(), taskListsApi.getAll()])
+      .then(([t, c, e, p, a, l]) => { setTasks(t); setChildren(c); setEducators(e); setProgress(p); setAssignments(a); setLists(l); });
   }, []);
 
-  // Filter tasks by date range
-  const filteredTasks = useMemo(() => {
-    return tasks.filter(t => {
-      if (!t.CreatedDate) return !dateFrom && !dateTo;
-      const created = new Date(t.CreatedDate);
-      if (dateFrom && created < new Date(dateFrom)) return false;
-      if (dateTo) {
-        const end = new Date(dateTo);
-        end.setHours(23, 59, 59, 999);
-        if (created > end) return false;
-      }
-      return true;
-    });
-  }, [tasks, dateFrom, dateTo]);
+  const taskTitle = (id: number) => tasks.find(t => t.PK_TaskId === id)?.Title || `#${id}`;
+  const childName = (id: number) => children.find(c => c.PK_ChildId === id)?.FullName || `#${id}`;
 
-  // Group filtered tasks by difficulty for bar chart
-  const difficultyData = useMemo(() => {
-    const counts: Record<string, number> = { Easy: 0, Medium: 0, Hard: 0 };
-    filteredTasks.forEach(t => {
-      if (t.DifficultyLevel) counts[t.DifficultyLevel]++;
-    });
-    return [
-      { name: '🟢 Лёгкий', count: counts.Easy },
-      { name: '🟡 Средний', count: counts.Medium },
-      { name: '🔴 Сложный', count: counts.Hard },
-    ];
-  }, [filteredTasks]);
-
-  // Group filtered tasks by template for pie chart
-  const templateData = useMemo(() => {
-    return templates.map(tmpl => ({
-      name: tmpl.TemplateName,
-      value: filteredTasks.filter(t => t.FK_TemplateId === tmpl.PK_TemplateId).length,
-    })).filter(d => d.value > 0);
-  }, [filteredTasks, templates]);
-
-  const getTemplateName = (id: number) =>
-    templates.find(t => t.PK_TemplateId === id)?.TemplateName || `Шаблон #${id}`;
-
-  const handleExportDocx = async () => {
-    const periodText = dateFrom && dateTo
-      ? `с ${new Date(dateFrom).toLocaleDateString('ru')} по ${new Date(dateTo).toLocaleDateString('ru')}`
-      : 'За всё время';
-
-    const cellBorder = { style: BorderStyle.SINGLE, size: 1, color: '999999' };
-    const cellBorders = { top: cellBorder, bottom: cellBorder, left: cellBorder, right: cellBorder };
-    const cellMargins = { top: 60, bottom: 60, left: 100, right: 100 };
-
-    // Summary table rows
-    const summaryRows = [
-      new TableRow({
-        children: [
-          new TableCell({
-            borders: cellBorders, margins: cellMargins,
-            width: { size: 4680, type: WidthType.DXA },
-            shading: { fill: 'D5E8F0', type: 'clear' as any },
-            children: [new Paragraph({ children: [new TextRun({ text: 'Показатель', bold: true, font: 'Arial', size: 22 })] })],
-          }),
-          new TableCell({
-            borders: cellBorders, margins: cellMargins,
-            width: { size: 4680, type: WidthType.DXA },
-            shading: { fill: 'D5E8F0', type: 'clear' as any },
-            children: [new Paragraph({ children: [new TextRun({ text: 'Значение', bold: true, font: 'Arial', size: 22 })] })],
-          }),
-        ],
+  // 1. Прогресс ребёнка
+  const childProgressReport = useMemo<ReportData>(() => ({
+    title: childId ? `Прогресс — ${childName(childId)}` : 'Прогресс ребёнка',
+    headers: ['Дата', 'Задание', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
+    rows: progress
+      .filter(p => !childId || p.FK_ChildId === childId)
+      .filter(p => inDate(p.CompletedDate, dateFrom, dateTo))
+      .map(p => {
+        const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
+        return [
+          new Date(p.CompletedDate).toLocaleDateString('ru'),
+          a ? taskTitle(a.FK_TaskId) : '—',
+          p.IsCorrect ? '✓ верно' : '✗ ошибка',
+          p.ErrorCount, p.HintsUsed, p.TimeTakenSeconds || 0,
+        ];
       }),
-      new TableRow({
-        children: [
-          new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: 'Всего заданий', font: 'Arial', size: 22 })] })] }),
-          new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(filteredTasks.length), font: 'Arial', size: 22, bold: true })] })] }),
-        ],
-      }),
-      ...difficultyData.map(d =>
-        new TableRow({
-          children: [
-            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: d.name.replace(/[🟢🟡🔴]\s?/, ''), font: 'Arial', size: 22 })] })] }),
-            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(d.count), font: 'Arial', size: 22 })] })] }),
-          ],
-        })
-      ),
-      ...templateData.map(d =>
-        new TableRow({
-          children: [
-            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: `Шаблон: ${d.name}`, font: 'Arial', size: 22 })] })] }),
-            new TableCell({ borders: cellBorders, margins: cellMargins, width: { size: 4680, type: WidthType.DXA }, children: [new Paragraph({ children: [new TextRun({ text: String(d.value), font: 'Arial', size: 22 })] })] }),
-          ],
-        })
-      ),
-    ];
+  }), [progress, assignments, tasks, children, childId, dateFrom, dateTo]);
 
-    // Task detail table
-    const taskDetailRows = [
-      new TableRow({
-        children: ['#', 'Название', 'Сложность', 'Шаблон', 'Дата создания'].map(header =>
-          new TableCell({
-            borders: cellBorders, margins: cellMargins,
-            width: { size: Math.floor(9360 / 5), type: WidthType.DXA },
-            shading: { fill: 'D5E8F0', type: 'clear' as any },
-            children: [new Paragraph({ children: [new TextRun({ text: header, bold: true, font: 'Arial', size: 20 })] })],
-          })
-        ),
-      }),
-      ...filteredTasks.map((task, idx) =>
-        new TableRow({
-          children: [
-            String(idx + 1),
-            task.Title,
-            difficultyLabel(task.DifficultyLevel),
-            getTemplateName(task.FK_TemplateId),
-            task.CreatedDate ? new Date(task.CreatedDate).toLocaleDateString('ru') : '—',
-          ].map(text =>
-            new TableCell({
-              borders: cellBorders, margins: cellMargins,
-              width: { size: Math.floor(9360 / 5), type: WidthType.DXA },
-              children: [new Paragraph({ children: [new TextRun({ text, font: 'Arial', size: 20 })] })],
-            })
-          ),
-        })
-      ),
-    ];
-
-    const doc = new Document({
-      styles: {
-        default: { document: { run: { font: 'Arial', size: 24 } } },
-      },
-      sections: [{
-        properties: {
-          page: {
-            size: { width: 12240, height: 15840 },
-            margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 },
-          },
-        },
-        children: [
-          new Paragraph({
-            heading: HeadingLevel.HEADING_1,
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 300 },
-            children: [new TextRun({ text: 'Отчёт по заданиям', bold: true, size: 36, font: 'Arial' })],
-          }),
-          new Paragraph({
-            alignment: AlignmentType.CENTER,
-            spacing: { after: 400 },
-            children: [new TextRun({ text: `Период: ${periodText}`, size: 24, font: 'Arial', color: '666666' })],
-          }),
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 300, after: 200 },
-            children: [new TextRun({ text: 'Сводка', bold: true, size: 28, font: 'Arial' })],
-          }),
-          new Table({
-            width: { size: 9360, type: WidthType.DXA },
-            columnWidths: [4680, 4680],
-            rows: summaryRows,
-          }),
-          new Paragraph({
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 400, after: 200 },
-            children: [new TextRun({ text: 'Список заданий', bold: true, size: 28, font: 'Arial' })],
-          }),
-          ...(filteredTasks.length > 0
-            ? [new Table({
-                width: { size: 9360, type: WidthType.DXA },
-                columnWidths: Array(5).fill(Math.floor(9360 / 5)),
-                rows: taskDetailRows,
-              })]
-            : [new Paragraph({ children: [new TextRun({ text: 'Нет заданий за выбранный период.', italics: true, font: 'Arial', size: 22 })] })]
-          ),
-          new Paragraph({
-            spacing: { before: 600 },
-            alignment: AlignmentType.RIGHT,
-            children: [new TextRun({ text: `Дата формирования: ${new Date().toLocaleDateString('ru')}`, size: 20, font: 'Arial', color: '999999' })],
-          }),
-        ],
-      }],
+  // 2. Сводный отчёт по педагогу
+  const educatorSummaryReport = useMemo<ReportData>(() => {
+    const edu = educators.find(e => e.PK_EducatorId === educatorId);
+    const myChildren = children.filter(c => !educatorId || c.FK_EducatorId === educatorId);
+    const rows: Row[] = myChildren.map(c => {
+      const ps = progress.filter(p => p.FK_ChildId === c.PK_ChildId && inDate(p.CompletedDate, dateFrom, dateTo));
+      const correct = ps.filter(p => p.IsCorrect).length;
+      const errors = ps.reduce((s, p) => s + p.ErrorCount, 0);
+      const hints = ps.reduce((s, p) => s + p.HintsUsed, 0);
+      return [c.FullName, ps.length, correct, errors, hints];
     });
+    return {
+      title: edu ? `Сводный отчёт — ${edu.FullName}` : 'Сводный отчёт по педагогу',
+      headers: ['Ребёнок', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок'],
+      rows,
+    };
+  }, [educators, children, progress, educatorId, dateFrom, dateTo]);
 
-    const buffer = await Packer.toBlob(doc);
-    saveAs(buffer, `report_${dateFrom || 'all'}_${dateTo || 'all'}.docx`);
-    toast.success('Отчёт экспортирован в DOCX');
-  };
+  // 3. Регистрации детей за период
+  const registrationsReport = useMemo<ReportData>(() => ({
+    title: 'Регистрации детей за период',
+    headers: ['Дата регистрации', 'ФИО ребёнка', 'Педагог'],
+    rows: children
+      .filter(c => inDate(c.RegisteredDate, dateFrom, dateTo))
+      .map(c => [
+        c.RegisteredDate ? new Date(c.RegisteredDate).toLocaleDateString('ru') : '—',
+        c.FullName,
+        educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—',
+      ]),
+  }), [children, educators, dateFrom, dateTo]);
+
+  // 4. История обучения ребёнка
+  const learningHistoryReport = useMemo<ReportData>(() => {
+    const c = children.find(x => x.PK_ChildId === childId);
+    const cps = progress.filter(p => (!childId || p.FK_ChildId === childId) && inDate(p.CompletedDate, dateFrom, dateTo))
+      .sort((a, b) => new Date(a.CompletedDate).getTime() - new Date(b.CompletedDate).getTime());
+    return {
+      title: c ? `История обучения — ${c.FullName}` : 'История обучения ребёнка',
+      headers: ['Дата и время', 'Задание', 'Результат', 'Подсказок', 'Ошибок'],
+      rows: cps.map(p => {
+        const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
+        return [new Date(p.CompletedDate).toLocaleString('ru'), a ? taskTitle(a.FK_TaskId) : '—', p.IsCorrect ? '✓' : '✗', p.HintsUsed, p.ErrorCount];
+      }),
+    };
+  }, [progress, assignments, tasks, children, childId, dateFrom, dateTo]);
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">📊 Отчётность</h1>
-        <Button onClick={handleExportDocx} variant="outline" className="gap-2">
-          <Download className="h-4 w-4" />
-          Экспорт в DOCX
-        </Button>
-      </div>
-      <div className="space-y-6">
-        {/* Total tasks card */}
-        <div className="bg-card rounded-2xl border-2 border-border p-6">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-              <FileText className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h3 className="font-bold text-foreground">Созданные задания</h3>
-              <p className="text-xs text-muted-foreground font-medium">Количество заданий за выбранный период</p>
-            </div>
-          </div>
-          <div className="flex gap-4 mb-6">
-            <div className="flex-1 space-y-2">
-              <Label className="font-semibold text-xs">Дата начала</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-9 rounded-xl h-11" />
-              </div>
-            </div>
-            <div className="flex-1 space-y-2">
-              <Label className="font-semibold text-xs">Дата окончания</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-9 rounded-xl h-11" />
-              </div>
-            </div>
-          </div>
-          <div className="bg-accent/50 rounded-xl p-6 text-center">
-            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Всего заданий</p>
-            <p className="text-5xl font-extrabold text-primary">{filteredTasks.length}</p>
-            <p className="text-xs text-muted-foreground font-medium mt-2">
-              {dateFrom && dateTo
-                ? `с ${new Date(dateFrom).toLocaleDateString('ru')} по ${new Date(dateTo).toLocaleDateString('ru')}`
-                : 'За всё время'}
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold tracking-tight text-foreground">📊 Отчётность</h1>
 
-        {/* Charts grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Bar chart - by difficulty */}
-          <div className="bg-card rounded-2xl border-2 border-border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-secondary/20 flex items-center justify-center">
-                <TrendingUp className="h-5 w-5 text-secondary-foreground" />
-              </div>
-              <div>
-                <h3 className="font-bold text-foreground">По сложности</h3>
-                <p className="text-xs text-muted-foreground font-medium">Распределение заданий по уровню</p>
-              </div>
-            </div>
-            <ChartContainer config={chartConfig} className="h-[250px] w-full">
-              <BarChart data={difficultyData}>
-                <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
-                <XAxis dataKey="name" tick={{ fontSize: 12 }} />
-                <YAxis allowDecimals={false} tick={{ fontSize: 12 }} />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" fill="hsl(var(--primary))" radius={[8, 8, 0, 0]} />
-              </BarChart>
-            </ChartContainer>
+      <div className="bg-card rounded-2xl border-2 border-border p-5 space-y-4">
+        <p className="font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Фильтры</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">С</Label>
+            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
           </div>
-
-          {/* Pie chart - by template */}
-          <div className="bg-card rounded-2xl border-2 border-border p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-accent/50 flex items-center justify-center">
-                <FileText className="h-5 w-5 text-accent-foreground" />
-              </div>
-              <div>
-                <h3 className="font-bold text-foreground">По типу задания</h3>
-                <p className="text-xs text-muted-foreground font-medium">Распределение по шаблонам</p>
-              </div>
-            </div>
-            <ChartContainer config={templateChartConfig} className="h-[250px] w-full">
-              <PieChart>
-                <ChartTooltip content={<ChartTooltipContent nameKey="name" />} />
-                <Pie
-                  data={templateData}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={90}
-                  innerRadius={40}
-                  paddingAngle={3}
-                  label={({ name, value }) => `${name}: ${value}`}
-                  labelLine={false}
-                >
-                  {templateData.map((_, index) => (
-                    <Cell key={index} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-              </PieChart>
-            </ChartContainer>
-            {templateData.length === 0 && (
-              <p className="text-center text-muted-foreground text-sm font-medium">Нет данных</p>
-            )}
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">По</Label>
+            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Ребёнок</Label>
+            <select value={childId} onChange={e => setChildId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
+              <option value={0}>Все дети</option>
+              {children.map(c => <option key={c.PK_ChildId} value={c.PK_ChildId}>{c.FullName}</option>)}
+            </select>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs font-semibold">Педагог</Label>
+            <select value={educatorId} onChange={e => setEducatorId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
+              <option value={0}>Все педагоги</option>
+              {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
+            </select>
           </div>
         </div>
       </div>
+
+      <Tabs defaultValue="child-progress">
+        <TabsList className="flex flex-wrap h-auto">
+          <TabsTrigger value="child-progress">Прогресс ребёнка</TabsTrigger>
+          <TabsTrigger value="educator">По педагогу</TabsTrigger>
+          <TabsTrigger value="registrations">Регистрации</TabsTrigger>
+          <TabsTrigger value="history">История обучения</TabsTrigger>
+        </TabsList>
+
+        {[childProgressReport, educatorSummaryReport, registrationsReport, learningHistoryReport].map((rep, i) => (
+          <TabsContent key={i} value={['child-progress', 'educator', 'registrations', 'history'][i]} className="space-y-4 mt-4">
+            <div className="bg-card rounded-2xl border-2 border-border p-5 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2"><FileText className="h-4 w-4 text-primary" /><p className="font-bold">{rep.title}</p></div>
+                <ExportButtons data={rep} />
+              </div>
+              <TablePreview data={rep} />
+            </div>
+          </TabsContent>
+        ))}
+      </Tabs>
     </div>
   );
 };

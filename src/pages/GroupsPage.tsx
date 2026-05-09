@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { groupsApi, childrenApi, educatorsApi } from '@/services/entitiesApi';
 import type { ChildGroup, ChildGroupMember, Child, Educator } from '@/types/models';
@@ -16,78 +16,82 @@ interface GroupCard {
 
 const GroupsPage: React.FC = () => {
   const { user, role } = useAuth();
+  const isAdmin = role === 'admin';
+  const isEducator = role === 'educator';
+  const canManage = isAdmin || isEducator;
+
   const [educator, setEducator] = useState<Educator | null>(null);
+  const [educators, setEducators] = useState<Educator[]>([]);
   const [groups, setGroups] = useState<GroupCard[]>([]);
-  const [children, setChildren] = useState<Child[]>([]);
+  const [allChildren, setAllChildren] = useState<Child[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [memberOpen, setMemberOpen] = useState<number | null>(null);
   const [groupName, setGroupName] = useState('');
+  const [createEduId, setCreateEduId] = useState<number>(0);
 
-  const reload = async (eduId: number) => {
-    const list = await groupsApi.getByEducator(eduId);
+  const loadGroups = useCallback(async () => {
+    const list = isAdmin
+      ? await groupsApi.getAll()
+      : educator ? await groupsApi.getByEducator(educator.PK_EducatorId) : [];
     const cards: GroupCard[] = [];
-    for (const g of list) {
-      const m = await groupsApi.getMembers(g.PK_GroupId);
-      cards.push({ group: g, members: m });
-    }
+    for (const g of list) cards.push({ group: g, members: await groupsApi.getMembers(g.PK_GroupId) });
     setGroups(cards);
-  };
+  }, [isAdmin, educator]);
 
   useEffect(() => {
     if (!user) return;
-    if (role === 'admin') {
-      // админ видит всех детей и все группы
-      childrenApi.getAll().then(setChildren);
-      groupsApi.getAll().then(async list => {
-        const cards: GroupCard[] = [];
-        for (const g of list) cards.push({ group: g, members: await groupsApi.getMembers(g.PK_GroupId) });
-        setGroups(cards);
-      });
-    } else if (role === 'educator') {
+    educatorsApi.getAll().then(setEducators);
+    if (isAdmin) {
+      childrenApi.getAll().then(setAllChildren);
+    } else if (isEducator) {
       educatorsApi.getByUserId(user.PK_UserId).then(async e => {
         setEducator(e);
         if (e) {
-          // педагог видит в выборе только своих детей
           const all = await childrenApi.getAll();
-          setChildren(all.filter(c => c.FK_EducatorId === e.PK_EducatorId));
-          reload(e.PK_EducatorId);
+          setAllChildren(all.filter(c => c.FK_EducatorId === e.PK_EducatorId));
         }
       });
     }
-  }, [user, role]);
+  }, [user, isAdmin, isEducator]);
+
+  useEffect(() => { if (user && (isAdmin || educator)) loadGroups(); }, [user, isAdmin, educator, loadGroups]);
+
+  const visibleChildren = (groupEduId?: number) =>
+    isAdmin && groupEduId ? allChildren.filter(c => !c.FK_EducatorId || c.FK_EducatorId === groupEduId) : allChildren;
 
   const handleCreate = async () => {
-    if (!groupName.trim() || !educator) { toast.error('Введите название группы'); return; }
-    await groupsApi.create({ GroupName: groupName, FK_EducatorId: educator.PK_EducatorId });
-    setGroupName(''); setCreateOpen(false);
-    reload(educator.PK_EducatorId);
+    if (!groupName.trim()) { toast.error('Введите название группы'); return; }
+    if (groupName.trim().length > 80) { toast.error('Название слишком длинное'); return; }
+    const eduId = isAdmin ? createEduId : educator?.PK_EducatorId || 0;
+    if (!eduId) { toast.error('Выберите педагога'); return; }
+    await groupsApi.create({ GroupName: groupName.trim(), FK_EducatorId: eduId });
+    setGroupName(''); setCreateEduId(0); setCreateOpen(false);
+    loadGroups();
     toast.success('Группа создана');
   };
 
   const handleDelete = async (id: number) => {
-    if (await groupsApi.delete(id)) {
-      if (educator) reload(educator.PK_EducatorId);
-      toast.success('Группа удалена');
-    }
+    if (await groupsApi.delete(id)) { loadGroups(); toast.success('Группа удалена'); }
   };
 
   const handleAddMember = async (groupId: number, childId: number) => {
     await groupsApi.addMember(groupId, childId);
-    if (educator) reload(educator.PK_EducatorId);
+    loadGroups();
   };
 
   const handleRemoveMember = async (memberId: number) => {
     await groupsApi.removeMember(memberId);
-    if (educator) reload(educator.PK_EducatorId);
+    loadGroups();
   };
 
-  const getChildName = (id: number) => children.find(c => c.PK_ChildId === id)?.FullName || `#${id}`;
+  const getChildName = (id: number) => allChildren.find(c => c.PK_ChildId === id)?.FullName || `#${id}`;
+  const getEduName = (id: number) => educators.find(e => e.PK_EducatorId === id)?.FullName || `#${id}`;
 
   return (
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">👥 Группы учеников</h1>
-        {role === 'educator' && (
+        {canManage && (
           <Button onClick={() => setCreateOpen(true)} className="gap-2 rounded-xl font-bold h-11">
             <Plus className="h-4 w-4" /> Создать группу
           </Button>
@@ -105,9 +109,10 @@ const GroupsPage: React.FC = () => {
                 <div>
                   <p className="font-bold text-foreground">{group.GroupName}</p>
                   <p className="text-xs text-muted-foreground">{members.length} учеников</p>
+                  {isAdmin && <p className="text-xs text-muted-foreground">🎓 {getEduName(group.FK_EducatorId)}</p>}
                 </div>
               </div>
-              {role === 'educator' && (
+              {canManage && (
                 <button onClick={() => handleDelete(group.PK_GroupId)} className="p-1.5 rounded-lg hover:bg-destructive/10">
                   <Trash2 className="h-4 w-4 text-destructive" />
                 </button>
@@ -118,7 +123,7 @@ const GroupsPage: React.FC = () => {
               {members.map(m => (
                 <div key={m.PK_MemberId} className="flex items-center justify-between bg-accent/30 rounded-lg px-3 py-1.5">
                   <span className="text-sm font-semibold">{getChildName(m.FK_ChildId)}</span>
-                  {role === 'educator' && (
+                  {canManage && (
                     <button onClick={() => handleRemoveMember(m.PK_MemberId)} className="p-1 rounded hover:bg-destructive/10">
                       <X className="h-3.5 w-3.5 text-destructive" />
                     </button>
@@ -128,7 +133,7 @@ const GroupsPage: React.FC = () => {
               {members.length === 0 && <p className="text-xs text-muted-foreground italic">Нет участников</p>}
             </div>
 
-            {role === 'educator' && (
+            {canManage && (
               <Button size="sm" variant="outline" onClick={() => setMemberOpen(group.PK_GroupId)} className="w-full gap-2 rounded-lg">
                 <UserPlus className="h-3.5 w-3.5" /> Добавить ученика
               </Button>
@@ -143,39 +148,53 @@ const GroupsPage: React.FC = () => {
         )}
       </div>
 
-      {/* Создание группы */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent className="rounded-2xl">
           <DialogHeader><DialogTitle>Новая группа</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
               <Label className="font-semibold">Название группы *</Label>
-              <Input value={groupName} onChange={e => setGroupName(e.target.value)} className="rounded-xl h-11" placeholder="Например: «Радуга»" />
+              <Input value={groupName} onChange={e => setGroupName(e.target.value)} maxLength={80} className="rounded-xl h-11" placeholder="Например: «Радуга»" />
             </div>
+            {isAdmin && (
+              <div className="space-y-2">
+                <Label className="font-semibold">Педагог *</Label>
+                <select value={createEduId} onChange={e => setCreateEduId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium">
+                  <option value={0}>Выберите педагога</option>
+                  {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
+                </select>
+              </div>
+            )}
             <Button onClick={handleCreate} className="w-full h-11 font-bold rounded-xl">Создать</Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Добавление участника */}
       <Dialog open={memberOpen !== null} onOpenChange={() => setMemberOpen(null)}>
         <DialogContent className="rounded-2xl">
           <DialogHeader><DialogTitle>Добавить ученика в группу</DialogTitle></DialogHeader>
           <div className="space-y-2 mt-2 max-h-[400px] overflow-y-auto">
-            {children.map(c => {
-              const inGroup = groups.find(g => g.group.PK_GroupId === memberOpen)?.members.some(m => m.FK_ChildId === c.PK_ChildId);
-              return (
-                <button
-                  key={c.PK_ChildId}
-                  disabled={inGroup}
-                  onClick={() => { if (memberOpen) handleAddMember(memberOpen, c.PK_ChildId); setMemberOpen(null); }}
-                  className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                >
-                  <span className="font-semibold text-sm">{c.FullName}</span>
-                  {inGroup && <span className="text-xs text-muted-foreground">уже в группе</span>}
-                </button>
-              );
-            })}
+            {(() => {
+              const grp = groups.find(g => g.group.PK_GroupId === memberOpen);
+              const candidates = visibleChildren(grp?.group.FK_EducatorId);
+              if (candidates.length === 0) {
+                return <p className="text-sm text-muted-foreground text-center py-4">Нет доступных детей</p>;
+              }
+              return candidates.map(c => {
+                const inGroup = grp?.members.some(m => m.FK_ChildId === c.PK_ChildId);
+                return (
+                  <button
+                    key={c.PK_ChildId}
+                    disabled={inGroup}
+                    onClick={() => { if (memberOpen) handleAddMember(memberOpen, c.PK_ChildId); setMemberOpen(null); }}
+                    className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                  >
+                    <span className="font-semibold text-sm">{c.FullName}</span>
+                    {inGroup && <span className="text-xs text-muted-foreground">уже в группе</span>}
+                  </button>
+                );
+              });
+            })()}
           </div>
         </DialogContent>
       </Dialog>

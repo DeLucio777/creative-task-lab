@@ -5,26 +5,59 @@ import type { Educator } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Trash2, GraduationCap } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, GraduationCap } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+import { z } from 'zod';
+import { fullNameSchema, optionalEmail, loginSchema, passwordSchema, validate } from '@/lib/validation';
+
+const createSchema = z.object({
+  FullName: fullNameSchema,
+  Specialization: z.string().trim().max(100).optional(),
+  Phone: z.string().trim().refine(v => !v || isValidBelarusPhone(v), 'Телефон должен быть в формате +375 (XX) XXX-XX-XX').optional(),
+  Email: optionalEmail,
+  UserLogin: loginSchema,
+  UserPassword: passwordSchema,
+});
+
+const editSchema = createSchema.omit({ UserLogin: true, UserPassword: true });
 
 const EducatorsPage: React.FC = () => {
   const [educators, setEducators] = useState<Educator[]>([]);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [form, setForm] = useState({ FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' });
+  const [editing, setEditing] = useState<Educator | null>(null);
+  const empty = { FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' };
+  const [form, setForm] = useState(empty);
 
   useEffect(() => { educatorsApi.getAll().then(setEducators); }, []);
 
   const filtered = educators.filter(e => !search || e.FullName.toLowerCase().includes(search.toLowerCase()));
 
+  const openCreate = () => { setEditing(null); setForm(empty); setDialogOpen(true); };
+  const openEdit = (e: Educator) => {
+    setEditing(e);
+    setForm({ FullName: e.FullName, Specialization: e.Specialization || '', Phone: e.Phone || '', Email: e.Email || '', UserLogin: '', UserPassword: '' });
+    setDialogOpen(true);
+  };
+
   const handleSave = async () => {
-    if (!form.FullName.trim()) { toast.error('Введите ФИО'); return; }
-    if (form.Phone && !isValidBelarusPhone(form.Phone)) { toast.error('Телефон должен быть в формате +375 (XX) XXX-XX-XX'); return; }
-    if (!form.UserLogin.trim() || !form.UserPassword.trim()) { toast.error('Укажите логин и пароль для входа'); return; }
-    // Регистрация пользователя + создание педагога
+    if (editing) {
+      const errs = validate(editSchema, form);
+      if (errs.length) { toast.error(errs[0].message); return; }
+      const upd = await educatorsApi.update(editing.PK_EducatorId, {
+        FullName: form.FullName.trim(), Specialization: form.Specialization, Phone: form.Phone, Email: form.Email,
+      });
+      if (upd) {
+        setEducators(prev => prev.map(e => e.PK_EducatorId === editing.PK_EducatorId ? upd : e));
+        toast.success('Изменения сохранены');
+        setDialogOpen(false);
+      }
+      return;
+    }
+    const errs = validate(createSchema, form);
+    if (errs.length) { toast.error(errs[0].message); return; }
     const u = await authApi.registerUser({
       login: form.UserLogin, password: form.UserPassword, roleId: 2,
       first_name: form.FullName.split(' ')[1], second_name: form.FullName.split(' ')[0], phone: form.Phone,
@@ -51,7 +84,7 @@ const EducatorsPage: React.FC = () => {
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold tracking-tight text-foreground">🎓 Педагоги</h1>
-        <Button onClick={() => { setForm({ FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' }); setDialogOpen(true); }} className="gap-2 rounded-xl font-bold h-11">
+        <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
           <Plus className="h-4 w-4" /> Зарегистрировать
         </Button>
       </div>
@@ -74,9 +107,12 @@ const EducatorsPage: React.FC = () => {
                   {edu.Specialization && <p className="text-xs text-muted-foreground">{edu.Specialization}</p>}
                 </div>
               </div>
-              <button onClick={() => handleDelete(edu.PK_EducatorId)} className="p-1.5 rounded-lg hover:bg-destructive/10">
-                <Trash2 className="h-4 w-4 text-destructive" />
-              </button>
+              <div className="flex gap-1">
+                <button onClick={() => openEdit(edu)} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
+                <button onClick={() => handleDelete(edu.PK_EducatorId)} className="p-1.5 rounded-lg hover:bg-destructive/10">
+                  <Trash2 className="h-4 w-4 text-destructive" />
+                </button>
+              </div>
             </div>
             {edu.Email && <p className="text-xs text-muted-foreground">📧 {edu.Email}</p>}
             {edu.Phone && <p className="text-xs text-muted-foreground">📞 {edu.Phone}</p>}
@@ -92,22 +128,24 @@ const EducatorsPage: React.FC = () => {
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader><DialogTitle>Регистрация педагога</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{editing ? 'Редактировать педагога' : 'Регистрация педагога'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
-            <div className="space-y-2"><Label className="font-semibold">ФИО *</Label><Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} className="rounded-xl h-11" placeholder="Фамилия Имя Отчество" /></div>
-            <div className="space-y-2"><Label className="font-semibold">Специализация</Label><Input value={form.Specialization} onChange={e => setForm(f => ({ ...f, Specialization: e.target.value }))} className="rounded-xl h-11" /></div>
+            <div className="space-y-2"><Label className="font-semibold">ФИО *</Label><Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} maxLength={120} className="rounded-xl h-11" placeholder="Фамилия Имя Отчество" /></div>
+            <div className="space-y-2"><Label className="font-semibold">Специализация</Label><Input value={form.Specialization} onChange={e => setForm(f => ({ ...f, Specialization: e.target.value }))} maxLength={100} className="rounded-xl h-11" /></div>
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: formatBelarusPhone(e.target.value) }))} onFocus={() => { if (!form.Phone) setForm(f => ({ ...f, Phone: '+375 ' })); }} placeholder={BY_PHONE_PLACEHOLDER} inputMode="tel" className={`rounded-xl h-11 ${form.Phone && !isValidBelarusPhone(form.Phone) ? 'border-destructive' : ''}`} /></div>
-              <div className="space-y-2"><Label className="font-semibold">Email</Label><Input value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} className="rounded-xl h-11" /></div>
+              <div className="space-y-2"><Label className="font-semibold">Email</Label><Input type="email" value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} maxLength={255} className="rounded-xl h-11" /></div>
             </div>
-            <div className="border-t border-border pt-4 space-y-3">
-              <p className="text-sm font-bold text-foreground">🔐 Учётные данные для входа</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} className="rounded-xl h-11" /></div>
-                <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} className="rounded-xl h-11" /></div>
+            {!editing && (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные для входа</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
               </div>
-            </div>
-            <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">Зарегистрировать</Button>
+            )}
+            <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">{editing ? 'Сохранить' : 'Зарегистрировать'}</Button>
           </div>
         </DialogContent>
       </Dialog>

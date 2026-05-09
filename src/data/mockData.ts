@@ -30,6 +30,11 @@ export const MOCK_USERS: User[] = [
     first_name: 'Анна', second_name: 'Козлова', phone: '+375 (33) 777-88-99' },
   { PK_UserId: 5, UserLogin: 'petrov', UserPassword: '', FK_RoleId: 3,
     first_name: 'Дмитрий', second_name: 'Петров', phone: '+375 (25) 222-33-44' },
+  // Дополнительные тестовые дети, закреплены за педагогом ivanova
+  { PK_UserId: 6, UserLogin: 'petrov_ivan', UserPassword: '', FK_RoleId: 3,
+    first_name: 'Иван', second_name: 'Петров', phone: '+375 (25) 333-44-55' },
+  { PK_UserId: 7, UserLogin: 'petrov_anya', UserPassword: '', FK_RoleId: 3,
+    first_name: 'Анна', second_name: 'Петрова', phone: '+375 (25) 444-55-66' },
 ];
 
 /* ── Педагоги (расширение User) ── */
@@ -42,14 +47,19 @@ export const MOCK_EDUCATORS: Educator[] = [
 export const MOCK_REPRESENTATIVES: LegalRepresentative[] = [
   { PK_RepresentativeId: 1, FK_UserId: 3, FullName: 'Козлова Анна Викторовна', RelationType: 'мать', Phone: '+375 (33) 777-88-99', Email: 'kozlova@mail.by' },
   { PK_RepresentativeId: 2, FK_UserId: 5, FullName: 'Петров Дмитрий Олегович', RelationType: 'отец', Phone: '+375 (25) 222-33-44', Email: 'petrov@mail.by' },
+  { PK_RepresentativeId: 3, FK_UserId: 6, FullName: 'Петров Иван Дмитриевич', RelationType: 'сам', Phone: '+375 (25) 333-44-55', Email: 'ivan.petrov@mail.by' },
+  { PK_RepresentativeId: 4, FK_UserId: 7, FullName: 'Петрова Анна Дмитриевна', RelationType: 'сама', Phone: '+375 (25) 444-55-66', Email: 'anya.petrova@mail.by' },
 ];
 
 /* ── Дети ── */
 export const MOCK_CHILDREN: Child[] = [
-  { PK_ChildId: 1, FullName: 'Козлов Артём',  BirthDate: '2018-03-15', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Чувствительность к громким звукам', FK_RepresentativeId: 1, FK_EducatorId: 1 },
-  { PK_ChildId: 2, FullName: 'Козлова Мия',   BirthDate: '2019-07-22', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает визуальные подсказки',  FK_RepresentativeId: 1, FK_EducatorId: 1 },
-  { PK_ChildId: 3, FullName: 'Петров Максим', BirthDate: '2017-11-05', SpeechLevel: 'Минимальный', PerceptionFeatures: 'Тактильная гиперчувствительность',   FK_RepresentativeId: 2, FK_EducatorId: 2 },
-  { PK_ChildId: 4, FullName: 'Сидорова Алиса',BirthDate: '2020-01-30', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Норма', FK_EducatorId: 1 },
+  { PK_ChildId: 1, FullName: 'Козлов Артём',  BirthDate: '2018-03-15', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Чувствительность к громким звукам', FK_RepresentativeId: 1, FK_EducatorId: 1, RegisteredDate: '2025-09-01' },
+  { PK_ChildId: 2, FullName: 'Козлова Мия',   BirthDate: '2019-07-22', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает визуальные подсказки',  FK_RepresentativeId: 1, FK_EducatorId: 1, RegisteredDate: '2025-09-15' },
+  { PK_ChildId: 3, FullName: 'Петров Максим', BirthDate: '2017-11-05', SpeechLevel: 'Минимальный', PerceptionFeatures: 'Тактильная гиперчувствительность',   FK_RepresentativeId: 2, FK_EducatorId: 2, RegisteredDate: '2025-10-05' },
+  { PK_ChildId: 4, FullName: 'Сидорова Алиса',BirthDate: '2020-01-30', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Норма', FK_EducatorId: 1, RegisteredDate: '2025-11-10' },
+  // Закреплены за педагогом ivanova (FK_EducatorId: 2)
+  { PK_ChildId: 5, FullName: 'Петров Иван',   BirthDate: '2018-05-12', SpeechLevel: 'Базовый',     PerceptionFeatures: 'Любит ритм и музыку',                FK_RepresentativeId: 3, FK_EducatorId: 2, RegisteredDate: '2026-01-12' },
+  { PK_ChildId: 6, FullName: 'Петрова Анна',  BirthDate: '2019-09-08', SpeechLevel: 'Развитый',    PerceptionFeatures: 'Предпочитает спокойные цвета',       FK_RepresentativeId: 4, FK_EducatorId: 2, RegisteredDate: '2026-02-20' },
 ];
 
 /* ── Сенсорные профили ── */
@@ -70,6 +80,8 @@ export const MOCK_DISEASES: Disease[] = [
 export const MOCK_USER_INFO: UserInfo[] = [
   { PK_Id: 1, FK_user_id: 3, FK_disease_id: 1, complited_tasks_count: 8, helpe_used_count: 12, miss_tasks_count: 1, age: 7, FK_RepresentativeUserId: 3, FK_EducatorUserId: 2 },
   { PK_Id: 2, FK_user_id: 5, FK_disease_id: 2, complited_tasks_count: 5, helpe_used_count: 9,  miss_tasks_count: 2, age: 8, FK_RepresentativeUserId: 5, FK_EducatorUserId: 4 },
+  { PK_Id: 3, FK_user_id: 6, FK_disease_id: 1, complited_tasks_count: 3, helpe_used_count: 5,  miss_tasks_count: 0, age: 7, FK_RepresentativeUserId: 6, FK_EducatorUserId: 4 },
+  { PK_Id: 4, FK_user_id: 7, FK_disease_id: 4, complited_tasks_count: 2, helpe_used_count: 3,  miss_tasks_count: 1, age: 6, FK_RepresentativeUserId: 7, FK_EducatorUserId: 4 },
 ];
 
 /* ── Шаблоны заданий ── */
@@ -211,6 +223,10 @@ export const MOCK_TASK_LIST_ITEMS: TaskListItem[] = [
   { id: 6, task_id: 4, task_list_id: 2, position: 3, user_id: 5, complited: false },
   // Цепочка 3 → ребёнок (user 3)
   { id: 7, task_id: 4, task_list_id: 3, position: 1, user_id: 3, complited: false },
+  // Цепочки для новых детей педагога ivanova (user 4)
+  { id: 8,  task_id: 1, task_list_id: 2, position: 1, user_id: 6, complited: true  },
+  { id: 9,  task_id: 2, task_list_id: 2, position: 2, user_id: 6, complited: false },
+  { id: 10, task_id: 3, task_list_id: 2, position: 1, user_id: 7, complited: false },
 ];
 
 /* ── Назначения (легаси, для отчётов) ── */

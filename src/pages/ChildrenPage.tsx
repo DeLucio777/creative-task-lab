@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { childrenApi, educatorsApi, representativesApi } from '@/services/entitiesApi';
+import { authApi } from '@/services/authApi';
 import type { Child, Educator, LegalRepresentative } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +9,8 @@ import { Plus, Search, Trash2, Edit2, Baby, Users, Eye, MessageSquare } from 'lu
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { fullNameSchema, loginSchema, passwordSchema, validate } from '@/lib/validation';
+import { z } from 'zod';
 
 const ChildrenPage: React.FC = () => {
   const { user, role } = useAuth();
@@ -18,7 +21,7 @@ const ChildrenPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
-  const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
+  const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
 
   // Админ — полный CRUD. Педагог — может только редактировать уровень речи у своих детей.
   const canEdit = role === 'admin';
@@ -48,7 +51,7 @@ const ChildrenPage: React.FC = () => {
 
   const openCreate = () => {
     setEditingChild(null);
-    setForm({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
+    setForm({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
     setDialogOpen(true);
   };
 
@@ -61,26 +64,52 @@ const ChildrenPage: React.FC = () => {
       SpeechLevel: child.SpeechLevel || '',
       FK_EducatorId: child.FK_EducatorId || 0,
       FK_RepresentativeId: child.FK_RepresentativeId || 0,
+      UserLogin: '', UserPassword: '',
     });
     setDialogOpen(true);
   };
 
+  const childCreateSchema = z.object({
+    FullName: fullNameSchema,
+    UserLogin: loginSchema,
+    UserPassword: passwordSchema,
+  });
+
   const handleSave = async () => {
-    if (!form.FullName.trim()) { toast.error('Введите ФИО ребёнка'); return; }
-    const payload = {
-      ...form,
+    const corePayload = {
+      FullName: form.FullName.trim(),
+      BirthDate: form.BirthDate,
+      PerceptionFeatures: form.PerceptionFeatures,
+      SpeechLevel: form.SpeechLevel,
       FK_EducatorId: form.FK_EducatorId || undefined,
       FK_RepresentativeId: form.FK_RepresentativeId || undefined,
     };
     if (editingChild) {
-      const updated = await childrenApi.update(editingChild.PK_ChildId, payload);
+      if (!corePayload.FullName) { toast.error('Введите ФИО ребёнка'); return; }
+      const updated = await childrenApi.update(editingChild.PK_ChildId, corePayload);
       if (updated) {
-        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? { ...c, ...payload } : c));
+        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? { ...c, ...corePayload } : c));
         toast.success('Данные обновлены');
       }
     } else {
+      // Админ создаёт ребёнка вместе с учётной записью (логин/пароль)
+      const errs = validate(childCreateSchema, form);
+      if (errs.length) { toast.error(errs[0].message); return; }
+      const newUser = await authApi.registerUser({
+        login: form.UserLogin, password: form.UserPassword, roleId: 3,
+        first_name: corePayload.FullName.split(' ')[1], second_name: corePayload.FullName.split(' ')[0],
+      });
+      if (!newUser) { toast.error('Логин уже занят'); return; }
+      // Создаём представителя на этого пользователя (для авторизации)
+      const rep = await representativesApi.create({
+        FullName: corePayload.FullName, RelationType: 'сам', FK_UserId: newUser.PK_UserId,
+      });
+      const payload = { ...corePayload, FK_RepresentativeId: corePayload.FK_RepresentativeId || rep?.PK_RepresentativeId, RegisteredDate: new Date().toISOString() };
       const created = await childrenApi.create(payload);
-      if (created) { setChildren(prev => [...prev, created]); toast.success('Ребёнок добавлен'); }
+      if (created) {
+        setChildren(prev => [...prev, created]);
+        toast.success(`Ребёнок добавлен. Логин: ${form.UserLogin}`);
+      }
     }
     setDialogOpen(false);
   };
@@ -230,6 +259,15 @@ const ChildrenPage: React.FC = () => {
                 {representatives.map(r => <option key={r.PK_RepresentativeId} value={r.PK_RepresentativeId}>{r.FullName} {r.RelationType ? `(${r.RelationType})` : ''}</option>)}
               </select>
             </div>
+            {!editingChild && (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные ребёнка для входа</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" placeholder="например ivanov_petya" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
+              </div>
+            )}
             <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
           </div>
         </DialogContent>
