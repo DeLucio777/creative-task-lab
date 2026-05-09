@@ -80,6 +80,8 @@ export const MOCK_DISEASES: Disease[] = [
 export const MOCK_USER_INFO: UserInfo[] = [
   { PK_Id: 1, FK_user_id: 3, FK_disease_id: 1, complited_tasks_count: 8, helpe_used_count: 12, miss_tasks_count: 1, age: 7, FK_RepresentativeUserId: 3, FK_EducatorUserId: 2 },
   { PK_Id: 2, FK_user_id: 5, FK_disease_id: 2, complited_tasks_count: 5, helpe_used_count: 9,  miss_tasks_count: 2, age: 8, FK_RepresentativeUserId: 5, FK_EducatorUserId: 4 },
+  { PK_Id: 3, FK_user_id: 6, FK_disease_id: 1, complited_tasks_count: 3, helpe_used_count: 5,  miss_tasks_count: 0, age: 7, FK_RepresentativeUserId: 6, FK_EducatorUserId: 4 },
+  { PK_Id: 4, FK_user_id: 7, FK_disease_id: 4, complited_tasks_count: 2, helpe_used_count: 3,  miss_tasks_count: 1, age: 6, FK_RepresentativeUserId: 7, FK_EducatorUserId: 4 },
 ];
 
 /* ── Шаблоны заданий ── */
