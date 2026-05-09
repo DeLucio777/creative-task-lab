@@ -259,6 +259,15 @@ const ChildrenPage: React.FC = () => {
                 {representatives.map(r => <option key={r.PK_RepresentativeId} value={r.PK_RepresentativeId}>{r.FullName} {r.RelationType ? `(${r.RelationType})` : ''}</option>)}
               </select>
             </div>
+            {!editingChild && (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные ребёнка для входа</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" placeholder="например ivanov_petya" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
+              </div>
+            )}
             <Button onClick={handleSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
           </div>
         </DialogContent>
