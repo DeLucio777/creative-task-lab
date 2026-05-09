@@ -51,7 +51,7 @@ const ChildrenPage: React.FC = () => {
 
   const openCreate = () => {
     setEditingChild(null);
-    setForm({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0 });
+    setForm({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
     setDialogOpen(true);
   };
 
@@ -64,26 +64,52 @@ const ChildrenPage: React.FC = () => {
       SpeechLevel: child.SpeechLevel || '',
       FK_EducatorId: child.FK_EducatorId || 0,
       FK_RepresentativeId: child.FK_RepresentativeId || 0,
+      UserLogin: '', UserPassword: '',
     });
     setDialogOpen(true);
   };
 
+  const childCreateSchema = z.object({
+    FullName: fullNameSchema,
+    UserLogin: loginSchema,
+    UserPassword: passwordSchema,
+  });
+
   const handleSave = async () => {
-    if (!form.FullName.trim()) { toast.error('Введите ФИО ребёнка'); return; }
-    const payload = {
-      ...form,
+    const corePayload = {
+      FullName: form.FullName.trim(),
+      BirthDate: form.BirthDate,
+      PerceptionFeatures: form.PerceptionFeatures,
+      SpeechLevel: form.SpeechLevel,
       FK_EducatorId: form.FK_EducatorId || undefined,
       FK_RepresentativeId: form.FK_RepresentativeId || undefined,
     };
     if (editingChild) {
-      const updated = await childrenApi.update(editingChild.PK_ChildId, payload);
+      if (!corePayload.FullName) { toast.error('Введите ФИО ребёнка'); return; }
+      const updated = await childrenApi.update(editingChild.PK_ChildId, corePayload);
       if (updated) {
-        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? { ...c, ...payload } : c));
+        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? { ...c, ...corePayload } : c));
         toast.success('Данные обновлены');
       }
     } else {
+      // Админ создаёт ребёнка вместе с учётной записью (логин/пароль)
+      const errs = validate(childCreateSchema, form);
+      if (errs.length) { toast.error(errs[0].message); return; }
+      const newUser = await authApi.registerUser({
+        login: form.UserLogin, password: form.UserPassword, roleId: 3,
+        first_name: corePayload.FullName.split(' ')[1], second_name: corePayload.FullName.split(' ')[0],
+      });
+      if (!newUser) { toast.error('Логин уже занят'); return; }
+      // Создаём представителя на этого пользователя (для авторизации)
+      const rep = await representativesApi.create({
+        FullName: corePayload.FullName, RelationType: 'сам', FK_UserId: newUser.PK_UserId,
+      });
+      const payload = { ...corePayload, FK_RepresentativeId: corePayload.FK_RepresentativeId || rep?.PK_RepresentativeId, RegisteredDate: new Date().toISOString() };
       const created = await childrenApi.create(payload);
-      if (created) { setChildren(prev => [...prev, created]); toast.success('Ребёнок добавлен'); }
+      if (created) {
+        setChildren(prev => [...prev, created]);
+        toast.success(`Ребёнок добавлен. Логин: ${form.UserLogin}`);
+      }
     }
     setDialogOpen(false);
   };
