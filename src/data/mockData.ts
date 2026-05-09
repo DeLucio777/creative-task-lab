@@ -30,6 +30,11 @@ export const MOCK_USERS: User[] = [
     first_name: 'Анна', second_name: 'Козлова', phone: '+375 (33) 777-88-99' },
   { PK_UserId: 5, UserLogin: 'petrov', UserPassword: '', FK_RoleId: 3,
     first_name: 'Дмитрий', second_name: 'Петров', phone: '+375 (25) 222-33-44' },
+  // Дополнительные тестовые дети, закреплены за педагогом ivanova
+  { PK_UserId: 6, UserLogin: 'petrov_ivan', UserPassword: '', FK_RoleId: 3,
+    first_name: 'Иван', second_name: 'Петров', phone: '+375 (25) 333-44-55' },
+  { PK_UserId: 7, UserLogin: 'petrov_anya', UserPassword: '', FK_RoleId: 3,
+    first_name: 'Анна', second_name: 'Петрова', phone: '+375 (25) 444-55-66' },
 ];
 
 /* ── Педагоги (расширение User) ── */
