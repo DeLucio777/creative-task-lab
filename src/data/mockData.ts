@@ -223,6 +223,10 @@ export const MOCK_TASK_LIST_ITEMS: TaskListItem[] = [
   { id: 6, task_id: 4, task_list_id: 2, position: 3, user_id: 5, complited: false },
   // Цепочка 3 → ребёнок (user 3)
   { id: 7, task_id: 4, task_list_id: 3, position: 1, user_id: 3, complited: false },
+  // Цепочки для новых детей педагога ivanova (user 4)
+  { id: 8,  task_id: 1, task_list_id: 2, position: 1, user_id: 6, complited: true  },
+  { id: 9,  task_id: 2, task_list_id: 2, position: 2, user_id: 6, complited: false },
+  { id: 10, task_id: 3, task_list_id: 2, position: 1, user_id: 7, complited: false },
 ];
 
 /* ── Назначения (легаси, для отчётов) ── */
