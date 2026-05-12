@@ -20,7 +20,7 @@ const AppLayout: React.FC = () => {
         <SheetTrigger asChild>
           <button
             aria-label="Открыть меню"
-            className="fixed top-4 right-4 z-40 h-12 w-12 rounded-2xl bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+            className="fixed top-4 right-4 z-40 h-12 w-12 rounded-2xl bg-primary text-primary-foreground shadow-lg flex items-center justify-center hover:scale-105 transition-transform [body[data-scroll-locked]_&]:opacity-0 [body[data-scroll-locked]_&]:pointer-events-none"
           >
             <Menu className="h-6 w-6" />
           </button>
