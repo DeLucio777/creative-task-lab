@@ -1,5 +1,6 @@
-import React from 'react';
-import { MOCK_PECS, MOCK_MEDIA } from '@/data/mockData';
+import React, { useEffect, useState } from 'react';
+import { mediaApi } from '@/services/mediaApi';
+import type { CatalogPECS, MediaCatalog } from '@/types/models';
 
 type TaskType = 'find_odd' | 'match_image_word' | 'sequence' | 'sort';
 
@@ -25,8 +26,8 @@ const diffColors = {
   Hard: 'bg-red-100 text-red-700 border-red-200',
 };
 
-const PecsImage: React.FC<{ pecsId?: number; size?: string }> = ({ pecsId, size = 'w-12 h-12' }) => {
-  const pecs = pecsId ? MOCK_PECS.find(p => p.PK_PECSid === pecsId) : null;
+const PecsImage: React.FC<{ pecsId?: number; size?: string; pecsList: CatalogPECS[] }> = ({ pecsId, size = 'w-12 h-12', pecsList }) => {
+  const pecs = pecsId ? pecsList.find(p => p.PK_PECSid === pecsId) : null;
   if (!pecs) return <div className={`${size} bg-muted/50 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs`}>?</div>;
   return <img src={pecs.filePath} alt={pecs.Descripti} className={`${size} object-contain rounded-xl border border-border bg-card p-1`} />;
 };
@@ -35,6 +36,12 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
   taskType, title, difficulty, showHints,
   oddItems = [], matchPairs = [], seqItems = [], sortItems = [],
 }) => {
+  const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
+  useEffect(() => {
+    mediaApi.getPecs().then(setPecsList);
+    mediaApi.getMedia().then(setMediaList);
+  }, []);
   const typeLabels: Record<TaskType, string> = {
     find_odd: '🔍 Найди лишнее',
     match_image_word: '🖼️ Сопоставь',
