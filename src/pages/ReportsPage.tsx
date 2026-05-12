@@ -153,27 +153,34 @@ const ReportsPage: React.FC = () => {
       const correct = ps.filter(p => p.IsCorrect).length;
       const errors = ps.reduce((s, p) => s + p.ErrorCount, 0);
       const hints = ps.reduce((s, p) => s + p.HintsUsed, 0);
-      return [c.FullName, ps.length, correct, errors, hints];
+      const eduName = educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—';
+      const successRate = ps.length ? `${Math.round((correct / ps.length) * 100)}%` : '—';
+      return [c.FullName, eduName, ps.length, correct, errors, hints, successRate];
     });
     return {
-      title: edu ? `Сводный отчёт — ${edu.FullName}` : 'Сводный отчёт по педагогу',
-      headers: ['Ребёнок', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок'],
+      title: edu ? `Сводный отчёт — ${edu.FullName}` : 'Сводный отчёт по педагогам',
+      headers: ['Ребёнок', 'Педагог', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок', 'Успех'],
       rows,
     };
   }, [educators, children, progress, educatorId, dateFrom, dateTo]);
 
   // 3. Регистрации детей за период
-  const registrationsReport = useMemo<ReportData>(() => ({
-    title: 'Регистрации детей за период',
-    headers: ['Дата регистрации', 'ФИО ребёнка', 'Педагог'],
-    rows: children
-      .filter(c => inDate(c.RegisteredDate, dateFrom, dateTo))
-      .map(c => [
-        c.RegisteredDate ? new Date(c.RegisteredDate).toLocaleDateString('ru') : '—',
-        c.FullName,
-        educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—',
-      ]),
-  }), [children, educators, dateFrom, dateTo]);
+  const registrationsReport = useMemo<ReportData>(() => {
+    const filtered = children.filter(c => inDate(c.RegisteredDate, dateFrom, dateTo));
+    const rows: Row[] = filtered.map(c => [
+      c.RegisteredDate ? new Date(c.RegisteredDate).toLocaleDateString('ru') : '—',
+      c.FullName,
+      c.BirthDate ? new Date(c.BirthDate).toLocaleDateString('ru') : '—',
+      c.SpeechLevel || '—',
+      educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—',
+    ]);
+    rows.push(['ИТОГО', String(filtered.length), '', '', '']);
+    return {
+      title: 'Сведения о регистрации детей за период',
+      headers: ['Дата регистрации', 'ФИО ребёнка', 'Дата рождения', 'Уровень речи', 'Педагог'],
+      rows,
+    };
+  }, [children, educators, dateFrom, dateTo]);
 
   // 4. История обучения ребёнка
   const learningHistoryReport = useMemo<ReportData>(() => {
@@ -181,11 +188,19 @@ const ReportsPage: React.FC = () => {
     const cps = progress.filter(p => (!childId || p.FK_ChildId === childId) && inDate(p.CompletedDate, dateFrom, dateTo))
       .sort((a, b) => new Date(a.CompletedDate).getTime() - new Date(b.CompletedDate).getTime());
     return {
-      title: c ? `История обучения — ${c.FullName}` : 'История обучения ребёнка',
-      headers: ['Дата и время', 'Задание', 'Результат', 'Подсказок', 'Ошибок'],
+      title: c ? `История обучения — ${c.FullName}` : 'История обучения детей',
+      headers: ['Дата и время', 'Ребёнок', 'Задание', 'Результат', 'Подсказок', 'Ошибок', 'Время, сек'],
       rows: cps.map(p => {
         const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
-        return [new Date(p.CompletedDate).toLocaleString('ru'), a ? taskTitle(a.FK_TaskId) : '—', p.IsCorrect ? '✓' : '✗', p.HintsUsed, p.ErrorCount];
+        return [
+          new Date(p.CompletedDate).toLocaleString('ru'),
+          childName(p.FK_ChildId),
+          a ? taskTitle(a.FK_TaskId) : '—',
+          p.IsCorrect ? '✓ верно' : '✗ ошибка',
+          p.HintsUsed,
+          p.ErrorCount,
+          p.TimeTakenSeconds || 0,
+        ];
       }),
     };
   }, [progress, assignments, tasks, children, childId, dateFrom, dateTo]);
