@@ -127,8 +127,8 @@ const ReportsPage: React.FC = () => {
 
   // 1. Прогресс ребёнка
   const childProgressReport = useMemo<ReportData>(() => ({
-    title: childId ? `Прогресс — ${childName(childId)}` : 'Прогресс ребёнка',
-    headers: ['Дата', 'Задание', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
+    title: childId ? `Прогресс — ${childName(childId)}` : 'Прогресс ребёнка (все дети)',
+    headers: ['Дата', 'Ребёнок', 'Задание', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
     rows: progress
       .filter(p => !childId || p.FK_ChildId === childId)
       .filter(p => inDate(p.CompletedDate, dateFrom, dateTo))
@@ -136,6 +136,7 @@ const ReportsPage: React.FC = () => {
         const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
         return [
           new Date(p.CompletedDate).toLocaleDateString('ru'),
+          childName(p.FK_ChildId),
           a ? taskTitle(a.FK_TaskId) : '—',
           p.IsCorrect ? '✓ верно' : '✗ ошибка',
           p.ErrorCount, p.HintsUsed, p.TimeTakenSeconds || 0,
