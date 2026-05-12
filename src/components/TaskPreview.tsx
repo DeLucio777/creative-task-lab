@@ -1,5 +1,6 @@
-import React from 'react';
-import { MOCK_PECS, MOCK_MEDIA } from '@/data/mockData';
+import React, { useEffect, useState } from 'react';
+import { mediaApi } from '@/services/mediaApi';
+import type { CatalogPECS, MediaCatalog } from '@/types/models';
 
 type TaskType = 'find_odd' | 'match_image_word' | 'sequence' | 'sort';
 
@@ -25,8 +26,8 @@ const diffColors = {
   Hard: 'bg-red-100 text-red-700 border-red-200',
 };
 
-const PecsImage: React.FC<{ pecsId?: number; size?: string }> = ({ pecsId, size = 'w-12 h-12' }) => {
-  const pecs = pecsId ? MOCK_PECS.find(p => p.PK_PECSid === pecsId) : null;
+const PecsImage: React.FC<{ pecsId?: number; size?: string; pecsList: CatalogPECS[] }> = ({ pecsId, size = 'w-12 h-12', pecsList }) => {
+  const pecs = pecsId ? pecsList.find(p => p.PK_PECSid === pecsId) : null;
   if (!pecs) return <div className={`${size} bg-muted/50 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs`}>?</div>;
   return <img src={pecs.filePath} alt={pecs.Descripti} className={`${size} object-contain rounded-xl border border-border bg-card p-1`} />;
 };
@@ -35,6 +36,12 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
   taskType, title, difficulty, showHints,
   oddItems = [], matchPairs = [], seqItems = [], sortItems = [],
 }) => {
+  const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
+  useEffect(() => {
+    mediaApi.getPecs().then(setPecsList);
+    mediaApi.getMedia().then(setMediaList);
+  }, []);
   const typeLabels: Record<TaskType, string> = {
     find_odd: '🔍 Найди лишнее',
     match_image_word: '🖼️ Сопоставь',
@@ -51,7 +58,7 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
           <div key={item.id} className={`p-2 rounded-xl border-2 text-center transition-all ${
             showHints && item.isOdd ? 'border-red-300 bg-red-50' : 'border-border bg-card'
           }`}>
-            <PecsImage pecsId={item.pecsId} size="w-10 h-10 mx-auto" />
+            <PecsImage pecsId={item.pecsId} size="w-10 h-10 mx-auto" pecsList={pecsList} />
             <p className="text-xs font-bold mt-1 truncate">{item.text || '—'}</p>
           </div>
         ))}
@@ -65,10 +72,10 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
     return (
       <div className="space-y-2">
         {pairs.map(pair => {
-          const media = pair.mediaId ? MOCK_MEDIA.find(m => m.PK_MediaId === pair.mediaId) : null;
+          const media = pair.mediaId ? mediaList.find(m => m.PK_MediaId === pair.mediaId) : null;
           return (
             <div key={pair.id} className="flex items-center gap-3 p-2 rounded-xl border border-border bg-card">
-              <PecsImage pecsId={pair.pecsId} size="w-8 h-8" />
+              <PecsImage pecsId={pair.pecsId} size="w-8 h-8" pecsList={pecsList} />
               {media && <img src={media.FilePath} alt="" className="w-8 h-8 object-contain rounded-lg border border-border" />}
               <span className="text-xs font-bold flex-1">{showHints ? pair.word : '???'}</span>
             </div>
@@ -86,7 +93,7 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
         {items.map((item, idx) => (
           <div key={item.id} className="flex items-center gap-1">
             <div className="p-2 rounded-xl border border-border bg-card text-center min-w-[48px]">
-              <PecsImage pecsId={item.pecsId} size="w-8 h-8 mx-auto" />
+              <PecsImage pecsId={item.pecsId} size="w-8 h-8 mx-auto" pecsList={pecsList} />
               <p className="text-xs font-bold mt-1">{showHints ? item.value : '?'}</p>
             </div>
             {idx < items.length - 1 && <span className="text-muted-foreground font-bold">→</span>}
@@ -112,7 +119,7 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
             <div className="flex gap-1 flex-wrap">
               {groupItems.map(item => (
                 <div key={item.id} className="px-2 py-1 rounded-lg bg-muted/50 text-xs font-medium flex items-center gap-1">
-                  <PecsImage pecsId={item.pecsId} size="w-6 h-6" />
+                  <PecsImage pecsId={item.pecsId} size="w-6 h-6" pecsList={pecsList} />
                   {item.value}
                 </div>
               ))}
