@@ -4,13 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { UserCircle } from 'lucide-react';
 
 const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const { login, loginAsGuest } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -24,20 +23,8 @@ const LoginPage: React.FC = () => {
     }
   };
 
-  const handleGuest = () => {
-    loginAsGuest();
-    navigate('/dashboard');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-background relative">
-      <button
-        onClick={handleGuest}
-        className="absolute top-6 left-6 flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold text-muted-foreground hover:bg-muted hover:text-foreground transition-all duration-200"
-      >
-        <UserCircle className="h-5 w-5" />
-        Войти как гость
-      </button>
 
       <div className="w-full max-w-[420px] bg-card rounded-2xl p-8 border-2 border-border shadow-lg">
         <div className="text-center mb-8">

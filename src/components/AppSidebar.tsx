@@ -44,15 +44,12 @@ interface Props {
 }
 
 const AppSidebar: React.FC<Props> = ({ onNavigate }) => {
-  const { user, isGuest, role, logout } = useAuth();
+  const { user, role, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleLogout = () => { logout(); onNavigate?.(); navigate('/'); };
 
-  const visibleItems = navItems.filter(item => {
-    if (isGuest) return item.to === '/home';
-    return item.roles.includes(role);
-  });
+  const visibleItems = navItems.filter(item => item.roles.includes(role));
 
   const roleLabel: Record<AppRole, string> = {
     admin: 'Администратор',
@@ -62,14 +59,14 @@ const AppSidebar: React.FC<Props> = ({ onNavigate }) => {
 
   const displayName = user?.first_name || user?.second_name
     ? `${user?.second_name ?? ''} ${user?.first_name ?? ''}`.trim()
-    : user?.UserLogin ?? 'Гость';
+    : user?.UserLogin ?? '';
 
   return (
     <aside className="w-full h-full bg-card flex flex-col">
       <div className="p-6 border-b border-border">
         <h2 className="text-xl font-bold tracking-tight text-foreground">🧩 PECS Editor</h2>
         <p className="text-xs text-muted-foreground mt-1 font-medium">
-          {displayName} • {isGuest ? 'Гость' : roleLabel[role]}
+          {displayName} • {roleLabel[role]}
         </p>
       </div>
 

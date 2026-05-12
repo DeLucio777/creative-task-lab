@@ -30,10 +30,8 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 const RoleGuard = ({ children, allowed }: { children: React.ReactNode; allowed: AppRole[] }) => {
-  const { role, isGuest } = useAuth();
-  if (isGuest) return <Navigate to="/home" replace />;
+  const { role } = useAuth();
   if (!allowed.includes(role)) {
-    // Перенаправляем по роли на её домашнюю страницу
     return <Navigate to={role === 'parent' ? '/home' : '/dashboard'} replace />;
   }
   return <>{children}</>;
