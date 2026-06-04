@@ -294,6 +294,85 @@ const ProfilePage: React.FC = () => {
             </div>
           )}
 
+          {/* Сенсорный профиль ребёнка */}
+          {myChild && sensory && (
+            <div className="bg-card rounded-2xl border-2 border-border p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-foreground">Сенсорный профиль</h2>
+                  <p className="text-xs text-muted-foreground font-semibold">Настройки восприятия для: {myChild.FullName}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Фоновый цвет */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Фоновый цвет</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_COLORS.map(c => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setSensory(s => s && ({ ...s, BackgroundColor: c.value }))}
+                        title={c.label}
+                        className={`h-10 w-10 rounded-xl border-2 transition-all ${sensory.BackgroundColor === c.value ? 'border-primary scale-110' : 'border-border'}`}
+                        style={{ backgroundColor: c.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Размер шрифта */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Размер шрифта: {sensory.FontSize ?? 18}px</Label>
+                  <Slider
+                    min={14} max={32} step={1}
+                    value={[sensory.FontSize ?? 18]}
+                    onValueChange={([v]) => setSensory(s => s && ({ ...s, FontSize: v }))}
+                  />
+                  <p style={{ fontSize: `${sensory.FontSize ?? 18}px` }} className="text-foreground">Пример текста</p>
+                </div>
+
+                {/* Исключение резких звуков */}
+                <div className="flex items-center justify-between rounded-xl border-2 border-border p-3">
+                  <div>
+                    <Label className="font-semibold">Исключить резкие звуки</Label>
+                    <p className="text-xs text-muted-foreground">Громкие сигналы будут отключены</p>
+                  </div>
+                  <Switch
+                    checked={!!sensory.ExcludeLoudSounds}
+                    onCheckedChange={(v) => setSensory(s => s && ({ ...s, ExcludeLoudSounds: v }))}
+                  />
+                </div>
+
+                {/* Поощрительная анимация */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Поощрительная анимация</Label>
+                  <Select
+                    value={sensory.RewardAnimation ?? 'confetti'}
+                    onValueChange={(v) => setSensory(s => s && ({ ...s, RewardAnimation: v }))}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {REWARD_ANIMATIONS.map(a => (
+                        <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSensory} disabled={savingSensory} className="mt-5 gap-2 rounded-xl font-bold h-11">
+                <Save className="h-4 w-4" /> {savingSensory ? 'Сохранение…' : 'Сохранить профиль'}
+              </Button>
+            </div>
+          )}
+
+
+
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center">
