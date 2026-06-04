@@ -16,6 +16,7 @@ const LoginPage: React.FC = () => {
     e.preventDefault();
     setError('');
     const success = await login(username, password);
+    console.log(success);
     if (success) {
       navigate('/dashboard');
     } else {
