@@ -5,308 +5,193 @@ import type {
   Disease, UserInfo, Achievement, UserAchievement,
   TaskList, TaskListItem, User,
 } from '@/types/models';
-import { apiFetch, apiPost, apiPut, apiDelete as apiDel } from './apiClient';
-import {
-  MOCK_CHILDREN, MOCK_EDUCATORS, MOCK_REPRESENTATIVES, MOCK_SENSORY_PROFILES,
-  MOCK_ASSIGNMENTS, MOCK_PROGRESS, MOCK_REWARDS,
-  MOCK_TRAJECTORIES, MOCK_TRAJECTORY_STEPS, MOCK_GROUPS, MOCK_GROUP_MEMBERS,
-  MOCK_DISEASES, MOCK_USER_INFO, MOCK_ACHIEVEMENTS, MOCK_USER_ACHIEVEMENTS,
-  MOCK_TASK_LISTS, MOCK_TASK_LIST_ITEMS, MOCK_USERS,
-} from '@/data/mockData';
+import { apiGet, apiPost, apiPut, apiDelete, safe } from './apiClient';
 
-const nextId = (arr: { [k: string]: any }[], key: string) =>
-  (arr.reduce((m, x) => Math.max(m, x[key] || 0), 0) || 0) + 1;
-
-/* ── Children ── */
+/* ─────────── Children ─────────── */
 export const childrenApi = {
-  getAll: () => apiFetch<Child[]>('/api/children', MOCK_CHILDREN),
-  getById: (id: number) => apiFetch<Child | null>(`/api/children/${id}`, MOCK_CHILDREN.find(c => c.PK_ChildId === id) || null),
-  getByEducator: (educatorId: number) => apiFetch<Child[]>(`/api/educators/${educatorId}/children`, MOCK_CHILDREN.filter(c => c.FK_EducatorId === educatorId)),
-  getByRepresentative: (repId: number) => apiFetch<Child[]>(`/api/representatives/${repId}/children`, MOCK_CHILDREN.filter(c => c.FK_RepresentativeId === repId)),
-  create: async (data: Partial<Child>): Promise<Child | null> => {
-    const r = await apiPost<Child>('/api/children', data); if (r) return r;
-    const c: Child = { PK_ChildId: nextId(MOCK_CHILDREN, 'PK_ChildId'), FullName: data.FullName || '', ...data } as Child;
-    MOCK_CHILDREN.push(c); return c;
-  },
-  update: async (id: number, data: Partial<Child>): Promise<Child | null> => {
-    const r = await apiPut<Child>(`/api/children/${id}`, data); if (r) return r;
-    const idx = MOCK_CHILDREN.findIndex(c => c.PK_ChildId === id);
-    if (idx >= 0) Object.assign(MOCK_CHILDREN[idx], data);
-    return MOCK_CHILDREN[idx] || null;
-  },
-  delete: async (id: number) => {
-    if (await apiDel(`/api/children/${id}`)) return true;
-    const idx = MOCK_CHILDREN.findIndex(c => c.PK_ChildId === id);
-    if (idx >= 0) { MOCK_CHILDREN.splice(idx, 1); return true; }
-    return false;
+  getAll: (): Promise<Child[]> => safe(apiGet<Child[]>('/api/children'), []),
+  getById: (id: number): Promise<Child | null> => safe(apiGet<Child>(`/api/children/${id}`), null),
+  getByEducator: (educatorId: number): Promise<Child[]> =>
+    safe(apiGet<Child[]>(`/api/educators/${educatorId}/children`), []),
+  getByRepresentative: (repId: number): Promise<Child[]> =>
+    safe(apiGet<Child[]>(`/api/representatives/${repId}/children`), []),
+  create: (data: Partial<Child>): Promise<Child | null> =>
+    safe(apiPost<Child>('/api/children', data), null),
+  update: (id: number, data: Partial<Child>): Promise<Child | null> =>
+    safe(apiPut<Child>(`/api/children/${id}`, data), null),
+  delete: async (id: number): Promise<boolean> => {
+    try { await apiDelete(`/api/children/${id}`); return true; } catch { return false; }
   },
 };
 
-/* ── Educators ── */
+/* ─────────── Educators ─────────── */
+export interface EducatorCreate extends Partial<Educator> {
+  UserLogin?: string;
+  UserPassword?: string;
+}
 export const educatorsApi = {
-  getAll: () => apiFetch<Educator[]>('/api/educators', MOCK_EDUCATORS),
-  getById: (id: number) => apiFetch<Educator | null>(`/api/educators/${id}`, MOCK_EDUCATORS.find(e => e.PK_EducatorId === id) || null),
-  getByUserId: (userId: number) => apiFetch<Educator | null>(`/api/users/${userId}/educator`, MOCK_EDUCATORS.find(e => e.FK_UserId === userId) || null),
-  create: async (data: Partial<Educator> & { UserLogin?: string; UserPassword?: string }): Promise<Educator | null> => {
-    const r = await apiPost<Educator>('/api/educators', data); if (r) return r;
-    // создаём связанного User, если передан логин
-    let userId = data.FK_UserId || 0;
-    if (!userId && data.UserLogin) {
-      const u: User = { PK_UserId: nextId(MOCK_USERS, 'PK_UserId'), UserLogin: data.UserLogin, UserPassword: data.UserPassword || '', FK_RoleId: 2,
-        first_name: (data.FullName || '').split(' ')[1], second_name: (data.FullName || '').split(' ')[0], phone: data.Phone };
-      MOCK_USERS.push(u); userId = u.PK_UserId;
-    }
-    const e: Educator = { PK_EducatorId: nextId(MOCK_EDUCATORS, 'PK_EducatorId'), FK_UserId: userId, FullName: data.FullName || '', Specialization: data.Specialization, Phone: data.Phone, Email: data.Email };
-    MOCK_EDUCATORS.push(e); return e;
-  },
-  update: async (id: number, data: Partial<Educator>) => {
-    const r = await apiPut<Educator>(`/api/educators/${id}`, data); if (r) return r;
-    const idx = MOCK_EDUCATORS.findIndex(e => e.PK_EducatorId === id);
-    if (idx >= 0) Object.assign(MOCK_EDUCATORS[idx], data);
-    return MOCK_EDUCATORS[idx] || null;
-  },
-  delete: async (id: number) => {
-    if (await apiDel(`/api/educators/${id}`)) return true;
-    const idx = MOCK_EDUCATORS.findIndex(e => e.PK_EducatorId === id);
-    if (idx >= 0) { MOCK_EDUCATORS.splice(idx, 1); return true; }
-    return false;
+  getAll: (): Promise<Educator[]> => safe(apiGet<Educator[]>('/api/educators'), []),
+  getById: (id: number): Promise<Educator | null> => safe(apiGet<Educator>(`/api/educators/${id}`), null),
+  getByUserId: (userId: number): Promise<Educator | null> =>
+    safe(apiGet<Educator>(`/api/users/${userId}/educator`), null),
+  create: (data: EducatorCreate): Promise<Educator | null> =>
+    safe(apiPost<Educator>('/api/educators', data), null),
+  update: (id: number, data: Partial<Educator>): Promise<Educator | null> =>
+    safe(apiPut<Educator>(`/api/educators/${id}`, data), null),
+  delete: async (id: number): Promise<boolean> => {
+    try { await apiDelete(`/api/educators/${id}`); return true; } catch { return false; }
   },
 };
 
-/* ── Representatives ── */
+/* ─────────── Representatives ─────────── */
+export interface RepresentativeCreate extends Partial<LegalRepresentative> {
+  UserLogin?: string;
+  UserPassword?: string;
+}
 export const representativesApi = {
-  getAll: () => apiFetch<LegalRepresentative[]>('/api/representatives', MOCK_REPRESENTATIVES),
-  getByUserId: (userId: number) => apiFetch<LegalRepresentative | null>(`/api/users/${userId}/representative`, MOCK_REPRESENTATIVES.find(r => r.FK_UserId === userId) || null),
-  create: async (data: Partial<LegalRepresentative> & { UserLogin?: string; UserPassword?: string }): Promise<LegalRepresentative | null> => {
-    const r = await apiPost<LegalRepresentative>('/api/representatives', data); if (r) return r;
-    let userId = data.FK_UserId || 0;
-    if (!userId && data.UserLogin) {
-      const u: User = { PK_UserId: nextId(MOCK_USERS, 'PK_UserId'), UserLogin: data.UserLogin, UserPassword: data.UserPassword || '', FK_RoleId: 3,
-        first_name: (data.FullName || '').split(' ')[1], second_name: (data.FullName || '').split(' ')[0], phone: data.Phone };
-      MOCK_USERS.push(u); userId = u.PK_UserId;
-    }
-    const rep: LegalRepresentative = { PK_RepresentativeId: nextId(MOCK_REPRESENTATIVES, 'PK_RepresentativeId'), FK_UserId: userId, FullName: data.FullName || '', RelationType: data.RelationType, Phone: data.Phone, Email: data.Email };
-    MOCK_REPRESENTATIVES.push(rep); return rep;
-  },
-  delete: async (id: number) => {
-    if (await apiDel(`/api/representatives/${id}`)) return true;
-    const idx = MOCK_REPRESENTATIVES.findIndex(r => r.PK_RepresentativeId === id);
-    if (idx >= 0) { MOCK_REPRESENTATIVES.splice(idx, 1); return true; }
-    return false;
+  getAll: (): Promise<LegalRepresentative[]> =>
+    safe(apiGet<LegalRepresentative[]>('/api/representatives'), []),
+  getByUserId: (userId: number): Promise<LegalRepresentative | null> =>
+    safe(apiGet<LegalRepresentative>(`/api/users/${userId}/representative`), null),
+  create: (data: RepresentativeCreate): Promise<LegalRepresentative | null> =>
+    safe(apiPost<LegalRepresentative>('/api/representatives', data), null),
+  delete: async (id: number): Promise<boolean> => {
+    try { await apiDelete(`/api/representatives/${id}`); return true; } catch { return false; }
   },
 };
 
-/* ── Users (профиль) ── */
+/* ─────────── Users ─────────── */
 export const usersApi = {
-  getAll: () => apiFetch<User[]>('/api/users', MOCK_USERS),
-  getById: (id: number) => apiFetch<User | null>(`/api/users/${id}`, MOCK_USERS.find(u => u.PK_UserId === id) || null),
-  update: async (id: number, data: Partial<User>): Promise<User | null> => {
-    const r = await apiPut<User>(`/api/users/${id}`, data); if (r) return r;
-    const idx = MOCK_USERS.findIndex(u => u.PK_UserId === id);
-    if (idx >= 0) Object.assign(MOCK_USERS[idx], data);
-    return MOCK_USERS[idx] || null;
-  },
+  getAll: (): Promise<User[]> => safe(apiGet<User[]>('/api/users'), []),
+  getById: (id: number): Promise<User | null> => safe(apiGet<User>(`/api/users/${id}`), null),
+  update: (id: number, data: Partial<User>): Promise<User | null> =>
+    safe(apiPut<User>(`/api/users/${id}`, data), null),
 };
 
-/* ── Sensory ── */
+/* ─────────── Sensory profile ─────────── */
 export const sensoryApi = {
-  getByChild: (childId: number) => apiFetch<SensoryProfile | null>(`/api/children/${childId}/sensory-profile`, MOCK_SENSORY_PROFILES.find(s => s.FK_ChildId === childId) || null),
-  save: async (childId: number, data: Partial<SensoryProfile>): Promise<SensoryProfile | null> => {
-    const r = await apiPost<SensoryProfile>(`/api/children/${childId}/sensory-profile`, data); if (r) return r;
-    const existing = MOCK_SENSORY_PROFILES.findIndex(s => s.FK_ChildId === childId);
-    const profile: SensoryProfile = { PK_ProfileId: existing >= 0 ? MOCK_SENSORY_PROFILES[existing].PK_ProfileId : nextId(MOCK_SENSORY_PROFILES, 'PK_ProfileId'), FK_ChildId: childId, ...data } as SensoryProfile;
-    if (existing >= 0) MOCK_SENSORY_PROFILES[existing] = profile; else MOCK_SENSORY_PROFILES.push(profile);
-    return profile;
-  },
+  getByChild: (childId: number): Promise<SensoryProfile | null> =>
+    safe(apiGet<SensoryProfile>(`/api/children/${childId}/sensory-profile`), null),
+  save: (childId: number, data: Partial<SensoryProfile>): Promise<SensoryProfile | null> =>
+    safe(apiPost<SensoryProfile>(`/api/children/${childId}/sensory-profile`, data), null),
 };
 
-/* ── Diseases ── */
+/* ─────────── Diseases ─────────── */
 export const diseasesApi = {
-  getAll: () => apiFetch<Disease[]>('/api/diseases', MOCK_DISEASES),
+  getAll: (): Promise<Disease[]> => safe(apiGet<Disease[]>('/api/diseases'), []),
 };
 
-/* ── User Info ── */
+/* ─────────── User info ─────────── */
 export const userInfoApi = {
-  getByUser: (userId: number) => apiFetch<UserInfo | null>(`/api/users/${userId}/info`, MOCK_USER_INFO.find(i => i.FK_user_id === userId) || null),
-  save: async (userId: number, data: Partial<UserInfo>): Promise<UserInfo | null> => {
-    const r = await apiPost<UserInfo>(`/api/users/${userId}/info`, data); if (r) return r;
-    const idx = MOCK_USER_INFO.findIndex(i => i.FK_user_id === userId);
-    const info: UserInfo = { PK_Id: idx >= 0 ? MOCK_USER_INFO[idx].PK_Id : nextId(MOCK_USER_INFO, 'PK_Id'), FK_user_id: userId, ...data } as UserInfo;
-    if (idx >= 0) MOCK_USER_INFO[idx] = info; else MOCK_USER_INFO.push(info);
-    return info;
-  },
+  getByUser: (userId: number): Promise<UserInfo | null> =>
+    safe(apiGet<UserInfo>(`/api/users/${userId}/info`), null),
+  save: (userId: number, data: Partial<UserInfo>): Promise<UserInfo | null> =>
+    safe(apiPost<UserInfo>(`/api/users/${userId}/info`, data), null),
 };
 
-/* ── Assignments (legacy) ── */
+/* ─────────── Assignments ─────────── */
 export const assignmentsApi = {
-  getAll: () => apiFetch<TaskAssignment[]>('/api/assignments', MOCK_ASSIGNMENTS),
-  getByChild: (childId: number) => apiFetch<TaskAssignment[]>(`/api/children/${childId}/assignments`, MOCK_ASSIGNMENTS.filter(a => a.FK_ChildId === childId)),
-  create: async (data: Partial<TaskAssignment>): Promise<TaskAssignment | null> => {
-    const r = await apiPost<TaskAssignment>('/api/assignments', data); if (r) return r;
-    const a: TaskAssignment = { PK_AssignmentId: nextId(MOCK_ASSIGNMENTS, 'PK_AssignmentId'), FK_TaskId: data.FK_TaskId || 0, FK_ChildId: data.FK_ChildId || 0, AssignedDate: new Date().toISOString(), Status: 'pending', ...data } as TaskAssignment;
-    MOCK_ASSIGNMENTS.push(a); return a;
-  },
-  updateStatus: async (id: number, status: TaskAssignment['Status']) => {
-    const a = MOCK_ASSIGNMENTS.find(x => x.PK_AssignmentId === id);
-    if (a) a.Status = status;
-    return a || null;
-  },
+  getAll: (): Promise<TaskAssignment[]> => safe(apiGet<TaskAssignment[]>('/api/assignments'), []),
+  getByChild: (childId: number): Promise<TaskAssignment[]> =>
+    safe(apiGet<TaskAssignment[]>(`/api/children/${childId}/assignments`), []),
+  create: (data: Partial<TaskAssignment>): Promise<TaskAssignment | null> =>
+    safe(apiPost<TaskAssignment>('/api/assignments', data), null),
+  updateStatus: (id: number, status: TaskAssignment['Status']): Promise<TaskAssignment | null> =>
+    safe(apiPut<TaskAssignment>(`/api/assignments/${id}/status`, { status }), null),
 };
 
-/* ── Progress ── */
+/* ─────────── Progress ─────────── */
 export const progressApi = {
-  getAll: () => apiFetch<ProgressRecord[]>('/api/progress', MOCK_PROGRESS),
-  getByChild: (childId: number) => apiFetch<ProgressRecord[]>(`/api/children/${childId}/progress`, MOCK_PROGRESS.filter(p => p.FK_ChildId === childId)),
-  create: async (data: Partial<ProgressRecord>): Promise<ProgressRecord | null> => {
-    const r = await apiPost<ProgressRecord>('/api/progress', data); if (r) return r;
-    const p: ProgressRecord = { PK_ProgressId: nextId(MOCK_PROGRESS, 'PK_ProgressId'), FK_AssignmentId: data.FK_AssignmentId || 0, FK_ChildId: data.FK_ChildId || 0, CompletedDate: new Date().toISOString(), ErrorCount: data.ErrorCount || 0, HintsUsed: data.HintsUsed || 0, IsCorrect: data.IsCorrect ?? false, ...data } as ProgressRecord;
-    MOCK_PROGRESS.push(p); return p;
-  },
+  getAll: (): Promise<ProgressRecord[]> => safe(apiGet<ProgressRecord[]>('/api/progress'), []),
+  getByChild: (childId: number): Promise<ProgressRecord[]> =>
+    safe(apiGet<ProgressRecord[]>(`/api/children/${childId}/progress`), []),
+  create: (data: Partial<ProgressRecord>): Promise<ProgressRecord | null> =>
+    safe(apiPost<ProgressRecord>('/api/progress', data), null),
 };
 
-/* ── Rewards (легаси) ── */
+/* ─────────── Rewards ─────────── */
 export const rewardsApi = {
-  getByChild: (childId: number) => apiFetch<Reward[]>(`/api/children/${childId}/rewards`, MOCK_REWARDS.filter(r => r.FK_ChildId === childId)),
+  getByChild: (childId: number): Promise<Reward[]> =>
+    safe(apiGet<Reward[]>(`/api/children/${childId}/rewards`), []),
 };
 
-/* ── Trajectories (легаси) ── */
+/* ─────────── Trajectories ─────────── */
 export const trajectoriesApi = {
-  getAll: () => apiFetch<LearningTrajectory[]>('/api/trajectories', MOCK_TRAJECTORIES),
-  getSteps: (id: number) => apiFetch<TrajectoryStep[]>(`/api/trajectories/${id}/steps`, MOCK_TRAJECTORY_STEPS.filter(s => s.FK_TrajectoryId === id)),
-  create: async (data: Partial<LearningTrajectory>): Promise<LearningTrajectory | null> => {
-    const r = await apiPost<LearningTrajectory>('/api/trajectories', data); if (r) return r;
-    const t: LearningTrajectory = { PK_TrajectoryId: nextId(MOCK_TRAJECTORIES, 'PK_TrajectoryId'), TrajectoryName: data.TrajectoryName || '', FK_EducatorId: data.FK_EducatorId || 0, ...data } as LearningTrajectory;
-    MOCK_TRAJECTORIES.push(t); return t;
-  },
+  getAll: (): Promise<LearningTrajectory[]> =>
+    safe(apiGet<LearningTrajectory[]>('/api/trajectories'), []),
+  getSteps: (id: number): Promise<TrajectoryStep[]> =>
+    safe(apiGet<TrajectoryStep[]>(`/api/trajectories/${id}/steps`), []),
+  create: (data: Partial<LearningTrajectory>): Promise<LearningTrajectory | null> =>
+    safe(apiPost<LearningTrajectory>('/api/trajectories', data), null),
 };
 
-/* ── Groups ── */
+/* ─────────── Groups ─────────── */
 export const groupsApi = {
-  getAll: () => apiFetch<ChildGroup[]>('/api/groups', MOCK_GROUPS),
-  getByEducator: (educatorId: number) => apiFetch<ChildGroup[]>(`/api/educators/${educatorId}/groups`, MOCK_GROUPS.filter(g => g.FK_EducatorId === educatorId)),
-  getMembers: (groupId: number) => apiFetch<ChildGroupMember[]>(`/api/groups/${groupId}/members`, MOCK_GROUP_MEMBERS.filter(m => m.FK_GroupId === groupId)),
-  create: async (data: Partial<ChildGroup>): Promise<ChildGroup | null> => {
-    const r = await apiPost<ChildGroup>('/api/groups', data); if (r) return r;
-    const g: ChildGroup = { PK_GroupId: nextId(MOCK_GROUPS, 'PK_GroupId'), GroupName: data.GroupName || '', FK_EducatorId: data.FK_EducatorId || 0, ...data } as ChildGroup;
-    MOCK_GROUPS.push(g); return g;
+  getAll: (): Promise<ChildGroup[]> => safe(apiGet<ChildGroup[]>('/api/groups'), []),
+  getByEducator: (educatorId: number): Promise<ChildGroup[]> =>
+    safe(apiGet<ChildGroup[]>(`/api/educators/${educatorId}/groups`), []),
+  getMembers: (groupId: number): Promise<ChildGroupMember[]> =>
+    safe(apiGet<ChildGroupMember[]>(`/api/groups/${groupId}/members`), []),
+  create: (data: Partial<ChildGroup>): Promise<ChildGroup | null> =>
+    safe(apiPost<ChildGroup>('/api/groups', data), null),
+  delete: async (id: number): Promise<boolean> => {
+    try { await apiDelete(`/api/groups/${id}`); return true; } catch { return false; }
   },
-  delete: async (id: number) => {
-    const idx = MOCK_GROUPS.findIndex(g => g.PK_GroupId === id);
-    if (idx >= 0) { MOCK_GROUPS.splice(idx, 1);
-      for (let i = MOCK_GROUP_MEMBERS.length - 1; i >= 0; i--) if (MOCK_GROUP_MEMBERS[i].FK_GroupId === id) MOCK_GROUP_MEMBERS.splice(i, 1);
-      return true;
-    }
-    return false;
-  },
-  addMember: async (groupId: number, childId: number) => {
-    const r = await apiPost<ChildGroupMember>(`/api/groups/${groupId}/members`, { childId });
-    if (r) return r;
-    const exists = MOCK_GROUP_MEMBERS.find(m => m.FK_GroupId === groupId && m.FK_ChildId === childId);
-    if (exists) return exists;
-    const m: ChildGroupMember = { PK_MemberId: nextId(MOCK_GROUP_MEMBERS, 'PK_MemberId'), FK_GroupId: groupId, FK_ChildId: childId };
-    MOCK_GROUP_MEMBERS.push(m); return m;
-  },
-  removeMember: async (memberId: number) => {
-    const idx = MOCK_GROUP_MEMBERS.findIndex(m => m.PK_MemberId === memberId);
-    if (idx >= 0) { MOCK_GROUP_MEMBERS.splice(idx, 1); return true; }
-    return false;
+  addMember: (groupId: number, childId: number): Promise<ChildGroupMember | null> =>
+    safe(apiPost<ChildGroupMember>(`/api/groups/${groupId}/members`, { childId }), null),
+  removeMember: async (memberId: number): Promise<boolean> => {
+    try { await apiDelete(`/api/group-members/${memberId}`); return true; } catch { return false; }
   },
 };
 
-/* ── Achievements ── */
+/* ─────────── Achievements ─────────── */
 export const achievementsApi = {
-  getAll: () => apiFetch<Achievement[]>('/api/achievements', MOCK_ACHIEVEMENTS),
-  getByUser: (userId: number) => apiFetch<UserAchievement[]>(`/api/users/${userId}/achievements`, MOCK_USER_ACHIEVEMENTS.filter(a => a.user_id === userId)),
-  award: async (userId: number, achievementId: number): Promise<UserAchievement | null> => {
-    const exists = MOCK_USER_ACHIEVEMENTS.find(a => a.user_id === userId && a.achivement_id === achievementId);
-    if (exists) return exists;
-    const a: UserAchievement = { id: nextId(MOCK_USER_ACHIEVEMENTS, 'id'), user_id: userId, achivement_id: achievementId, earned_date: new Date().toISOString() };
-    MOCK_USER_ACHIEVEMENTS.push(a); return a;
-  },
+  getAll: (): Promise<Achievement[]> => safe(apiGet<Achievement[]>('/api/achievements'), []),
+  getByUser: (userId: number): Promise<UserAchievement[]> =>
+    safe(apiGet<UserAchievement[]>(`/api/users/${userId}/achievements`), []),
+  award: (userId: number, achievementId: number): Promise<UserAchievement | null> =>
+    safe(apiPost<UserAchievement>(`/api/users/${userId}/achievements`, { achievementId }), null),
 };
 
-/* ── Task Lists (цепочки) ── */
+/* ─────────── Task lists ─────────── */
+export interface TaskListCreate {
+  Title: string;
+  Descripti?: string;
+  teacher_id: number;
+  date_complite?: string;
+  taskIds: number[];
+  userIds: number[];
+}
+export interface TaskListStatus { total: number; done: number; isDone: boolean }
+export interface NextInChain { listId: number; nextTaskId: number; position: number }
+
 export const taskListsApi = {
-  getAll: () => apiFetch<TaskList[]>('/api/task-lists', MOCK_TASK_LISTS),
-  getByTeacher: (teacherId: number) => apiFetch<TaskList[]>(`/api/teachers/${teacherId}/task-lists`, MOCK_TASK_LISTS.filter(l => l.teacher_id === teacherId)),
-  getByUser: (userId: number) => {
-    const listIds = [...new Set(MOCK_TASK_LIST_ITEMS.filter(i => i.user_id === userId).map(i => i.task_list_id))];
-    return apiFetch<TaskList[]>(`/api/users/${userId}/task-lists`, MOCK_TASK_LISTS.filter(l => listIds.includes(l.PK_id)));
-  },
-  getItems: (listId: number) => apiFetch<TaskListItem[]>(`/api/task-lists/${listId}/items`, MOCK_TASK_LIST_ITEMS.filter(i => i.task_list_id === listId)),
-  getItemsForUser: (listId: number, userId: number) =>
-    apiFetch<TaskListItem[]>(`/api/task-lists/${listId}/items?user=${userId}`,
-      MOCK_TASK_LIST_ITEMS.filter(i => i.task_list_id === listId && i.user_id === userId).sort((a, b) => a.position - b.position)),
+  getAll: (): Promise<TaskList[]> => safe(apiGet<TaskList[]>('/api/task-lists'), []),
+  getByTeacher: (teacherId: number): Promise<TaskList[]> =>
+    safe(apiGet<TaskList[]>(`/api/teachers/${teacherId}/task-lists`), []),
+  getByUser: (userId: number): Promise<TaskList[]> =>
+    safe(apiGet<TaskList[]>(`/api/users/${userId}/task-lists`), []),
+  getItems: (listId: number): Promise<TaskListItem[]> =>
+    safe(apiGet<TaskListItem[]>(`/api/task-lists/${listId}/items`), []),
+  getItemsForUser: (listId: number, userId: number): Promise<TaskListItem[]> =>
+    safe(apiGet<TaskListItem[]>(`/api/task-lists/${listId}/items?user=${userId}`), []),
 
-  create: async (data: { Title: string; Descripti?: string; teacher_id: number; date_complite?: string; taskIds: number[]; userIds: number[] }): Promise<TaskList | null> => {
-    const r = await apiPost<TaskList>('/api/task-lists', data); if (r) return r;
-    const list: TaskList = {
-      PK_id: nextId(MOCK_TASK_LISTS, 'PK_id'),
-      Title: data.Title, Descripti: data.Descripti,
-      teacher_id: data.teacher_id, date_complite: data.date_complite,
-    };
-    MOCK_TASK_LISTS.push(list);
-    // создаём элементы для каждого ребёнка × задачи
-    let nid = nextId(MOCK_TASK_LIST_ITEMS, 'id');
-    data.userIds.forEach(uid => {
-      data.taskIds.forEach((tid, pos) => {
-        MOCK_TASK_LIST_ITEMS.push({ id: nid++, task_id: tid, task_list_id: list.PK_id, position: pos + 1, user_id: uid, complited: false });
-      });
-    });
-    return list;
-  },
+  create: (data: TaskListCreate): Promise<TaskList | null> =>
+    safe(apiPost<TaskList>('/api/task-lists', data), null),
 
-  markCompleted: async (itemId: number) => {
-    const it = MOCK_TASK_LIST_ITEMS.find(i => i.id === itemId);
-    if (it) it.complited = true;
-    return it || null;
-  },
+  markCompleted: (itemId: number): Promise<TaskListItem | null> =>
+    safe(apiPut<TaskListItem>(`/api/task-list-items/${itemId}/complete`, {}), null),
 
-  /** Помечает выполненными все элементы цепочек данного пользователя по taskId. */
-  markTaskCompletedForUser: async (taskId: number, userId: number) => {
-    const updated = MOCK_TASK_LIST_ITEMS.filter(i => i.task_id === taskId && i.user_id === userId && !i.complited);
-    updated.forEach(i => { i.complited = true; });
-    return updated;
-  },
+  markTaskCompletedForUser: (taskId: number, userId: number): Promise<TaskListItem[]> =>
+    safe(apiPost<TaskListItem[]>(`/api/task-list-items/complete-for-user`, { taskId, userId }), []),
 
-  /** Возвращает статусы цепочек пользователя: { listId: { total, done, isDone } }. */
-  getStatusesForUser: async (userId: number) => {
-    const map: Record<number, { total: number; done: number; isDone: boolean }> = {};
-    MOCK_TASK_LIST_ITEMS.filter(i => i.user_id === userId).forEach(i => {
-      if (!map[i.task_list_id]) map[i.task_list_id] = { total: 0, done: 0, isDone: false };
-      map[i.task_list_id].total++;
-      if (i.complited) map[i.task_list_id].done++;
-    });
-    Object.values(map).forEach(s => { s.isDone = s.total > 0 && s.done === s.total; });
-    return map;
-  },
+  getStatusesForUser: (userId: number): Promise<Record<number, TaskListStatus>> =>
+    safe(apiGet<Record<number, TaskListStatus>>(`/api/users/${userId}/task-list-statuses`), {}),
 
-  /**
-   * Возвращает следующее по позиции задание в цепочке для конкретного пользователя.
-   * Учитывает: тот же task_list, position > текущей, ещё не выполнено.
-   * Возвращает { listId, nextTaskId, position } либо null.
-   */
-  getNextInChainsForUser: async (currentTaskId: number, userId: number) => {
-    // Все цепочки пользователя, где встречается текущее задание
-    const myItems = MOCK_TASK_LIST_ITEMS.filter(i => i.user_id === userId);
-    const currents = myItems.filter(i => i.task_id === currentTaskId);
-    for (const cur of currents) {
-      const next = myItems
-        .filter(i => i.task_list_id === cur.task_list_id && i.position > cur.position)
-        .sort((a, b) => a.position - b.position)[0];
-      if (next) {
-        return { listId: cur.task_list_id, nextTaskId: next.task_id, position: next.position };
-      }
-    }
-    return null;
-  },
+  getNextInChainsForUser: (currentTaskId: number, userId: number): Promise<NextInChain | null> =>
+    safe(apiGet<NextInChain>(`/api/users/${userId}/next-in-chain?task=${currentTaskId}`), null),
 
-  delete: async (listId: number) => {
-    const idx = MOCK_TASK_LISTS.findIndex(l => l.PK_id === listId);
-    if (idx >= 0) { MOCK_TASK_LISTS.splice(idx, 1);
-      for (let i = MOCK_TASK_LIST_ITEMS.length - 1; i >= 0; i--) if (MOCK_TASK_LIST_ITEMS[i].task_list_id === listId) MOCK_TASK_LIST_ITEMS.splice(i, 1);
-      return true;
-    }
-    return false;
+  delete: async (listId: number): Promise<boolean> => {
+    try { await apiDelete(`/api/task-lists/${listId}`); return true; } catch { return false; }
   },
 };

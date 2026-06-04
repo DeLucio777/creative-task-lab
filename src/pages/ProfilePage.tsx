@@ -1,15 +1,33 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { usersApi, educatorsApi, representativesApi, taskListsApi, groupsApi, achievementsApi, userInfoApi, diseasesApi } from '@/services/entitiesApi';
+import { usersApi, educatorsApi, representativesApi, taskListsApi, groupsApi, achievementsApi, userInfoApi, diseasesApi, childrenApi, sensoryApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
 import { useNavigate } from 'react-router-dom';
-import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, UserInfo, Disease, Educator, LegalRepresentative } from '@/types/models';
+import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, UserInfo, Disease, Educator, LegalRepresentative, Child, SensoryProfile } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
-import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock } from 'lucide-react';
+import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Sparkles } from 'lucide-react';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+
+const BG_COLORS: { label: string; value: string }[] = [
+  { label: 'Кремовый', value: '#FFF9E6' },
+  { label: 'Мятный',   value: '#E6F7EE' },
+  { label: 'Небесный', value: '#E6F0FF' },
+  { label: 'Лавандовый', value: '#F0E6FF' },
+  { label: 'Персиковый', value: '#FFEFE6' },
+  { label: 'Белый',    value: '#FFFFFF' },
+];
+const REWARD_ANIMATIONS: { label: string; value: string }[] = [
+  { label: 'Конфетти', value: 'confetti' },
+  { label: 'Звёзды',   value: 'stars' },
+  { label: 'Сердечки', value: 'hearts' },
+  { label: 'Без анимации', value: 'none' },
+];
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
@@ -52,9 +70,43 @@ const ProfilePage: React.FC = () => {
       achievementsApi.getByUser(user.PK_UserId).then(setUserAch);
       userInfoApi.getByUser(user.PK_UserId).then(setUserInfo);
       diseasesApi.getAll().then(setDiseases);
-      representativesApi.getByUserId(user.PK_UserId).then(setRepRec);
+      representativesApi.getByUserId(user.PK_UserId).then(async (rep) => {
+        setRepRec(rep);
+        if (!rep) return;
+        const kids = await childrenApi.getByRepresentative(rep.PK_RepresentativeId);
+        const kid = kids[0] ?? null;
+        setMyChild(kid);
+        if (kid) {
+          const prof = await sensoryApi.getByChild(kid.PK_ChildId);
+          setSensory(prof ?? {
+            PK_ProfileId: 0, FK_ChildId: kid.PK_ChildId,
+            BackgroundColor: '#FFF9E6', FontSize: 18,
+            ExcludeLoudSounds: false, RewardAnimation: 'confetti',
+          });
+        }
+      });
     }
   }, [user, role]);
+
+  const [myChild, setMyChild] = useState<Child | null>(null);
+  const [sensory, setSensory] = useState<SensoryProfile | null>(null);
+  const [savingSensory, setSavingSensory] = useState(false);
+
+  const handleSaveSensory = async () => {
+    if (!myChild || !sensory) return;
+    setSavingSensory(true);
+    const saved = await sensoryApi.save(myChild.PK_ChildId, {
+      BackgroundColor: sensory.BackgroundColor,
+      FontSize: sensory.FontSize,
+      ExcludeLoudSounds: sensory.ExcludeLoudSounds,
+      RewardAnimation: sensory.RewardAnimation,
+    });
+    setSavingSensory(false);
+    if (saved) {
+      setSensory(saved);
+      toast.success('Сенсорный профиль сохранён');
+    }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -241,6 +293,85 @@ const ProfilePage: React.FC = () => {
               </div>
             </div>
           )}
+
+          {/* Сенсорный профиль ребёнка */}
+          {myChild && sensory && (
+            <div className="bg-card rounded-2xl border-2 border-border p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="font-bold text-foreground">Сенсорный профиль</h2>
+                  <p className="text-xs text-muted-foreground font-semibold">Настройки восприятия для: {myChild.FullName}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Фоновый цвет */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Фоновый цвет</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {BG_COLORS.map(c => (
+                      <button
+                        key={c.value}
+                        type="button"
+                        onClick={() => setSensory(s => s && ({ ...s, BackgroundColor: c.value }))}
+                        title={c.label}
+                        className={`h-10 w-10 rounded-xl border-2 transition-all ${sensory.BackgroundColor === c.value ? 'border-primary scale-110' : 'border-border'}`}
+                        style={{ backgroundColor: c.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                {/* Размер шрифта */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Размер шрифта: {sensory.FontSize ?? 18}px</Label>
+                  <Slider
+                    min={14} max={32} step={1}
+                    value={[sensory.FontSize ?? 18]}
+                    onValueChange={([v]) => setSensory(s => s && ({ ...s, FontSize: v }))}
+                  />
+                  <p style={{ fontSize: `${sensory.FontSize ?? 18}px` }} className="text-foreground">Пример текста</p>
+                </div>
+
+                {/* Исключение резких звуков */}
+                <div className="flex items-center justify-between rounded-xl border-2 border-border p-3">
+                  <div>
+                    <Label className="font-semibold">Исключить резкие звуки</Label>
+                    <p className="text-xs text-muted-foreground">Громкие сигналы будут отключены</p>
+                  </div>
+                  <Switch
+                    checked={!!sensory.ExcludeLoudSounds}
+                    onCheckedChange={(v) => setSensory(s => s && ({ ...s, ExcludeLoudSounds: v }))}
+                  />
+                </div>
+
+                {/* Поощрительная анимация */}
+                <div className="space-y-2">
+                  <Label className="font-semibold">Поощрительная анимация</Label>
+                  <Select
+                    value={sensory.RewardAnimation ?? 'confetti'}
+                    onValueChange={(v) => setSensory(s => s && ({ ...s, RewardAnimation: v }))}
+                  >
+                    <SelectTrigger className="rounded-xl h-11"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {REWARD_ANIMATIONS.map(a => (
+                        <SelectItem key={a.value} value={a.value}>{a.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <Button onClick={handleSaveSensory} disabled={savingSensory} className="mt-5 gap-2 rounded-xl font-bold h-11">
+                <Save className="h-4 w-4" /> {savingSensory ? 'Сохранение…' : 'Сохранить профиль'}
+              </Button>
+            </div>
+          )}
+
+
 
           <div className="bg-card rounded-2xl border-2 border-border p-6">
             <div className="flex items-center gap-3 mb-4">
