@@ -29,7 +29,7 @@ const LoginPage: React.FC = () => {
 
       <div className="w-full max-w-[420px] bg-card rounded-2xl p-8 border-2 border-border shadow-lg">
         <div className="text-center mb-8">
-          <p className="text-4xl mb-3">🧩</p>
+          <p className="text-4xl mb-3"></p>
           <h1 className="text-2xl font-bold tracking-tight text-foreground">Вход в систему</h1>
           <p className="text-sm text-muted-foreground mt-2 font-medium">Платформа для обучения детей с РАС</p>
         </div>

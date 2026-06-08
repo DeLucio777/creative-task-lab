@@ -7,7 +7,7 @@ import { toast } from 'sonner';
  * пользователю тост «Нет доступа к серверу» и возвращает указанный fallback.
  */
 
-export const API_BASE: string = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+export const API_BASE: string = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? 'http://localhost:3000';
 
 export class ApiError extends Error {
   constructor(public readonly status: number, public readonly path: string, message: string) {
