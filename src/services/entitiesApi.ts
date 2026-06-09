@@ -34,21 +34,49 @@ const userToRep = (u: User): LegalRepresentative => ({
   User: u,
 });
 
-/* ─────────── Children ─────────── */
+/* ─────────── Children (derived from /api/users where FK_RoleId = parent/child) ─────────── */
+const userToChild = (u: User): Child => ({
+  PK_ChildId: u.PK_UserId,
+  FullName: fullNameOf(u),
+});
 export const childrenApi = {
-  getAll: (): Promise<Child[]> => safe(apiGet<Child[]>('/api/children'), []),
-  getById: (id: number): Promise<Child | null> => safe(apiGet<Child>(`/api/children/${id}`), null),
-  getByEducator: (educatorId: number): Promise<Child[]> =>
-    safe(apiGet<Child[]>(`/api/educators/${educatorId}/children`), []),
-  getByRepresentative: (repId: number): Promise<Child[]> =>
-    safe(apiGet<Child[]>(`/api/representatives/${repId}/children`), []),
-  create: (data: Partial<Child>): Promise<Child | null> =>
-    safe(apiPost<Child>('/api/children', data), null),
-  update: (id: number, data: Partial<Child>): Promise<Child | null> =>
-    safe(apiPut<Child>(`/api/children/${id}`, data), null),
-  delete: async (id: number): Promise<boolean> => {
-    try { await apiDelete(`/api/children/${id}`); return true; } catch { return false; }
+  getAll: async (): Promise<Child[]> => {
+    const users = await usersApi.getAll();
+    return users.filter(u => u.FK_RoleId === ROLE_ID.parent).map(userToChild);
   },
+  getById: async (id: number): Promise<Child | null> => {
+    const u = await usersApi.getById(id);
+    return u && u.FK_RoleId === ROLE_ID.parent ? userToChild(u) : null;
+  },
+  getByEducator: async (educatorId: number): Promise<Child[]> => {
+    // Связь ребёнок ↔ педагог хранится в UserInfo.FK_EducatorUserId
+    const users = await usersApi.getAll();
+    const candidates = users.filter(u => u.FK_RoleId === ROLE_ID.parent);
+    const infos = await Promise.all(candidates.map(u => userInfoApi.getByUser(u.PK_UserId)));
+    return candidates
+      .filter((_, i) => infos[i]?.FK_EducatorUserId === educatorId)
+      .map(userToChild);
+  },
+  getByRepresentative: async (repId: number): Promise<Child[]> => {
+    const users = await usersApi.getAll();
+    const candidates = users.filter(u => u.FK_RoleId === ROLE_ID.parent);
+    const infos = await Promise.all(candidates.map(u => userInfoApi.getByUser(u.PK_UserId)));
+    return candidates
+      .filter((_, i) => infos[i]?.FK_RepresentativeUserId === repId)
+      .map(userToChild);
+  },
+  create: async (data: Partial<Child> & { UserLogin?: string; UserPassword?: string }): Promise<Child | null> => {
+    // создание ребёнка-пользователя выполняется через authApi.registerUser; здесь — мост для обратной совместимости
+    if (!data.FK_RepresentativeId && !data.FK_EducatorId) return null;
+    return null;
+  },
+  update: async (id: number, data: Partial<Child>): Promise<Child | null> => {
+    const patch: Partial<User> = {};
+    if (data.FullName !== undefined) Object.assign(patch, splitFullName(data.FullName));
+    const u = await usersApi.update(id, patch);
+    return u ? userToChild(u) : null;
+  },
+  delete: (id: number): Promise<boolean> => usersApi.delete(id),
 };
 
 /* ─────────── Users ─────────── */

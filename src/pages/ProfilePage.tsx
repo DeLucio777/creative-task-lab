@@ -39,9 +39,16 @@ const ProfilePage: React.FC = () => {
   const { user, role, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ first_name: '', second_name: '', phone: '' });
-  // ФИО может менять только администратор. Педагог и родитель — только телефон.
-  const canEditName = role === 'admin';
+  const [form, setForm] = useState({
+    UserLogin: '',
+    UserPassword: '',
+    first_name: '',
+    second_name: '',
+    phone: '',
+  });
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  // Владелец аккаунта может редактировать все свои данные
+  const canEditName = true;
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [myLists, setMyLists] = useState<TaskList[]>([]);
   const [myGroups, setMyGroups] = useState<ChildGroup[]>([]);
@@ -54,7 +61,14 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-    setForm({ first_name: user.first_name || '', second_name: user.second_name || '', phone: user.phone || '' });
+    setForm({
+      UserLogin: user.UserLogin || '',
+      UserPassword: '',
+      first_name: user.first_name || '',
+      second_name: user.second_name || '',
+      phone: user.phone || '',
+    });
+    setPasswordConfirm('');
 
     if (role === 'educator') {
       tasksApi.getTasks().then(all => setMyTasks(all.filter(t => t.FK_UserId === user.PK_UserId)));
@@ -110,21 +124,37 @@ const ProfilePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    // Если ФИО редактировать нельзя — сохраняем только телефон
-    const payload = canEditName
-      ? form
-      : { phone: form.phone };
+    const login = form.UserLogin.trim();
+    if (!login) { toast.error('Логин обязателен'); return; }
+    if (form.UserPassword && form.UserPassword.length < 4) {
+      toast.error('Пароль должен быть не короче 4 символов'); return;
+    }
+    if (form.UserPassword && form.UserPassword !== passwordConfirm) {
+      toast.error('Пароли не совпадают'); return;
+    }
+    // Проверка уникальности логина, если он изменился
+    if (login.toLowerCase() !== (user.UserLogin || '').toLowerCase()) {
+      const taken = await usersApi.isLoginTaken?.(login);
+      if (taken) { toast.error(`Логин «${login}» уже занят`); return; }
+    }
+    const payload: Partial<typeof user> = {
+      UserLogin: login,
+      first_name: form.first_name,
+      second_name: form.second_name,
+      phone: form.phone,
+    };
+    if (form.UserPassword) payload.UserPassword = form.UserPassword;
     const updated = await usersApi.update(user.PK_UserId, payload);
     if (updated) {
       setUser(updated);
-      // Синхронизировать связанные сущности педагога (телефон всегда; ФИО только если разрешено)
       if (role === 'educator' && educatorRec) {
-        const eduPayload: { FullName?: string; Phone?: string } = { Phone: form.phone };
-        if (canEditName) {
-          eduPayload.FullName = `${form.second_name} ${form.first_name}`.trim();
-        }
-        await educatorsApi.update(educatorRec.PK_EducatorId, eduPayload);
+        await educatorsApi.update(educatorRec.PK_EducatorId, {
+          FullName: `${form.second_name} ${form.first_name}`.trim(),
+          Phone: form.phone,
+        });
       }
+      setForm(f => ({ ...f, UserPassword: '' }));
+      setPasswordConfirm('');
       toast.success('Профиль сохранён');
     }
   };
@@ -157,23 +187,52 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label className="font-semibold">Фамилия {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Label className="font-semibold">Логин</Label>
             <Input
-              value={form.second_name}
-              onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))}
-              disabled={!canEditName}
-              readOnly={!canEditName}
-              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+              value={form.UserLogin}
+              onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))}
+              className="rounded-xl h-11"
+              autoComplete="username"
             />
           </div>
           <div className="space-y-2">
-            <Label className="font-semibold">Имя {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Label className="font-semibold">Новый пароль</Label>
+            <Input
+              type="password"
+              value={form.UserPassword}
+              onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))}
+              placeholder="Оставьте пустым, чтобы не менять"
+              className="rounded-xl h-11"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="font-semibold">Подтвердите пароль</Label>
+            <Input
+              type="password"
+              value={passwordConfirm}
+              onChange={e => setPasswordConfirm(e.target.value)}
+              placeholder="Повторите новый пароль"
+              disabled={!form.UserPassword}
+              className="rounded-xl h-11 disabled:opacity-70"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-semibold">Фамилия</Label>
+            <Input
+              value={form.second_name}
+              onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))}
+              className="rounded-xl h-11"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="font-semibold">Имя</Label>
             <Input
               value={form.first_name}
               onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-              disabled={!canEditName}
-              readOnly={!canEditName}
-              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="rounded-xl h-11"
             />
           </div>
           <div className="space-y-2">
