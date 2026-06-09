@@ -187,23 +187,52 @@ const ProfilePage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div className="space-y-2">
-            <Label className="font-semibold">Фамилия {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Label className="font-semibold">Логин</Label>
             <Input
-              value={form.second_name}
-              onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))}
-              disabled={!canEditName}
-              readOnly={!canEditName}
-              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+              value={form.UserLogin}
+              onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))}
+              className="rounded-xl h-11"
+              autoComplete="username"
             />
           </div>
           <div className="space-y-2">
-            <Label className="font-semibold">Имя {!canEditName && <Lock className="inline h-3 w-3 text-muted-foreground ml-1" />}</Label>
+            <Label className="font-semibold">Новый пароль</Label>
+            <Input
+              type="password"
+              value={form.UserPassword}
+              onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))}
+              placeholder="Оставьте пустым, чтобы не менять"
+              className="rounded-xl h-11"
+              autoComplete="new-password"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="font-semibold">Подтвердите пароль</Label>
+            <Input
+              type="password"
+              value={passwordConfirm}
+              onChange={e => setPasswordConfirm(e.target.value)}
+              placeholder="Повторите новый пароль"
+              disabled={!form.UserPassword}
+              className="rounded-xl h-11 disabled:opacity-70"
+              autoComplete="new-password"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="font-semibold">Фамилия</Label>
+            <Input
+              value={form.second_name}
+              onChange={e => setForm(f => ({ ...f, second_name: e.target.value }))}
+              className="rounded-xl h-11"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="font-semibold">Имя</Label>
             <Input
               value={form.first_name}
               onChange={e => setForm(f => ({ ...f, first_name: e.target.value }))}
-              disabled={!canEditName}
-              readOnly={!canEditName}
-              className="rounded-xl h-11 disabled:opacity-70 disabled:cursor-not-allowed"
+              className="rounded-xl h-11"
             />
           </div>
           <div className="space-y-2">
