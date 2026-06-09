@@ -39,9 +39,16 @@ const ProfilePage: React.FC = () => {
   const { user, role, setUser } = useAuth();
   const navigate = useNavigate();
 
-  const [form, setForm] = useState({ first_name: '', second_name: '', phone: '' });
-  // ФИО может менять только администратор. Педагог и родитель — только телефон.
-  const canEditName = role === 'admin';
+  const [form, setForm] = useState({
+    UserLogin: '',
+    UserPassword: '',
+    first_name: '',
+    second_name: '',
+    phone: '',
+  });
+  const [passwordConfirm, setPasswordConfirm] = useState('');
+  // Владелец аккаунта может редактировать все свои данные
+  const canEditName = true;
   const [myTasks, setMyTasks] = useState<Task[]>([]);
   const [myLists, setMyLists] = useState<TaskList[]>([]);
   const [myGroups, setMyGroups] = useState<ChildGroup[]>([]);
