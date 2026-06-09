@@ -124,21 +124,37 @@ const ProfilePage: React.FC = () => {
 
   const handleSave = async () => {
     if (!user) return;
-    // Если ФИО редактировать нельзя — сохраняем только телефон
-    const payload = canEditName
-      ? form
-      : { phone: form.phone };
+    const login = form.UserLogin.trim();
+    if (!login) { toast.error('Логин обязателен'); return; }
+    if (form.UserPassword && form.UserPassword.length < 4) {
+      toast.error('Пароль должен быть не короче 4 символов'); return;
+    }
+    if (form.UserPassword && form.UserPassword !== passwordConfirm) {
+      toast.error('Пароли не совпадают'); return;
+    }
+    // Проверка уникальности логина, если он изменился
+    if (login.toLowerCase() !== (user.UserLogin || '').toLowerCase()) {
+      const taken = await usersApi.isLoginTaken?.(login);
+      if (taken) { toast.error(`Логин «${login}» уже занят`); return; }
+    }
+    const payload: Partial<typeof user> = {
+      UserLogin: login,
+      first_name: form.first_name,
+      second_name: form.second_name,
+      phone: form.phone,
+    };
+    if (form.UserPassword) payload.UserPassword = form.UserPassword;
     const updated = await usersApi.update(user.PK_UserId, payload);
     if (updated) {
       setUser(updated);
-      // Синхронизировать связанные сущности педагога (телефон всегда; ФИО только если разрешено)
       if (role === 'educator' && educatorRec) {
-        const eduPayload: { FullName?: string; Phone?: string } = { Phone: form.phone };
-        if (canEditName) {
-          eduPayload.FullName = `${form.second_name} ${form.first_name}`.trim();
-        }
-        await educatorsApi.update(educatorRec.PK_EducatorId, eduPayload);
+        await educatorsApi.update(educatorRec.PK_EducatorId, {
+          FullName: `${form.second_name} ${form.first_name}`.trim(),
+          Phone: form.phone,
+        });
       }
+      setForm(f => ({ ...f, UserPassword: '' }));
+      setPasswordConfirm('');
       toast.success('Профиль сохранён');
     }
   };
