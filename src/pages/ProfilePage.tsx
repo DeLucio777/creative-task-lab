@@ -61,7 +61,14 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-    setForm({ first_name: user.first_name || '', second_name: user.second_name || '', phone: user.phone || '' });
+    setForm({
+      UserLogin: user.UserLogin || '',
+      UserPassword: '',
+      first_name: user.first_name || '',
+      second_name: user.second_name || '',
+      phone: user.phone || '',
+    });
+    setPasswordConfirm('');
 
     if (role === 'educator') {
       tasksApi.getTasks().then(all => setMyTasks(all.filter(t => t.FK_UserId === user.PK_UserId)));
