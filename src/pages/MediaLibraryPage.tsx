@@ -89,13 +89,18 @@ const MediaLibraryPage: React.FC = () => {
         </div>
       )}
 
-      {tab === 'media' && (
+      {tab === 'media' && ( 
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {filteredMedia.map(m => (
             <div key={m.PK_MediaId} className="bg-card border-2 border-border rounded-2xl p-4 text-center hover:border-primary/30 hover:shadow-md transition-all duration-200">
               <div className="aspect-square bg-muted/30 rounded-xl flex items-center justify-center mb-3">
-                <img src={m.FilePath} alt={m.Descripti} className="w-16 h-16 object-contain" />
+                <img
+                    src={`http://localhost:3000${m.FilePath}`}
+                    alt={m.Descripti}
+                    className="w-full h-full object-contain"
+                />
               </div>
+
               <p className="text-sm font-bold text-foreground truncate">{m.Descripti}</p>
               <p className="text-xs text-muted-foreground font-medium">{m.FileType}</p>
             </div>
