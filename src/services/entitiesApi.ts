@@ -152,12 +152,12 @@ export const representativesApi = {
   delete: (id: number): Promise<boolean> => usersApi.delete(id),
 };
 
-/* ─────────── Sensory profile ─────────── */
+/* ─────────── Sensory profile (child === user with role=parent) ─────────── */
 export const sensoryApi = {
   getByChild: (childId: number): Promise<SensoryProfile | null> =>
-    safe(apiGet<SensoryProfile>(`/api/children/${childId}/sensory-profile`), null),
+    safe(apiGet<SensoryProfile>(`/api/users/${childId}/sensory-profile`), null),
   save: (childId: number, data: Partial<SensoryProfile>): Promise<SensoryProfile | null> =>
-    safe(apiPost<SensoryProfile>(`/api/children/${childId}/sensory-profile`, data), null),
+    safe(apiPost<SensoryProfile>(`/api/users/${childId}/sensory-profile`, data), null),
 };
 
 /* ─────────── Diseases ─────────── */
@@ -177,7 +177,7 @@ export const userInfoApi = {
 export const assignmentsApi = {
   getAll: (): Promise<TaskAssignment[]> => safe(apiGet<TaskAssignment[]>('/api/assignments'), []),
   getByChild: (childId: number): Promise<TaskAssignment[]> =>
-    safe(apiGet<TaskAssignment[]>(`/api/children/${childId}/assignments`), []),
+    safe(apiGet<TaskAssignment[]>(`/api/users/${childId}/assignments`), []),
   create: (data: Partial<TaskAssignment>): Promise<TaskAssignment | null> =>
     safe(apiPost<TaskAssignment>('/api/assignments', data), null),
   updateStatus: (id: number, status: TaskAssignment['Status']): Promise<TaskAssignment | null> =>
@@ -188,7 +188,7 @@ export const assignmentsApi = {
 export const progressApi = {
   getAll: (): Promise<ProgressRecord[]> => safe(apiGet<ProgressRecord[]>('/api/progress'), []),
   getByChild: (childId: number): Promise<ProgressRecord[]> =>
-    safe(apiGet<ProgressRecord[]>(`/api/children/${childId}/progress`), []),
+    safe(apiGet<ProgressRecord[]>(`/api/users/${childId}/progress`), []),
   create: (data: Partial<ProgressRecord>): Promise<ProgressRecord | null> =>
     safe(apiPost<ProgressRecord>('/api/progress', data), null),
 };
@@ -196,7 +196,7 @@ export const progressApi = {
 /* ─────────── Rewards ─────────── */
 export const rewardsApi = {
   getByChild: (childId: number): Promise<Reward[]> =>
-    safe(apiGet<Reward[]>(`/api/children/${childId}/rewards`), []),
+    safe(apiGet<Reward[]>(`/api/users/${childId}/rewards`), []),
 };
 
 /* ─────────── Trajectories ─────────── */
