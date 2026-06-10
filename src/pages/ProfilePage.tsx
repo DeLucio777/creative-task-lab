@@ -106,7 +106,8 @@ const ProfilePage: React.FC = () => {
         }
       });
     }
-  }, [user, role]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.PK_UserId, role]);
 
   const [myChild, setMyChild] = useState<Child | null>(null);
   const [sensory, setSensory] = useState<SensoryProfile | null>(null);
