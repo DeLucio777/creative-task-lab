@@ -61,14 +61,20 @@ const ProfilePage: React.FC = () => {
 
   useEffect(() => {
     if (!user) return;
-    setForm({
-      UserLogin: user.UserLogin || '',
-      UserPassword: '',
-      first_name: user.first_name || '',
-      second_name: user.second_name || '',
-      phone: user.phone || '',
+    // Подтягиваем полные данные текущего пользователя (login мог вернуть минимум полей)
+    usersApi.getById(user.PK_UserId).then(fresh => {
+      const src = fresh ?? user;
+      if (fresh) setUser(fresh);
+      setForm({
+        UserLogin: src.UserLogin || '',
+        UserPassword: '',
+        first_name: src.first_name || '',
+        second_name: src.second_name || '',
+        phone: src.phone || '',
+      });
+      setPasswordConfirm('');
     });
-    setPasswordConfirm('');
+
 
     if (role === 'educator') {
       tasksApi.getTasks().then(all => setMyTasks(all.filter(t => t.FK_UserId === user.PK_UserId)));
