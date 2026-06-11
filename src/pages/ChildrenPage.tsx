@@ -252,13 +252,6 @@ const ChildrenPage: React.FC = () => {
                 {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
               </select>
             </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Представитель (родитель)</Label>
-              <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={form.FK_RepresentativeId} onChange={e => setForm(f => ({ ...f, FK_RepresentativeId: Number(e.target.value) }))}>
-                <option value={0}>Не назначен</option>
-                {representatives.map(r => <option key={r.PK_RepresentativeId} value={r.PK_RepresentativeId}>{r.FullName} {r.RelationType ? `(${r.RelationType})` : ''}</option>)}
-              </select>
-            </div>
             {!editingChild && (
               <div className="border-t border-border pt-4 space-y-3">
                 <p className="text-sm font-bold text-foreground">🔐 Учётные данные ребёнка для входа</p>
