@@ -13,7 +13,7 @@ const DashboardPage: React.FC = () => {
 
   useEffect(() => {
     api.getTasks().then(data => {
-      setTasks(data.filter(t => t.IsPublished));
+      setTasks(data.filter(t => t.public_task));
       setLoading(false);
     });
   }, []);
