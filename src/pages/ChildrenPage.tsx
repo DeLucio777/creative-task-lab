@@ -1,29 +1,29 @@
 import React, { useState, useEffect } from 'react';
-import { childrenApi, educatorsApi, representativesApi } from '@/services/entitiesApi';
+import { childrenApi, educatorsApi, diseasesApi } from '@/services/entitiesApi';
 import { authApi } from '@/services/authApi';
-import type { Child, Educator, LegalRepresentative } from '@/types/models';
+import { useAuth } from '@/contexts/AuthContext';
+import type { Child, Disease } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Plus, Search, Trash2, Edit2, Baby, Users, Eye, MessageSquare } from 'lucide-react';
+import { Plus, Search, Trash2, Edit2, Baby, Eye, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useAuth } from '@/contexts/AuthContext';
-import { fullNameSchema, loginSchema, passwordSchema, validate } from '@/lib/validation';
+import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+import { fullNameSchema, loginSchema, passwordSchema, optionalEmail, validate } from '@/lib/validation';
 import { z } from 'zod';
 
 const ChildrenPage: React.FC = () => {
   const { user, role } = useAuth();
   const [children, setChildren] = useState<Child[]>([]);
-  const [educators, setEducators] = useState<Educator[]>([]);
-  const [representatives, setRepresentatives] = useState<LegalRepresentative[]>([]);
+  const [diseases, setDiseases] = useState<Disease[]>([]);
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
-  const [form, setForm] = useState({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
+  const empty = { FullName: '', age: '', speak_level: '', FK_disease_id: 0, email: '', phone: '', UserLogin: '', UserPassword: '' };
+  const [form, setForm] = useState(empty);
 
-  // Админ — полный CRUD. Педагог — может только редактировать уровень речи у своих детей.
   const canEdit = role === 'admin';
   const isEducator = role === 'educator';
   const [speechEditChild, setSpeechEditChild] = useState<Child | null>(null);
@@ -31,85 +31,76 @@ const ChildrenPage: React.FC = () => {
 
   useEffect(() => {
     (async () => {
-      const [allChildren, allEducators, allReps] = await Promise.all([
-        childrenApi.getAll(), educatorsApi.getAll(), representativesApi.getAll(),
-      ]);
-      setEducators(allEducators);
-      setRepresentatives(allReps);
+      diseasesApi.getAll().then(setDiseases);
+      const all = await childrenApi.getAll();
       if (isEducator && user) {
-        const me = allEducators.find(e => e.FK_UserId === user.PK_UserId);
-        setChildren(me ? allChildren.filter(c => c.FK_EducatorId === me.PK_EducatorId) : []);
+        const my = await childrenApi.getByEducator(user.PK_UserId);
+        const ids = new Set(my.map(c => c.PK_ChildId));
+        setChildren(all.filter(c => ids.has(c.PK_ChildId)));
       } else {
-        setChildren(allChildren);
+        setChildren(all);
       }
     })();
   }, [user, role, isEducator]);
 
-  const filtered = children.filter(c =>
-    !search || c.FullName.toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = children.filter(c => !search || c.FullName.toLowerCase().includes(search.toLowerCase()));
 
-  const openCreate = () => {
-    setEditingChild(null);
-    setForm({ FullName: '', BirthDate: '', PerceptionFeatures: '', SpeechLevel: '', FK_EducatorId: 0, FK_RepresentativeId: 0, UserLogin: '', UserPassword: '' });
-    setDialogOpen(true);
-  };
-
-  const openEdit = (child: Child) => {
-    setEditingChild(child);
+  const openCreate = () => { setEditingChild(null); setForm(empty); setDialogOpen(true); };
+  const openEdit = (c: Child) => {
+    setEditingChild(c);
     setForm({
-      FullName: child.FullName,
-      BirthDate: child.BirthDate || '',
-      PerceptionFeatures: child.PerceptionFeatures || '',
-      SpeechLevel: child.SpeechLevel || '',
-      FK_EducatorId: child.FK_EducatorId || 0,
-      FK_RepresentativeId: child.FK_RepresentativeId || 0,
+      FullName: c.FullName,
+      age: c.age?.toString() ?? '',
+      speak_level: c.speak_level ?? '',
+      FK_disease_id: c.FK_disease_id ?? 0,
+      email: c.email ?? '',
+      phone: c.phone ?? '',
       UserLogin: '', UserPassword: '',
     });
     setDialogOpen(true);
   };
 
-  const childCreateSchema = z.object({
+  const createSchema = z.object({
     FullName: fullNameSchema,
     UserLogin: loginSchema,
     UserPassword: passwordSchema,
+    email: optionalEmail,
   });
+  const editSchema = z.object({ FullName: fullNameSchema, email: optionalEmail });
 
   const handleSave = async () => {
-    const corePayload = {
+    const patch = {
       FullName: form.FullName.trim(),
-      BirthDate: form.BirthDate,
-      PerceptionFeatures: form.PerceptionFeatures,
-      SpeechLevel: form.SpeechLevel,
-      FK_EducatorId: form.FK_EducatorId || undefined,
-      FK_RepresentativeId: form.FK_RepresentativeId || undefined,
+      age: form.age ? Number(form.age) : undefined,
+      speak_level: form.speak_level || undefined,
+      FK_disease_id: form.FK_disease_id || undefined,
+      email: form.email || undefined,
+      phone: form.phone || undefined,
     };
+    if (form.phone && !isValidBelarusPhone(form.phone)) { toast.error('Неверный формат телефона'); return; }
+
     if (editingChild) {
-      if (!corePayload.FullName) { toast.error('Введите ФИО ребёнка'); return; }
-      const updated = await childrenApi.update(editingChild.PK_ChildId, corePayload);
-      if (updated) {
-        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? { ...c, ...corePayload } : c));
+      const errs = validate(editSchema, form);
+      if (errs.length) { toast.error(errs[0].message); return; }
+      const upd = await childrenApi.update(editingChild.PK_ChildId, patch);
+      if (upd) {
+        setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? upd : c));
         toast.success('Данные обновлены');
       }
     } else {
-      // Админ создаёт ребёнка вместе с учётной записью (логин/пароль)
-      const errs = validate(childCreateSchema, form);
+      const errs = validate(createSchema, form);
       if (errs.length) { toast.error(errs[0].message); return; }
-      const newUser = await authApi.registerUser({
-        login: form.UserLogin, password: form.UserPassword, roleId: 3,
-        first_name: corePayload.FullName.split(' ')[1], second_name: corePayload.FullName.split(' ')[0],
+      const parts = patch.FullName.split(/\s+/);
+      const u = await authApi.registerUser({
+        login: form.UserLogin, password: form.UserPassword, roleId: 1,
+        second_name: parts[0], first_name: parts.slice(1).join(' ') || undefined,
+        phone: form.phone || undefined, email: form.email || undefined,
       });
-      if (!newUser) { toast.error('Логин уже занят'); return; }
-      // Создаём представителя на этого пользователя (для авторизации)
-      const rep = await representativesApi.create({
-        FullName: corePayload.FullName, RelationType: 'сам', FK_UserId: newUser.PK_UserId,
-      });
-      const payload = { ...corePayload, FK_RepresentativeId: corePayload.FK_RepresentativeId || rep?.PK_RepresentativeId, RegisteredDate: new Date().toISOString() };
-      const created = await childrenApi.create(payload);
-      if (created) {
-        setChildren(prev => [...prev, created]);
-        toast.success(`Ребёнок добавлен. Логин: ${form.UserLogin}`);
-      }
+      if (!u) return;
+      await childrenApi.update(u.PK_UserId, patch);
+      const fresh = await childrenApi.getById(u.PK_UserId);
+      if (fresh) setChildren(prev => [...prev, fresh]);
+      toast.success(`Ребёнок добавлен. Логин: ${form.UserLogin}`);
     }
     setDialogOpen(false);
   };
@@ -121,29 +112,18 @@ const ChildrenPage: React.FC = () => {
     }
   };
 
-  const openSpeechEdit = (child: Child) => {
-    setSpeechEditChild(child);
-    setSpeechValue(child.SpeechLevel || '');
-  };
-
+  const openSpeechEdit = (c: Child) => { setSpeechEditChild(c); setSpeechValue(c.speak_level || ''); };
   const handleSpeechSave = async () => {
     if (!speechEditChild) return;
-    const updated = await childrenApi.update(speechEditChild.PK_ChildId, { SpeechLevel: speechValue });
-    if (updated) {
-      setChildren(prev => prev.map(c => c.PK_ChildId === speechEditChild.PK_ChildId ? { ...c, SpeechLevel: speechValue } : c));
+    const upd = await childrenApi.update(speechEditChild.PK_ChildId, { speak_level: speechValue });
+    if (upd) {
+      setChildren(prev => prev.map(c => c.PK_ChildId === speechEditChild.PK_ChildId ? upd : c));
       toast.success('Уровень речи обновлён');
       setSpeechEditChild(null);
     }
   };
 
-  const getAge = (birthDate?: string) => {
-    if (!birthDate) return '—';
-    const diff = Date.now() - new Date(birthDate).getTime();
-    return `${Math.floor(diff / (365.25 * 24 * 60 * 60 * 1000))} лет`;
-  };
-
-  const getRepName = (id?: number) => representatives.find(r => r.PK_RepresentativeId === id);
-  const getEduName = (id?: number) => educators.find(e => e.PK_EducatorId === id);
+  const diseaseName = (id?: number) => diseases.find(d => d.PK_Id === id)?.name;
 
   return (
     <div>
@@ -162,59 +142,41 @@ const ChildrenPage: React.FC = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map(child => {
-          const rep = getRepName(child.FK_RepresentativeId);
-          const edu = getEduName(child.FK_EducatorId);
-          return (
-            <div key={child.PK_ChildId} className="bg-card border-2 border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-md transition-all">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Baby className="h-5 w-5 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground">{child.FullName}</p>
-                    <p className="text-xs text-muted-foreground">{getAge(child.BirthDate)}</p>
-                  </div>
+        {filtered.map(c => (
+          <div key={c.PK_ChildId} className="bg-card border-2 border-border rounded-2xl p-5 hover:border-primary/30 hover:shadow-md transition-all">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Baby className="h-5 w-5 text-primary" />
                 </div>
-                {canEdit && (
-                  <div className="flex gap-1">
-                    <button onClick={() => openEdit(child)} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
-                    <button onClick={() => handleDelete(child.PK_ChildId)} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></button>
-                  </div>
-                )}
-                {isEducator && (
-                  <div className="flex gap-1">
-                    <button onClick={() => openSpeechEdit(child)} className="p-1.5 rounded-lg hover:bg-primary/10" title="Изменить уровень речи">
-                      <MessageSquare className="h-4 w-4 text-primary" />
-                    </button>
-                    <button onClick={() => setViewingChild(child)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
-                      <Eye className="h-4 w-4 text-muted-foreground" />
-                    </button>
-                  </div>
-                )}
+                <div>
+                  <p className="font-bold text-foreground">{c.FullName}</p>
+                  <p className="text-xs text-muted-foreground">{c.age != null ? `${c.age} лет` : '—'}</p>
+                </div>
               </div>
-              {child.SpeechLevel && <p className="text-xs text-muted-foreground mb-1">🗣️ Речь: {child.SpeechLevel}</p>}
-              {child.PerceptionFeatures && <p className="text-xs text-muted-foreground mb-1">👁️ Восприятие: {child.PerceptionFeatures}</p>}
-              {edu && (
-                <p className="text-xs text-primary font-semibold mt-2">
-                  🎓 Педагог: {edu.FullName}
-                </p>
+              {canEdit && (
+                <div className="flex gap-1">
+                  <button onClick={() => openEdit(c)} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
+                  <button onClick={() => handleDelete(c.PK_ChildId)} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></button>
+                </div>
               )}
-              {rep && (
-                <div className="mt-2 pt-2 border-t border-border">
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <Users className="h-3.5 w-3.5" />
-                    <span className="font-semibold text-foreground">{rep.FullName}</span>
-                    {rep.RelationType && <span>({rep.RelationType})</span>}
-                  </div>
-                  {rep.Phone && <p className="text-xs text-muted-foreground ml-5">📞 {rep.Phone}</p>}
-                  {rep.Email && <p className="text-xs text-muted-foreground ml-5">📧 {rep.Email}</p>}
+              {isEducator && (
+                <div className="flex gap-1">
+                  <button onClick={() => openSpeechEdit(c)} className="p-1.5 rounded-lg hover:bg-primary/10" title="Изменить уровень речи">
+                    <MessageSquare className="h-4 w-4 text-primary" />
+                  </button>
+                  <button onClick={() => setViewingChild(c)} className="p-1.5 rounded-lg hover:bg-muted" title="Просмотр">
+                    <Eye className="h-4 w-4 text-muted-foreground" />
+                  </button>
                 </div>
               )}
             </div>
-          );
-        })}
+            {c.speak_level && <p className="text-xs text-muted-foreground mb-1">🗣️ Речь: {c.speak_level}</p>}
+            {diseaseName(c.FK_disease_id) && <p className="text-xs text-muted-foreground mb-1">🩺 {diseaseName(c.FK_disease_id)}</p>}
+            {c.email && <p className="text-xs text-muted-foreground">📧 {c.email}</p>}
+            {c.phone && <p className="text-xs text-muted-foreground">📞 {c.phone}</p>}
+          </div>
+        ))}
         {filtered.length === 0 && (
           <div className="col-span-full text-center py-16">
             <p className="text-4xl mb-3">👶</p>
@@ -224,39 +186,45 @@ const ChildrenPage: React.FC = () => {
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>{editingChild ? 'Редактировать' : 'Добавить ребёнка'}</DialogTitle>
-          </DialogHeader>
+        <DialogContent className="rounded-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>{editingChild ? 'Редактировать' : 'Добавить ребёнка'}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
               <Label className="font-semibold">ФИО *</Label>
               <Input value={form.FullName} onChange={e => setForm(f => ({ ...f, FullName: e.target.value }))} className="rounded-xl h-11" />
             </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Дата рождения</Label>
-              <Input type="date" value={form.BirthDate} onChange={e => setForm(f => ({ ...f, BirthDate: e.target.value }))} className="rounded-xl h-11" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="font-semibold">Возраст</Label>
+                <Input type="number" min={0} max={100} value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} className="rounded-xl h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Уровень речи</Label>
+                <Input value={form.speak_level} onChange={e => setForm(f => ({ ...f, speak_level: e.target.value }))} className="rounded-xl h-11" placeholder="базовый, развитый..." />
+              </div>
             </div>
             <div className="space-y-2">
-              <Label className="font-semibold">Уровень речевого развития</Label>
-              <Input value={form.SpeechLevel} onChange={e => setForm(f => ({ ...f, SpeechLevel: e.target.value }))} className="rounded-xl h-11" placeholder="Например: базовый, развитый..." />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Особенности восприятия</Label>
-              <Input value={form.PerceptionFeatures} onChange={e => setForm(f => ({ ...f, PerceptionFeatures: e.target.value }))} className="rounded-xl h-11" />
-            </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Педагог</Label>
-              <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={form.FK_EducatorId} onChange={e => setForm(f => ({ ...f, FK_EducatorId: Number(e.target.value) }))}>
-                <option value={0}>Не назначен</option>
-                {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
+              <Label className="font-semibold">Заболевание</Label>
+              <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={form.FK_disease_id} onChange={e => setForm(f => ({ ...f, FK_disease_id: Number(e.target.value) }))}>
+                <option value={0}>Не указано</option>
+                {diseases.map(d => <option key={d.PK_Id} value={d.PK_Id}>{d.name}</option>)}
               </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="font-semibold">Email</Label>
+                <Input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} className="rounded-xl h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Телефон</Label>
+                <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatBelarusPhone(e.target.value) }))} placeholder={BY_PHONE_PLACEHOLDER} className="rounded-xl h-11" />
+              </div>
             </div>
             {!editingChild && (
               <div className="border-t border-border pt-4 space-y-3">
-                <p className="text-sm font-bold text-foreground">🔐 Учётные данные ребёнка для входа</p>
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" placeholder="например ivanov_petya" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" /></div>
                   <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
                 </div>
               </div>
@@ -266,66 +234,37 @@ const ChildrenPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Диалог просмотра для педагога */}
       <Dialog open={!!viewingChild} onOpenChange={(o) => !o && setViewingChild(null)}>
         <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Профиль ребёнка</DialogTitle>
-          </DialogHeader>
-          {viewingChild && (() => {
-            const rep = getRepName(viewingChild.FK_RepresentativeId);
-            const edu = getEduName(viewingChild.FK_EducatorId);
-            return (
-              <div className="space-y-3 mt-2 text-sm">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <Baby className="h-6 w-6 text-primary" />
-                  </div>
-                  <div>
-                    <p className="font-bold text-foreground text-base">{viewingChild.FullName}</p>
-                    <p className="text-xs text-muted-foreground">{getAge(viewingChild.BirthDate)}</p>
-                  </div>
+          <DialogHeader><DialogTitle>Профиль ребёнка</DialogTitle></DialogHeader>
+          {viewingChild && (
+            <div className="space-y-3 mt-2 text-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center"><Baby className="h-6 w-6 text-primary" /></div>
+                <div>
+                  <p className="font-bold text-foreground text-base">{viewingChild.FullName}</p>
+                  <p className="text-xs text-muted-foreground">{viewingChild.age != null ? `${viewingChild.age} лет` : '—'}</p>
                 </div>
-                {viewingChild.BirthDate && <p><span className="font-semibold">📅 Дата рождения:</span> {new Date(viewingChild.BirthDate).toLocaleDateString('ru')}</p>}
-                {viewingChild.SpeechLevel && <p><span className="font-semibold">🗣️ Речь:</span> {viewingChild.SpeechLevel}</p>}
-                {viewingChild.PerceptionFeatures && <p><span className="font-semibold">👁️ Восприятие:</span> {viewingChild.PerceptionFeatures}</p>}
-                {edu && <p><span className="font-semibold">🎓 Педагог:</span> {edu.FullName}</p>}
-                {rep && (
-                  <div className="pt-2 border-t border-border space-y-1">
-                    <p className="font-semibold">👪 Представитель</p>
-                    <p>{rep.FullName} {rep.RelationType && `(${rep.RelationType})`}</p>
-                    {rep.Phone && <p className="text-muted-foreground">📞 {rep.Phone}</p>}
-                    {rep.Email && <p className="text-muted-foreground">📧 {rep.Email}</p>}
-                  </div>
-                )}
-                <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
-                  Полное редактирование доступно администратору. Педагог может изменять только уровень речи.
-                </p>
               </div>
-            );
-          })()}
+              {viewingChild.speak_level && <p><span className="font-semibold">🗣️ Речь:</span> {viewingChild.speak_level}</p>}
+              {diseaseName(viewingChild.FK_disease_id) && <p><span className="font-semibold">🩺 Заболевание:</span> {diseaseName(viewingChild.FK_disease_id)}</p>}
+              {viewingChild.email && <p><span className="font-semibold">📧</span> {viewingChild.email}</p>}
+              {viewingChild.phone && <p><span className="font-semibold">📞</span> {viewingChild.phone}</p>}
+              <p className="text-xs text-muted-foreground italic pt-2 border-t border-border">
+                Полное редактирование доступно администратору. Педагог может изменять только уровень речи.
+              </p>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Диалог редактирования уровня речи (педагог) */}
       <Dialog open={!!speechEditChild} onOpenChange={(o) => !o && setSpeechEditChild(null)}>
         <DialogContent className="rounded-2xl">
-          <DialogHeader>
-            <DialogTitle>Уровень речи: {speechEditChild?.FullName}</DialogTitle>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Уровень речи: {speechEditChild?.FullName}</DialogTitle></DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-2">
               <Label className="font-semibold">Уровень речевого развития</Label>
-              <Input
-                value={speechValue}
-                onChange={e => setSpeechValue(e.target.value)}
-                placeholder="Например: базовый, развитый, невербальный..."
-                className="rounded-xl h-11"
-                autoFocus
-              />
-              <p className="text-xs text-muted-foreground">
-                Педагог может редактировать только это поле. Остальные данные ребёнка изменяет администратор.
-              </p>
+              <Input value={speechValue} onChange={e => setSpeechValue(e.target.value)} className="rounded-xl h-11" autoFocus />
             </div>
             <Button onClick={handleSpeechSave} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
           </div>
