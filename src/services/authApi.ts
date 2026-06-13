@@ -10,9 +10,9 @@ export interface RegisterRequest {
   first_name?: string;
   second_name?: string;
   phone?: string;
+  email?: string;
 }
 
-/** Возвращает true, если такой логин уже есть в системе. Использует /api/users. */
 async function isLoginTaken(login: string): Promise<boolean> {
   const all = await safe(apiGet<User[]>('/api/users'), [] as User[]);
   const norm = login.trim().toLowerCase();
@@ -27,8 +27,10 @@ export const authApi = {
     safe(apiPost<User>('/api/auth/login', { login, password } satisfies LoginRequest), null),
 
   /**
-   * Регистрация пользователя с проверкой уникальности логина.
-   * Возвращает null, если логин занят либо сервер недоступен.
+   * Универсальная регистрация. Бэк ожидает:
+   *   { login, password, roleId, first_name, second_name, phone, email }
+   * Сначала создаётся User, затем (на бэке) формируется доп. инфо в
+   * tbl_childInfo либо tbl_teacherInfo в зависимости от роли.
    */
   registerUser: async (data: RegisterRequest): Promise<User | null> => {
     const login = data.login?.trim();
@@ -37,6 +39,7 @@ export const authApi = {
       toast.error('Пароль должен быть не короче 4 символов');
       return null;
     }
+    if (!data.roleId) { toast.error('Не указана роль'); return null; }
     if (await isLoginTaken(login)) {
       toast.error(`Логин «${login}» уже занят`);
       return null;
