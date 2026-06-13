@@ -60,11 +60,12 @@ const EducatorsPage: React.FC = () => {
     if (errs.length) { toast.error(errs[0].message); return; }
     const u = await authApi.registerUser({
       login: form.UserLogin, password: form.UserPassword, roleId: 2,
-      first_name: form.FullName.split(' ')[1], second_name: form.FullName.split(' ')[0], phone: form.Phone,
+      first_name: form.FullName.split(' ')[1], second_name: form.FullName.split(' ')[0],
+      phone: form.Phone, email: form.Email,
     });
-    if (!u) { toast.error('Логин уже занят'); return; }
-    const created = await educatorsApi.create({
-      FullName: form.FullName, Specialization: form.Specialization, Phone: form.Phone, Email: form.Email, FK_UserId: u.PK_UserId,
+    if (!u) return;
+    const created = await educatorsApi.update(u.PK_UserId, {
+      FullName: form.FullName, Specialization: form.Specialization, Phone: form.Phone, Email: form.Email,
     });
     if (created) {
       setEducators(prev => [...prev, created]);
