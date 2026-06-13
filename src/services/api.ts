@@ -3,9 +3,10 @@ export { authApi } from './authApi';
 export { tasksApi } from './tasksApi';
 export { mediaApi } from './mediaApi';
 export {
-  childrenApi, educatorsApi, representativesApi, sensoryApi,
-  assignmentsApi, progressApi, rewardsApi, trajectoriesApi, groupsApi,
-  achievementsApi, taskListsApi, diseasesApi, userInfoApi, usersApi,
+  childrenApi, educatorsApi, groupsApi,
+  achievementsApi, taskListsApi, diseasesApi,
+  childInfoApi, teacherInfoApi, progressApi, usersApi,
+  splitFullName, ROLE_ID,
 } from './entitiesApi';
 
 // Legacy compat
