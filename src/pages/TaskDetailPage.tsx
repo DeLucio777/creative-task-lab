@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
 import { api } from '@/services/api';
-import { taskListsApi, userInfoApi } from '@/services/entitiesApi';
+import { taskListsApi, childInfoApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
 import { Progress } from '@/components/ui/progress';
