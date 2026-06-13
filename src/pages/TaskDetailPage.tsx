@@ -449,10 +449,10 @@ const TaskDetailPage: React.FC = () => {
     setResult(correct ? 'correct' : 'wrong');
 
     if (user) {
-      // Обновляем статистику ребёнка
-      const info = await userInfoApi.getByUser(user.PK_UserId);
-      const cur = info || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
-      await userInfoApi.save(user.PK_UserId, {
+      // Обновляем статистику ребёнка через childInfo
+      const all = await childInfoApi.getAll();
+      const cur = all.find(i => i.FK_user_id === user.PK_UserId) || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
+      await childInfoApi.save(user.PK_UserId, {
         ...cur,
         complited_tasks_count: (cur.complited_tasks_count || 0) + (correct ? 1 : 0),
         miss_tasks_count: (cur.miss_tasks_count || 0) + (correct ? 0 : 1),
