@@ -1,96 +1,70 @@
-/* ── Роли ── */
-
+/* ─── Роли ─── */
 export type AppRole = 'admin' | 'educator' | 'parent';
-
 export interface Role {
   PK_RoleId: number;
   RoleName?: string;
   RoleKey?: AppRole;
 }
 
-/* ── Пользователь (tbl_User) ── */
+/* ─── tbl_User ─── */
 export interface User {
   PK_UserId: number;
   UserLogin: string;
-  UserPassword: string;
+  UserPassword?: string;
   FK_RoleId?: number;
   first_name?: string;
   second_name?: string;
   phone?: string;
+  email?: string;
   Role?: Role;
 }
 
-/* ── Заболевания (tbl_disease) ── */
+/* ─── tbl_disease ─── */
 export interface Disease {
   PK_Id: number;
-  name: string;
+  name?: string;
 }
 
-/* ── Доп. информация о пользователе-ребёнке (tbl_user_info) ── */
-export interface UserInfo {
+/* ─── tbl_childInfo ─── */
+export interface ChildInfo {
   PK_Id: number;
-  FK_user_id: number;        // ссылка на tbl_User (роль = ребёнок/представитель)
+  FK_user_id: number;
   FK_disease_id?: number;
   complited_tasks_count?: number;
   helpe_used_count?: number;
   miss_tasks_count?: number;
   age?: number;
-  /* Расширения для сенсорного профиля и особенностей */
-  PerceptionFeatures?: string;
-  SpeechLevel?: string;
-  BackgroundColor?: string;
-  FontSize?: number;
-  ExcludeLoudSounds?: boolean;
-  RewardAnimation?: string;
-  /* Связь представитель↔ребёнок */
-  FK_RepresentativeUserId?: number;
-  FK_EducatorUserId?: number;
+  speak_level?: string;
 }
 
-/* ── Совместимость со старыми именами (UI ещё использует Educator/LegalRep/Child) ── */
+/* ─── tbl_teacherInfo ─── */
+export interface TeacherInfo {
+  PK_Id: number;
+  FK_UserId: number;
+  Teacher_Specialization?: string;
+}
+
+/* ─── UI-удобные обёртки (производные от User+childInfo/teacherInfo) ─── */
 export interface Educator {
-  PK_EducatorId: number;
+  PK_EducatorId: number;   // = User.PK_UserId
   FK_UserId: number;
   FullName: string;
   Specialization?: string;
   Phone?: string;
   Email?: string;
-  User?: User;
-}
-
-export interface LegalRepresentative {
-  PK_RepresentativeId: number;
-  FK_UserId: number;
-  FullName: string;
-  RelationType?: string;
-  Phone?: string;
-  Email?: string;
-  User?: User;
 }
 
 export interface Child {
-  PK_ChildId: number;
+  PK_ChildId: number;      // = User.PK_UserId
   FullName: string;
-  BirthDate?: string;
-  PerceptionFeatures?: string;
-  SpeechLevel?: string;
-  FK_RepresentativeId?: number;
-  FK_EducatorId?: number;
-  Representative?: LegalRepresentative;
-  Educator?: Educator;
-  RegisteredDate?: string;
+  age?: number;
+  speak_level?: string;
+  FK_disease_id?: number;
+  email?: string;
+  phone?: string;
 }
 
-export interface SensoryProfile {
-  PK_ProfileId: number;
-  FK_ChildId: number;
-  BackgroundColor?: string;
-  FontSize?: number;
-  ExcludeLoudSounds?: boolean;
-  RewardAnimation?: string;
-}
-
-/* ── Медиа ── */
+/* ─── Медиа ─── */
 export interface MediaCatalog {
   PK_MediaId: number;
   FileType: string;
@@ -98,7 +72,6 @@ export interface MediaCatalog {
   Descripti?: string;
   UploadDate?: string;
 }
-
 export interface CatalogPECS {
   PK_PECSid: number;
   Descripti?: string;
@@ -107,7 +80,7 @@ export interface CatalogPECS {
   UploadDate?: string;
 }
 
-/* ── Шаблоны и задания ── */
+/* ─── Задания ─── */
 export interface TaskTemplate {
   PK_TemplateId: number;
   TemplateName: string;
@@ -119,11 +92,10 @@ export interface Task {
   Title: string;
   Descripti?: string;
   FK_TemplateId: number;
-  FK_UserId: number;          // автор (педагог)
+  FK_UserId: number;
   DifficultyLevel?: 'Easy' | 'Medium' | 'Hard';
-  UploadDate?: string;        // tbl_Task.UploadDate (date)
-  CreatedDate?: string;       // alias для совместимости с отчётами
-  IsPublished?: boolean;      // tbl_Task.public
+  UploadDate?: string;
+  public_task?: boolean;
   Template?: TaskTemplate;
   User?: User;
 }
@@ -144,7 +116,6 @@ export interface FindOddOneOutItem {
   FK_pecsId?: number;
   Help?: string;
 }
-
 export interface MatchImageWordPair {
   PK_PairId: number;
   FK_TaskId: number;
@@ -153,7 +124,6 @@ export interface MatchImageWordPair {
   Words: string;
   Help?: string;
 }
-
 export interface SequenceItem {
   PK_SeqItemId: number;
   FK_TaskId: number;
@@ -162,7 +132,6 @@ export interface SequenceItem {
   FK_pecsId?: number;
   Help?: string;
 }
-
 export interface SortItem {
   PK_SortItemId: number;
   FK_TaskId: number;
@@ -171,54 +140,39 @@ export interface SortItem {
   FK_pecsId?: number;
 }
 
-/* ── Группы (tbl_group + tbl_childrent_to_groups) ── */
+/* ─── Группы ─── */
 export interface ChildGroup {
-  PK_GroupId: number;
-  GroupName: string;
-  FK_EducatorId: number;     // teacher user id
-  Educator?: Educator;
+  PK_Id: number;
+  FK_Teacher_id: number;
+  GroupName?: string;
 }
-
 export interface ChildGroupMember {
-  PK_MemberId: number;
-  FK_GroupId: number;
-  FK_ChildId: number;
+  PK_Id: number;
+  FK_user_id: number;
+  FK_group_id: number;
 }
 
-/* ── Цепочки заданий (tbl_task_list + tbl_task_lst_to_data) ── */
+/* ─── Цепочки заданий ─── */
 export interface TaskList {
   PK_id: number;
-  Title: string;                  // расширение для UI
+  date_complite?: string;
+  teacher_id: number;
+  Title?: string;
   Descripti?: string;
-  date_complite?: string;         // дедлайн
-  teacher_id: number;             // FK_User
 }
-
 export interface TaskListItem {
   id: number;
   task_id: number;
   task_list_id: number;
   position: number;
-  user_id: number;                // ребёнок (FK_User), которому назначена цепочка
+  user_id: number;
   complited: boolean;
 }
 
-/* ── Назначения (старая модель, оставлена для совместимости) ── */
-export interface TaskAssignment {
-  PK_AssignmentId: number;
-  FK_TaskId: number;
-  FK_ChildId: number;
-  AssignedDate: string;
-  DueDate?: string;
-  Status: 'pending' | 'in_progress' | 'completed';
-  Task?: Task;
-  Child?: Child;
-}
-
-/* ── Прогресс ── */
+/* ─── Прогресс (легаси-модель, остаётся для отчётов) ─── */
 export interface ProgressRecord {
   PK_ProgressId: number;
-  FK_AssignmentId: number;
+  FK_AssignmentId?: number;
   FK_ChildId: number;
   CompletedDate: string;
   ErrorCount: number;
@@ -227,41 +181,16 @@ export interface ProgressRecord {
   IsCorrect: boolean;
 }
 
-/* ── Достижения (tbl_achievement + tbl_users_achievement) ── */
+/* ─── Достижения ─── */
 export interface Achievement {
   id: number;
-  name: string;
+  name?: string;
   description?: string;
-  image_id?: number;             // FK_MediaId
+  image_id?: number;
 }
-
 export interface UserAchievement {
   id: number;
   achivement_id: number;
   user_id: number;
   earned_date?: string;
-}
-
-/* ── Поощрения (легаси) ── */
-export interface Reward {
-  PK_RewardId: number;
-  FK_ChildId: number;
-  RewardType: string;
-  RewardValue: string;
-  EarnedDate: string;
-}
-
-/* ── Траектория обучения (легаси) ── */
-export interface LearningTrajectory {
-  PK_TrajectoryId: number;
-  TrajectoryName: string;
-  FK_EducatorId: number;
-  Descripti?: string;
-}
-
-export interface TrajectoryStep {
-  PK_StepId: number;
-  FK_TrajectoryId: number;
-  FK_TaskId: number;
-  StepOrder: number;
 }
