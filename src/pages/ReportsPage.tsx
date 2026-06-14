@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tasksApi } from '@/services/tasksApi';
-import { childrenApi, educatorsApi, progressApi, assignmentsApi, taskListsApi } from '@/services/entitiesApi';
-import type { Task, Child, Educator, ProgressRecord, TaskAssignment, TaskList } from '@/types/models';
+import { childrenApi, educatorsApi, progressApi, taskListsApi, groupsApi } from '@/services/entitiesApi';
+import type { Task, Child, Educator, ProgressRecord, TaskList, TaskListItem, ChildGroup, ChildGroupMember } from '@/types/models';
 import { Calendar, Download, FileText, BarChart3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -109,8 +109,10 @@ const ReportsPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [educators, setEducators] = useState<Educator[]>([]);
   const [progress, setProgress] = useState<ProgressRecord[]>([]);
-  const [assignments, setAssignments] = useState<TaskAssignment[]>([]);
   const [lists, setLists] = useState<TaskList[]>([]);
+  const [listItems, setListItems] = useState<TaskListItem[]>([]);
+  const [groups, setGroups] = useState<ChildGroup[]>([]);
+  const [groupMembers, setGroupMembers] = useState<ChildGroupMember[]>([]);
 
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -118,92 +120,109 @@ const ReportsPage: React.FC = () => {
   const [educatorId, setEducatorId] = useState<number>(0);
 
   useEffect(() => {
-    Promise.all([tasksApi.getTasks(), childrenApi.getAll(), educatorsApi.getAll(), progressApi.getAll(), assignmentsApi.getAll(), taskListsApi.getAll()])
-      .then(([t, c, e, p, a, l]) => { setTasks(t); setChildren(c); setEducators(e); setProgress(p); setAssignments(a); setLists(l); });
+    Promise.all([
+      tasksApi.getTasks(), childrenApi.getAll(), educatorsApi.getAll(),
+      progressApi.getAll(), taskListsApi.getAll(), taskListsApi.getAllItems(),
+      groupsApi.getAll(), groupsApi.getAllMembers(),
+    ]).then(([t, c, e, p, l, li, g, gm]) => {
+      setTasks(t); setChildren(c); setEducators(e); setProgress(p);
+      setLists(l); setListItems(li); setGroups(g); setGroupMembers(gm);
+    });
   }, []);
 
   const taskTitle = (id: number) => tasks.find(t => t.PK_TaskId === id)?.Title || `#${id}`;
   const childName = (id: number) => children.find(c => c.PK_ChildId === id)?.FullName || `#${id}`;
 
+  /** Возвращает педагогов, связанных с ребёнком через группы. */
+  const educatorIdsForChild = useMemo(() => {
+    const map = new Map<number, Set<number>>();
+    for (const m of groupMembers) {
+      const g = groups.find(x => x.PK_Id === m.FK_group_id);
+      if (!g) continue;
+      if (!map.has(m.FK_user_id)) map.set(m.FK_user_id, new Set());
+      map.get(m.FK_user_id)!.add(g.FK_Teacher_id);
+    }
+    return map;
+  }, [groups, groupMembers]);
+  const educatorNamesForChild = (cid: number) => {
+    const ids = educatorIdsForChild.get(cid);
+    if (!ids || ids.size === 0) return '—';
+    return [...ids].map(eid => educators.find(e => e.PK_EducatorId === eid)?.FullName || `#${eid}`).join(', ');
+  };
+
   // 1. Прогресс ребёнка
   const childProgressReport = useMemo<ReportData>(() => ({
     title: childId ? `Прогресс — ${childName(childId)}` : 'Прогресс ребёнка (все дети)',
-    headers: ['Дата', 'Ребёнок', 'Задание', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
+    headers: ['Дата', 'Ребёнок', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
     rows: progress
       .filter(p => !childId || p.FK_ChildId === childId)
       .filter(p => inDate(p.CompletedDate, dateFrom, dateTo))
-      .map(p => {
-        const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
-        return [
-          new Date(p.CompletedDate).toLocaleDateString('ru'),
-          childName(p.FK_ChildId),
-          a ? taskTitle(a.FK_TaskId) : '—',
-          p.IsCorrect ? '✓ верно' : '✗ ошибка',
-          p.ErrorCount, p.HintsUsed, p.TimeTakenSeconds || 0,
-        ];
-      }),
-  }), [progress, assignments, tasks, children, childId, dateFrom, dateTo]);
+      .map(p => [
+        new Date(p.CompletedDate).toLocaleDateString('ru'),
+        childName(p.FK_ChildId),
+        p.IsCorrect ? '✓ верно' : '✗ ошибка',
+        p.ErrorCount, p.HintsUsed, p.TimeTakenSeconds || 0,
+      ]),
+  }), [progress, children, childId, dateFrom, dateTo]);
 
-  // 2. Сводный отчёт по педагогу
+  // 2. Сводный отчёт по педагогу (через группы)
   const educatorSummaryReport = useMemo<ReportData>(() => {
     const edu = educators.find(e => e.PK_EducatorId === educatorId);
-    const myChildren = children.filter(c => !educatorId || c.FK_EducatorId === educatorId);
+    const myChildren = children.filter(c => {
+      if (!educatorId) return true;
+      return educatorIdsForChild.get(c.PK_ChildId)?.has(educatorId);
+    });
     const rows: Row[] = myChildren.map(c => {
       const ps = progress.filter(p => p.FK_ChildId === c.PK_ChildId && inDate(p.CompletedDate, dateFrom, dateTo));
       const correct = ps.filter(p => p.IsCorrect).length;
       const errors = ps.reduce((s, p) => s + p.ErrorCount, 0);
       const hints = ps.reduce((s, p) => s + p.HintsUsed, 0);
-      const eduName = educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—';
       const successRate = ps.length ? `${Math.round((correct / ps.length) * 100)}%` : '—';
-      return [c.FullName, eduName, ps.length, correct, errors, hints, successRate];
+      return [c.FullName, educatorNamesForChild(c.PK_ChildId), ps.length, correct, errors, hints, successRate];
     });
     return {
       title: edu ? `Сводный отчёт — ${edu.FullName}` : 'Сводный отчёт по педагогам',
-      headers: ['Ребёнок', 'Педагог', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок', 'Успех'],
+      headers: ['Ребёнок', 'Педагоги', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок', 'Успех'],
       rows,
     };
-  }, [educators, children, progress, educatorId, dateFrom, dateTo]);
+  }, [educators, children, progress, educatorId, dateFrom, dateTo, educatorIdsForChild]);
 
-  // 3. Регистрации детей за период
+  // 3. Список детей
   const registrationsReport = useMemo<ReportData>(() => {
-    const filtered = children.filter(c => inDate(c.RegisteredDate, dateFrom, dateTo));
-    const rows: Row[] = filtered.map(c => [
-      c.RegisteredDate ? new Date(c.RegisteredDate).toLocaleDateString('ru') : '—',
+    const rows: Row[] = children.map(c => [
       c.FullName,
-      c.BirthDate ? new Date(c.BirthDate).toLocaleDateString('ru') : '—',
-      c.SpeechLevel || '—',
-      educators.find(e => e.PK_EducatorId === c.FK_EducatorId)?.FullName || '—',
+      c.age ?? '—',
+      c.speak_level || '—',
+      c.email || '—',
+      educatorNamesForChild(c.PK_ChildId),
     ]);
-    rows.push(['ИТОГО', String(filtered.length), '', '', '']);
+    rows.push(['ИТОГО', String(children.length), '', '', '']);
     return {
-      title: 'Сведения о регистрации детей за период',
-      headers: ['Дата регистрации', 'ФИО ребёнка', 'Дата рождения', 'Уровень речи', 'Педагог'],
+      title: 'Сведения о детях',
+      headers: ['ФИО ребёнка', 'Возраст', 'Уровень речи', 'Email', 'Педагоги'],
       rows,
     };
-  }, [children, educators, dateFrom, dateTo]);
+  }, [children, educators, educatorIdsForChild]);
 
-  // 4. История обучения ребёнка
+  // 4. История прохождения цепочек
   const learningHistoryReport = useMemo<ReportData>(() => {
     const c = children.find(x => x.PK_ChildId === childId);
-    const cps = progress.filter(p => (!childId || p.FK_ChildId === childId) && inDate(p.CompletedDate, dateFrom, dateTo))
-      .sort((a, b) => new Date(a.CompletedDate).getTime() - new Date(b.CompletedDate).getTime());
+    const items = listItems.filter(i => (!childId || i.user_id === childId));
     return {
-      title: c ? `История обучения — ${c.FullName}` : 'История обучения детей',
-      headers: ['Дата и время', 'Ребёнок', 'Задание', 'Результат', 'Подсказок', 'Ошибок', 'Время, сек'],
-      rows: cps.map(p => {
-        const a = assignments.find(x => x.PK_AssignmentId === p.FK_AssignmentId);
+      title: c ? `История цепочек — ${c.FullName}` : 'История цепочек',
+      headers: ['Ребёнок', 'Цепочка', 'Задание', 'Позиция', 'Статус'],
+      rows: items.map(i => {
+        const l = lists.find(x => x.PK_id === i.task_list_id);
         return [
-          new Date(p.CompletedDate).toLocaleString('ru'),
-          childName(p.FK_ChildId),
-          a ? taskTitle(a.FK_TaskId) : '—',
-          p.IsCorrect ? '✓ верно' : '✗ ошибка',
-          p.HintsUsed,
-          p.ErrorCount,
-          p.TimeTakenSeconds || 0,
+          childName(i.user_id),
+          l?.Title || `#${i.task_list_id}`,
+          taskTitle(i.task_id),
+          i.position,
+          i.complited ? '✓ выполнено' : '⏳ в работе',
         ];
       }),
     };
-  }, [progress, assignments, tasks, children, childId, dateFrom, dateTo]);
+  }, [lists, listItems, children, childId]);
 
   return (
     <div className="space-y-6">
@@ -241,8 +260,8 @@ const ReportsPage: React.FC = () => {
         <TabsList className="flex flex-wrap h-auto">
           <TabsTrigger value="child-progress">Прогресс ребёнка</TabsTrigger>
           <TabsTrigger value="educator">По педагогу</TabsTrigger>
-          <TabsTrigger value="registrations">Регистрации</TabsTrigger>
-          <TabsTrigger value="history">История обучения</TabsTrigger>
+          <TabsTrigger value="registrations">Список детей</TabsTrigger>
+          <TabsTrigger value="history">История цепочек</TabsTrigger>
         </TabsList>
 
         {[childProgressReport, educatorSummaryReport, registrationsReport, learningHistoryReport].map((rep, i) => (
