@@ -138,7 +138,7 @@ const TaskEditorPage: React.FC = () => {
       setDescription(t.Descripti || '');
       setDifficulty((t.DifficultyLevel as 'Easy' | 'Medium' | 'Hard') || 'Easy');
       setOriginalAuthorId(t.FK_UserId);
-      setOriginalIsPublished(t.IsPublished);
+      setOriginalIsPublished(t.public_task);
       const detected = templateToType[t.FK_TemplateId] || 'find_odd';
       setTaskType(detected);
 
