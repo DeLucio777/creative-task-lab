@@ -227,7 +227,7 @@ const TaskEditorPage: React.FC = () => {
           FK_TemplateId: templateId,
           FK_UserId: originalAuthorId ?? 1,
           DifficultyLevel: difficulty,
-          ...(originalIsPublished !== undefined ? { IsPublished: originalIsPublished } : {}),
+          ...(originalIsPublished !== undefined ? { public_task: originalIsPublished } : {}),
         },
         constructions,
       };
