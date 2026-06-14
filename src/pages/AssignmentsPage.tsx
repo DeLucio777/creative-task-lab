@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { taskListsApi, groupsApi, childrenApi, educatorsApi, representativesApi } from '@/services/entitiesApi';
+import { taskListsApi, groupsApi, childrenApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
-import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, Educator, LegalRepresentative, TaskTemplate } from '@/types/models';
+import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, TaskTemplate } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,7 +20,6 @@ const setsEqual = (a: number[], b: number[]) =>
 
 const AssignmentsPage: React.FC = () => {
   const { user, role } = useAuth();
-  const [, setEducator] = useState<Educator | null>(null);
   const [lists, setLists] = useState<TaskList[]>([]);
   const [items, setItems] = useState<TaskListItem[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -28,18 +27,15 @@ const AssignmentsPage: React.FC = () => {
   const [groups, setGroups] = useState<ChildGroup[]>([]);
   const [groupMembers, setGroupMembers] = useState<ChildGroupMember[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
-  const [reps, setReps] = useState<LegalRepresentative[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState<'individual' | 'groups'>('individual');
   const [openGroupChainIds, setOpenGroupChainIds] = useState<Set<number>>(new Set());
 
-  // форма
   const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '' });
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<number[]>([]);
 
-  // фильтры селектора заданий
   const [taskSearch, setTaskSearch] = useState('');
   const [taskTemplateFilter, setTaskTemplateFilter] = useState<number | 0>(0);
   const [taskDiffFilter, setTaskDiffFilter] = useState<string>('');
@@ -47,44 +43,31 @@ const AssignmentsPage: React.FC = () => {
 
   const canManage = role === 'admin' || role === 'educator';
 
-  const loadItemsFor = async (allLists: TaskList[]) => {
-    const allItems: TaskListItem[] = [];
-    for (const l of allLists) allItems.push(...await taskListsApi.getItems(l.PK_id));
-    setItems(allItems);
-  };
-
   const reload = async () => {
-    let visibleLists: TaskList[] = [];
+    const [allLists, allItems, allGroups, allMembers] = await Promise.all([
+      taskListsApi.getAll(),
+      taskListsApi.getAllItems(),
+      groupsApi.getAll(),
+      groupsApi.getAllMembers(),
+    ]);
+    let visibleLists = allLists;
+    let visibleGroups = allGroups;
     if (role === 'educator' && user) {
-      const ed = await educatorsApi.getByUserId(user.PK_UserId);
-      setEducator(ed);
-      if (ed) {
-        visibleLists = await taskListsApi.getByTeacher(user.PK_UserId);
-        const gs = await groupsApi.getByEducator(ed.PK_EducatorId);
-        setGroups(gs);
-        const allMembers: ChildGroupMember[] = [];
-        for (const g of gs) allMembers.push(...await groupsApi.getMembers(g.PK_GroupId));
-        setGroupMembers(allMembers);
-      }
-    } else if (role === 'admin') {
-      visibleLists = await taskListsApi.getAll();
-      setGroups(await groupsApi.getAll());
+      visibleLists = allLists.filter(l => l.teacher_id === user.PK_UserId);
+      visibleGroups = allGroups.filter(g => g.FK_Teacher_id === user.PK_UserId);
     }
     setLists(visibleLists);
-    await loadItemsFor(visibleLists);
+    setItems(allItems);
+    setGroups(visibleGroups);
+    setGroupMembers(allMembers);
   };
 
   useEffect(() => {
     reload();
     tasksApi.getTasks().then(setTasks);
     tasksApi.getTemplates().then(setTemplates);
-    representativesApi.getAll().then(setReps);
     if (role === 'educator' && user) {
-      (async () => {
-        const ed = await educatorsApi.getByUserId(user.PK_UserId);
-        const all = await childrenApi.getAll();
-        setChildren(ed ? all.filter(c => c.FK_EducatorId === ed.PK_EducatorId) : []);
-      })();
+      childrenApi.getByEducator(user.PK_UserId).then(setChildren);
     } else {
       childrenApi.getAll().then(setChildren);
     }
@@ -99,7 +82,7 @@ const AssignmentsPage: React.FC = () => {
 
   const availableTasks = useMemo(() => {
     let base = tasks;
-    if (onlyMine && user) base = base.filter(t => t.FK_UserId === user.PK_UserId || t.IsPublished);
+    if (onlyMine && user) base = base.filter(t => t.FK_UserId === user.PK_UserId || t.public_task);
     if (taskTemplateFilter) base = base.filter(t => t.FK_TemplateId === taskTemplateFilter);
     if (taskDiffFilter) base = base.filter(t => t.DifficultyLevel === taskDiffFilter);
     if (taskSearch.trim()) {
@@ -129,17 +112,9 @@ const AssignmentsPage: React.FC = () => {
 
     const targetUserIds = new Set<number>();
     selectedGroups.forEach(gid => {
-      groupMembers.filter(m => m.FK_GroupId === gid).forEach(m => {
-        const child = children.find(c => c.PK_ChildId === m.FK_ChildId);
-        const rep = reps.find(r => r.PK_RepresentativeId === child?.FK_RepresentativeId);
-        if (rep) targetUserIds.add(rep.FK_UserId);
-      });
+      groupMembers.filter(m => m.FK_group_id === gid).forEach(m => targetUserIds.add(m.FK_user_id));
     });
-    selectedChildren.forEach(cid => {
-      const child = children.find(c => c.PK_ChildId === cid);
-      const rep = reps.find(r => r.PK_RepresentativeId === child?.FK_RepresentativeId);
-      if (rep) targetUserIds.add(rep.FK_UserId);
-    });
+    selectedChildren.forEach(cid => targetUserIds.add(cid));
 
     if (targetUserIds.size === 0) { toast.error('Выберите получателей: группу или детей'); return; }
 
@@ -160,18 +135,10 @@ const AssignmentsPage: React.FC = () => {
     }
   };
 
-  const getChildByUserId = (uid: number) => {
-    const rep = reps.find(r => r.FK_UserId === uid);
-    return children.find(c => c.FK_RepresentativeId === rep?.PK_RepresentativeId);
-  };
-  const getChildNameByUserId = (uid: number) => {
-    const child = getChildByUserId(uid);
-    const rep = reps.find(r => r.FK_UserId === uid);
-    return child?.FullName || rep?.FullName || `User #${uid}`;
-  };
+  const getChildNameByUserId = (uid: number) =>
+    children.find(c => c.PK_ChildId === uid)?.FullName || `User #${uid}`;
   const getTaskTitle = (tid: number) => tasks.find(t => t.PK_TaskId === tid)?.Title || `#${tid}`;
 
-  /* ── Группировка цепочек по типу: индивидуальные / групповые ── */
   type Enriched = {
     list: TaskList;
     listItems: TaskListItem[];
@@ -186,17 +153,9 @@ const AssignmentsPage: React.FC = () => {
       const listItems = items.filter(i => i.task_list_id === l.PK_id);
       const recipientUserIds = [...new Set(listItems.map(i => i.user_id))];
 
-      // Подбираем группу, члены которой (через rep→user) точно равны получателям
       let matchedGroup: ChildGroup | null = null;
       for (const g of groups) {
-        const members = groupMembers.filter(m => m.FK_GroupId === g.PK_GroupId);
-        const memberUserIds = members
-          .map(m => {
-            const c = children.find(ch => ch.PK_ChildId === m.FK_ChildId);
-            const r = reps.find(rr => rr.PK_RepresentativeId === c?.FK_RepresentativeId);
-            return r?.FK_UserId;
-          })
-          .filter((x): x is number => typeof x === 'number');
+        const memberUserIds = groupMembers.filter(m => m.FK_group_id === g.PK_Id).map(m => m.FK_user_id);
         if (memberUserIds.length > 1 && setsEqual(memberUserIds, recipientUserIds)) {
           matchedGroup = g; break;
         }
@@ -212,7 +171,7 @@ const AssignmentsPage: React.FC = () => {
       const allDone = total > 0 && done === total;
       return { list: l, listItems, recipientUserIds, matchedGroup, perChild, total, done, allDone };
     });
-  }, [lists, items, groups, groupMembers, children, reps]);
+  }, [lists, items, groups, groupMembers]);
 
   const individualLists = enrichedLists.filter(e => !e.matchedGroup);
   const groupLists = enrichedLists.filter(e => e.matchedGroup);
@@ -225,7 +184,6 @@ const AssignmentsPage: React.FC = () => {
     });
   };
 
-  /* ── UI карточки ── */
   const ChainHeader = ({ e, icon }: { e: Enriched; icon: React.ReactNode }) => (
     <div className="flex items-start gap-3 flex-1 min-w-0">
       <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${e.allDone ? 'bg-success/15' : 'bg-primary/10'}`}>
@@ -277,7 +235,6 @@ const AssignmentsPage: React.FC = () => {
           <TabsTrigger value="groups" className="gap-2"><UsersRound className="h-4 w-4" /> Группы ({groupLists.length})</TabsTrigger>
         </TabsList>
 
-        {/* === Отдельные дети === */}
         <TabsContent value="individual" className="space-y-3">
           {individualLists.map(e => (
             <div key={e.list.PK_id} className={`bg-card border-2 rounded-2xl p-5 transition-all ${e.allDone ? 'border-success bg-success/5' : 'border-border'}`}>
@@ -302,7 +259,6 @@ const AssignmentsPage: React.FC = () => {
           )}
         </TabsContent>
 
-        {/* === Группы === */}
         <TabsContent value="groups" className="space-y-3">
           {groupLists.map(e => {
             const isOpen = openGroupChainIds.has(e.list.PK_id);
@@ -371,7 +327,6 @@ const AssignmentsPage: React.FC = () => {
               <Input value={form.Descripti} onChange={e => setForm(f => ({ ...f, Descripti: e.target.value }))} className="rounded-xl h-11" />
             </div>
 
-            {/* === Удобный выбор заданий === */}
             <div className="space-y-3 border-2 border-border rounded-xl p-4 bg-muted/20">
               <div className="flex items-center justify-between">
                 <Label className="font-bold text-foreground">Задания * <span className="text-muted-foreground font-normal text-xs">(порядок ниже = порядок прохождения)</span></Label>
@@ -418,7 +373,7 @@ const AssignmentsPage: React.FC = () => {
                             <p className="text-sm font-bold text-foreground truncate">{t.Title}</p>
                             <p className="text-xs text-muted-foreground truncate">
                               {tmpl?.TemplateName || '—'} · {t.DifficultyLevel ? difficultyLabel[t.DifficultyLevel] : ''}
-                              {!t.IsPublished && <span className="ml-1 text-warning">🔒</span>}
+                              {!t.public_task && <span className="ml-1 text-warning">🔒</span>}
                             </p>
                           </div>
                         </button>
@@ -456,18 +411,17 @@ const AssignmentsPage: React.FC = () => {
               </div>
             </div>
 
-            {/* Получатели */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="font-semibold">Группы</Label>
                 <div className="border-2 border-border rounded-xl p-3 max-h-40 overflow-y-auto space-y-1.5">
                   {groups.map(g => (
-                    <label key={g.PK_GroupId} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/30 rounded p-1">
+                    <label key={g.PK_Id} className="flex items-center gap-2 text-sm cursor-pointer hover:bg-accent/30 rounded p-1">
                       <Checkbox
-                        checked={selectedGroups.includes(g.PK_GroupId)}
+                        checked={selectedGroups.includes(g.PK_Id)}
                         onCheckedChange={(v) => {
-                          if (v) setSelectedGroups(prev => [...prev, g.PK_GroupId]);
-                          else setSelectedGroups(prev => prev.filter(x => x !== g.PK_GroupId));
+                          if (v) setSelectedGroups(prev => [...prev, g.PK_Id]);
+                          else setSelectedGroups(prev => prev.filter(x => x !== g.PK_Id));
                         }}
                       />
                       <span className="font-medium">{g.GroupName}</span>
