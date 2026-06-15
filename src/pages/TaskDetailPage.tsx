@@ -372,6 +372,7 @@ const TaskDetailPage: React.FC = () => {
 
   // Следующее задание в цепочке
   const [nextInChain, setNextInChain] = useState<{ listId: number; nextTaskId: number; position: number } | null>(null);
+  const [awardedAchievements, setAwardedAchievements] = useState<Achievement[]>([]);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
