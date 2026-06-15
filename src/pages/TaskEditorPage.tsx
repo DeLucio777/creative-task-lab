@@ -79,6 +79,7 @@ const PecsPreview: React.FC<{
 const TaskEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user, role } = useAuth();
   const isNew = id === 'new';
 
   const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
