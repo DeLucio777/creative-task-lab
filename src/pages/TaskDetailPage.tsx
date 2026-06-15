@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight, Home } from 'lucide-react';
 import { api } from '@/services/api';
 import { taskListsApi, childInfoApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
-import { Progress } from '@/components/ui/progress';
+import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction, Achievement } from '@/types/models';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 
 const difficultyLabels: Record<string, { label: string; emoji: string }> = {
   Easy: { label: 'Лёгкий', emoji: '🟢' },
