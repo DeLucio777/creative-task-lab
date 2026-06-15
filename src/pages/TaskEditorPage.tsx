@@ -46,7 +46,7 @@ const PecsPreview: React.FC<{
     return (
       <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-xl border-2 border-primary/20">
         <div className="w-12 h-12 bg-card rounded-lg border border-border flex items-center justify-center shrink-0">
-          <img src={selected.filePath} alt={selected.Descripti} className="w-8 h-8 object-contain" />
+          <img src={`http://localhost:3000${selected.filePath}`} alt={selected.Descripti} className="w-8 h-8 object-contain" />
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-bold text-foreground truncate">{selected.Descripti}</p>

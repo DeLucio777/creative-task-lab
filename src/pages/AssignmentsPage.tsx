@@ -204,7 +204,7 @@ const AssignmentsPage: React.FC = () => {
           {e.list.Title}
           {e.allDone && <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-success/15 text-success font-bold">Завершена</span>}
         </p>
-        {e.list.Descripti && <p className="text-xs text-muted-foreground truncate">{e.list.Descripti}</p>}
+        {e.list.Description && <p className="text-xs text-muted-foreground truncate">{e.list.Description}</p>}
         <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
           <span className="text-muted-foreground"><Users className="h-3 w-3 inline mr-1" />{e.recipientUserIds.length} учеников</span>
           <span className="text-success font-semibold">✓ {e.done}/{e.total} шагов</span>
@@ -252,6 +252,7 @@ const AssignmentsPage: React.FC = () => {
                 <ChainHeader e={e} icon={<ListTodo className="h-5 w-5 text-primary" />} />
                 <DeleteWhenDone e={e} />
               </div>
+         
               <div className="flex flex-wrap gap-1.5">
                 {e.perChild.map(pc => (
                   <span key={pc.userId} className={`px-2.5 py-1 rounded-lg text-xs font-bold ${pc.isDone ? 'bg-success/15 text-success' : 'bg-accent/40 text-accent-foreground'}`}>
@@ -391,21 +392,21 @@ const AssignmentsPage: React.FC = () => {
                       const checked = selectedTasks.includes(t.PK_TaskId);
                       const tmpl = templates.find(x => x.PK_TemplateId === t.FK_TemplateId);
                       return (
-                        <button
-                          key={t.PK_TaskId}
-                          type="button"
-                          onClick={() => toggleTask(t.PK_TaskId)}
-                          className={`w-full text-left p-2.5 hover:bg-accent/30 transition-colors flex items-start gap-2 ${checked ? 'bg-primary/5' : ''}`}
-                        >
-                          <Checkbox checked={checked} className="mt-0.5 pointer-events-none" />
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-bold text-foreground truncate">{t.Title}</p>
-                            <p className="text-xs text-muted-foreground truncate">
-                              {tmpl?.TemplateName || '—'} · {t.DifficultyLevel ? difficultyLabel[t.DifficultyLevel] : ''}
-                              {!t.public_task && <span className="ml-1 text-warning">🔒</span>}
-                            </p>
+                          <div
+                              key={t.PK_TaskId}
+                              onClick={() => toggleTask(t.PK_TaskId)}
+                              className={`cursor-pointer w-full text-left p-2.5 hover:bg-accent/30 transition-colors flex items-start gap-2 ${checked ? 'bg-primary/5' : ''}`}
+                          >
+                            <Checkbox checked={checked} className="mt-0.5 pointer-events-none" />
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold truncate">{t.Title}</p>
+                              <p className="text-xs text-muted-foreground truncate">
+                                {tmpl?.TemplateName || '—'} · {t.DifficultyLevel ? difficultyLabel[t.DifficultyLevel] : ''}
+                                {!t.public_task && <span className="ml-1 text-warning">🔒</span>}
+                              </p>
+                            </div>
                           </div>
-                        </button>
+
                       );
                     })}
                     {availableTasks.length === 0 && (

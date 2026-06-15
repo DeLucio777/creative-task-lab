@@ -158,7 +158,7 @@ export interface TaskList {
   date_complite?: string;
   teacher_id: number;
   Title?: string;
-  Descripti?: string;
+  Description?: string;
   FK_achievement_id?: number;
 }
 export interface TaskListItem {
@@ -172,14 +172,19 @@ export interface TaskListItem {
 
 /* ─── Прогресс (легаси) ─── */
 export interface ProgressRecord {
-  PK_ProgressId: number;
-  FK_AssignmentId?: number;
-  FK_ChildId: number;
-  CompletedDate: string;
-  ErrorCount: number;
-  HintsUsed: number;
-  TimeTakenSeconds?: number;
-  IsCorrect: boolean;
+  id: number;
+  user_id: number;
+  task_id: number;
+  task_list_id: number;
+
+  completed: boolean;
+
+  completed_tasks_count: number | null;
+  helps_used_count: number | null;
+  missed_tasks_count: number | null;
+
+  age: number | null;
+  speak_level: string | null;
 }
 
 /* ─── Достижения ─── */

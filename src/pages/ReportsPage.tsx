@@ -1,7 +1,19 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { tasksApi } from '@/services/tasksApi';
-import { childrenApi, educatorsApi, progressApi, taskListsApi, groupsApi } from '@/services/entitiesApi';
-import type { Task, Child, Educator, ProgressRecord, TaskList, TaskListItem, ChildGroup, ChildGroupMember } from '@/types/models';
+import {
+  childrenApi,
+  educatorsApi,
+  progressApi,
+  taskListsApi,
+  groupsApi,
+  achievementsApi,
+  diseasesApi
+} from '@/services/entitiesApi';
+import type {
+  Task, Child, Educator, ProgressRecord, TaskList, TaskListItem, ChildGroup, ChildGroupMember, Disease,
+  Achievement,
+  UserAchievement
+} from '@/types/models';
 import { Calendar, Download, FileText, BarChart3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -113,7 +125,9 @@ const ReportsPage: React.FC = () => {
   const [listItems, setListItems] = useState<TaskListItem[]>([]);
   const [groups, setGroups] = useState<ChildGroup[]>([]);
   const [groupMembers, setGroupMembers] = useState<ChildGroupMember[]>([]);
-
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
+  const [diseases, setDiseases] = useState<Disease[]>([]);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [childId, setChildId] = useState<number>(0);
@@ -121,12 +135,23 @@ const ReportsPage: React.FC = () => {
 
   useEffect(() => {
     Promise.all([
-      tasksApi.getTasks(), childrenApi.getAll(), educatorsApi.getAll(),
-      progressApi.getAll(), taskListsApi.getAll(), taskListsApi.getAllItems(),
-      groupsApi.getAll(), groupsApi.getAllMembers(),
-    ]).then(([t, c, e, p, l, li, g, gm]) => {
+      tasksApi.getTasks(),
+      childrenApi.getAll(),
+      educatorsApi.getAll(),
+      progressApi.getAll(),
+      taskListsApi.getAll(),
+      taskListsApi.getAllItems(),
+      groupsApi.getAll(),
+      groupsApi.getAllMembers(),
+      achievementsApi.getAll(),
+      achievementsApi.getAllUserAchievements(),
+      diseasesApi.getAll(),
+    ]).then(([t, c, e, p, l, li, g, gm, a, ua, d]) => {
       setTasks(t); setChildren(c); setEducators(e); setProgress(p);
       setLists(l); setListItems(li); setGroups(g); setGroupMembers(gm);
+      setAchievements(a);
+      setUserAchievements(ua);
+      setDiseases(d);
     });
   }, []);
 
@@ -150,79 +175,287 @@ const ReportsPage: React.FC = () => {
     return [...ids].map(eid => educators.find(e => e.PK_EducatorId === eid)?.FullName || `#${eid}`).join(', ');
   };
 
-  // 1. Прогресс ребёнка
+  // УНИКАЛИЗАЦИЯ ВСЕХ ДАННЫХ ОДНИМ БЛОКОМ
+  const progressUnique = [
+    ...new Map(progress.map(p => [p.user_id, p])).values()
+  ];
+
+  const listItemsUnique = [
+    ...new Map(listItems.map(i => [`${i.user_id}_${i.task_id}`, i])).values()
+  ];
+
+  const childrenUnique = [
+    ...new Map(children.map(c => [c.PK_ChildId, c])).values()
+  ];
+
+  const historyUnique = [
+    ...new Map(listItems.map(i => [`${i.task_list_id}_${i.task_id}_${i.user_id}`, i])).values()
+  ];
+
+
+// 1. Отчёт по прогрессу детей
   const childProgressReport = useMemo<ReportData>(() => ({
-    title: childId ? `Прогресс — ${childName(childId)}` : 'Прогресс ребёнка (все дети)',
-    headers: ['Дата', 'Ребёнок', 'Результат', 'Ошибок', 'Подсказок', 'Время, сек'],
-    rows: progress
-      .filter(p => !childId || p.FK_ChildId === childId)
-      .filter(p => inDate(p.CompletedDate, dateFrom, dateTo))
-      .map(p => [
-        new Date(p.CompletedDate).toLocaleDateString('ru'),
-        childName(p.FK_ChildId),
-        p.IsCorrect ? '✓ верно' : '✗ ошибка',
-        p.ErrorCount, p.HintsUsed, p.TimeTakenSeconds || 0,
-      ]),
-  }), [progress, children, childId, dateFrom, dateTo]);
+    title: 'Отчёт по прогрессу детей',
 
-  // 2. Сводный отчёт по педагогу (через группы)
-  const educatorSummaryReport = useMemo<ReportData>(() => {
-    const edu = educators.find(e => e.PK_EducatorId === educatorId);
-    const myChildren = children.filter(c => {
-      if (!educatorId) return true;
-      return educatorIdsForChild.get(c.PK_ChildId)?.has(educatorId);
-    });
-    const rows: Row[] = myChildren.map(c => {
-      const ps = progress.filter(p => p.FK_ChildId === c.PK_ChildId && inDate(p.CompletedDate, dateFrom, dateTo));
-      const correct = ps.filter(p => p.IsCorrect).length;
-      const errors = ps.reduce((s, p) => s + p.ErrorCount, 0);
-      const hints = ps.reduce((s, p) => s + p.HintsUsed, 0);
-      const successRate = ps.length ? `${Math.round((correct / ps.length) * 100)}%` : '—';
-      return [c.FullName, educatorNamesForChild(c.PK_ChildId), ps.length, correct, errors, hints, successRate];
-    });
-    return {
-      title: edu ? `Сводный отчёт — ${edu.FullName}` : 'Сводный отчёт по педагогам',
-      headers: ['Ребёнок', 'Педагоги', 'Всего попыток', 'Верных', 'Ошибок', 'Подсказок', 'Успех'],
-      rows,
-    };
-  }, [educators, children, progress, educatorId, dateFrom, dateTo, educatorIdsForChild]);
+    headers: [
+      'Ребёнок',
+      'Возраст',
+      'Уровень речи',
+      'Диагноз',
+      'Выполнено',
+      'Пропущено',
+      'Подсказок',
+      'Достижения'
+    ],
 
-  // 3. Список детей
+    rows: childrenUnique.map(child => {
+
+      const childProgress =
+          progressUnique.filter(
+              p => p.user_id === child.PK_ChildId
+          );
+
+      const completed =
+          childProgress.filter(
+              p => p.completed
+          ).length;
+
+      const missed =
+          childProgress.filter(
+              p => !p.completed
+          ).length;
+
+      const hints =
+          childProgress.reduce(
+              (s, p) => s + (p.helps_used_count ?? 0),
+              0
+          );
+
+      const disease =
+          diseases.find(
+              d => d.PK_Id === child.FK_disease_id
+          )?.name ?? '—';
+
+      const achNames =
+          userAchievements
+              .filter(
+                  ua => ua.user_id === child.PK_ChildId
+              )
+              .map(
+                  ua =>
+                      achievements.find(
+                          a => a.id === ua.achivement_id
+                      )?.name
+              )
+              .filter(Boolean)
+              .join(', ') || '—';
+
+      return [
+        child.FullName,
+        child.age ?? '—',
+        child.speak_level ?? '—',
+        disease,
+        completed,
+        missed,
+        hints,
+        achNames
+      ];
+    }),
+  }), [
+    childrenUnique,
+    progressUnique,
+    diseases,
+    achievements,
+    userAchievements
+  ]);
+
+
+// 2. Сводный отчёт по педагогам
+  const educatorSummaryReport = useMemo<ReportData>(() => ({
+    title: 'Сводный отчёт педагогов',
+
+    headers: [
+      'Педагог',
+      'Группа',
+      'Детей',
+      'Назначено (заданий)',
+      'Выполнено (заданий)',
+      'Прогресс %'
+    ],
+
+    rows: groups.map(group => {
+
+      const teacher =
+          educators.find(
+              e => e.PK_EducatorId === group.FK_Teacher_id
+          );
+
+      const members =
+          groupMembers.filter(
+              m => m.FK_group_id === group.PK_Id
+          );
+
+      const childIds =
+          members.map(
+              m => m.FK_user_id
+          );
+
+      const assigned =
+          listItemsUnique.filter(
+              i => childIds.includes(i.user_id)
+          ).length;
+
+      const completed =
+          listItemsUnique.filter(
+              i =>
+                  childIds.includes(i.user_id) &&
+                  i.complited
+          ).length;
+
+      const percent =
+          assigned > 0
+              ? Math.round(completed / assigned * 100)
+              : 0;
+
+      return [
+        teacher?.FullName ?? '—',
+        group.GroupName ?? `Группа ${group.PK_Id}`,
+        childIds.length,
+        assigned,
+        completed,
+        `${percent}%`
+      ];
+    }),
+  }), [
+    groups,
+    groupMembers,
+    educators,
+    listItemsUnique
+  ]);
+
+
+// 3. Статистика детей
   const registrationsReport = useMemo<ReportData>(() => {
-    const rows: Row[] = children.map(c => [
-      c.FullName,
-      c.age ?? '—',
-      c.speak_level || '—',
-      c.email || '—',
-      educatorNamesForChild(c.PK_ChildId),
-    ]);
-    rows.push(['ИТОГО', String(children.length), '', '', '']);
-    return {
-      title: 'Сведения о детях',
-      headers: ['ФИО ребёнка', 'Возраст', 'Уровень речи', 'Email', 'Педагоги'],
-      rows,
-    };
-  }, [children, educators, educatorIdsForChild]);
 
-  // 4. История прохождения цепочек
-  const learningHistoryReport = useMemo<ReportData>(() => {
-    const c = children.find(x => x.PK_ChildId === childId);
-    const items = listItems.filter(i => (!childId || i.user_id === childId));
+    const totalChildren = childrenUnique.length;
+
+    const ageGroups = [
+      {
+        title: 'До 7 лет',
+        count: childrenUnique.filter(
+            c => (c.age ?? 0) < 7
+        ).length
+      },
+      {
+        title: '7-12 лет',
+        count: childrenUnique.filter(
+            c => (c.age ?? 0) >= 7 &&
+                (c.age ?? 0) <= 12
+        ).length
+      },
+      {
+        title: 'Старше 12 лет',
+        count: childrenUnique.filter(
+            c => (c.age ?? 0) > 12
+        ).length
+      }
+    ];
+
     return {
-      title: c ? `История цепочек — ${c.FullName}` : 'История цепочек',
-      headers: ['Ребёнок', 'Цепочка', 'Задание', 'Позиция', 'Статус'],
-      rows: items.map(i => {
-        const l = lists.find(x => x.PK_id === i.task_list_id);
-        return [
-          childName(i.user_id),
-          l?.Title || `#${i.task_list_id}`,
-          taskTitle(i.task_id),
-          i.position,
-          i.complited ? '✓ выполнено' : '⏳ в работе',
-        ];
-      }),
+      title: 'Статистика зарегистрированных детей',
+
+      headers: [
+        'Показатель',
+        'Значение'
+      ],
+
+      rows: [
+        [
+          'Всего зарегистрировано детей',
+          totalChildren
+        ],
+
+        ...ageGroups.map(g => [
+          g.title,
+          g.count
+        ]),
+
+        [
+          'Средний возраст',
+          totalChildren
+              ? (
+                  childrenUnique.reduce(
+                      (s, c) => s + (c.age ?? 0),
+                      0
+                  ) / totalChildren
+              ).toFixed(1)
+              : '0'
+        ]
+      ]
     };
-  }, [lists, listItems, children, childId]);
+
+  }, [childrenUnique]);
+
+
+// 4. История обучения
+  const learningHistoryReport = useMemo<ReportData>(() => ({
+
+    title: childId
+        ? `История обучения — ${childName(childId)}`
+        : 'История обучения детей',
+
+    headers: [
+      'Ребёнок',
+      'Цепочка',
+      'Задание',
+      'Тип',
+      'Позиция',
+      'Статус'
+    ],
+
+    rows: historyUnique
+        .filter(
+            item =>
+                !childId ||
+                item.user_id === childId
+        )
+        .map(item => {
+
+          const task =
+              tasks.find(
+                  t => t.PK_TaskId === item.task_id
+              );
+
+          const taskList =
+              lists.find(
+                  l => l.PK_id === item.task_list_id
+              );
+
+          return [
+            childName(item.user_id),
+
+            taskList?.Title ??
+            `Цепочка ${item.task_list_id}`,
+
+            task?.Title ?? '—',
+
+            task?.Template?.TemplateName ?? '—',
+
+            item.position,
+
+            item.complited
+                ? 'Выполнено'
+                : 'Не выполнено'
+          ];
+        })
+
+  }), [
+    childId,
+    historyUnique,
+    tasks,
+    lists,
+    childrenUnique
+  ]);
 
   return (
     <div className="space-y-6">

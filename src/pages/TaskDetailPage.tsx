@@ -63,7 +63,7 @@ const FindOddGame: React.FC<{ items: FindOddOneOutItem[]; pecsList: CatalogPECS[
               }`}
             >
               {pecs && (
-                <img src={pecs.filePath} alt={pecs.Descripti} className="w-16 h-16 object-contain mx-auto mb-2 rounded-xl" />
+                <img src={`http://localhost:3000${pecs.filePath}`}  alt={pecs.Descripti} className="w-16 h-16 object-contain mx-auto mb-2 rounded-xl" />
               )}
               <p className="text-base font-bold">{item.ItemText}</p>
               {answered && isCorrect && <CheckCircle2 className="h-6 w-6 text-green-500 mx-auto mt-2" />}
@@ -126,7 +126,7 @@ const MatchGame: React.FC<{ pairs: MatchImageWordPair[]; pecsList: CatalogPECS[]
                   'border-border bg-card hover:border-primary/30'
                 }`}
               >
-                {pecs && <img src={pecs.filePath} alt="" className="w-12 h-12 object-contain mx-auto rounded-xl" />}
+                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-12 h-12 object-contain mx-auto rounded-xl" />}
                 {!pecs && <div className="w-12 h-12 bg-muted rounded-xl mx-auto flex items-center justify-center text-2xl">🖼️</div>}
               </button>
             );
@@ -208,7 +208,7 @@ const SequenceGame: React.FC<{ items: SequenceItem[]; pecsList: CatalogPECS[]; o
                 }`}
               >
                 <span className="text-xs text-muted-foreground">{idx + 1}.</span>
-                {pecs && <img src={pecs.filePath} alt="" className="w-6 h-6 object-contain rounded" />}
+                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
                 {item.ItemValue}
               </button>
             );
@@ -230,7 +230,7 @@ const SequenceGame: React.FC<{ items: SequenceItem[]; pecsList: CatalogPECS[]; o
                 onClick={() => addItem(item)}
                 className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95]"
               >
-                {pecs && <img src={pecs.filePath} alt="" className="w-6 h-6 object-contain rounded" />}
+                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
                 {item.ItemValue}
               </button>
             );
@@ -308,7 +308,7 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
                       'bg-muted text-foreground border border-border'
                     }`}
                   >
-                    {pecs && <img src={pecs.filePath} alt="" className="w-4 h-4 object-contain rounded" />}
+                    {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-4 h-4 object-contain rounded" />}
                     {item.ItemValue}
                   </button>
                 );
@@ -333,7 +333,7 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
                   disabled={!selectedCategory}
                   className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95] disabled:opacity-50"
                 >
-                  {pecs && <img src={pecs.filePath} alt="" className="w-6 h-6 object-contain rounded" />}
+                  {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
                   {item.ItemValue}
                 </button>
               );

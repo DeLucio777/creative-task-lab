@@ -171,7 +171,7 @@ export const progressApi = {
   getAll: (): Promise<ProgressRecord[]> => safe(apiGet<ProgressRecord[]>('/api/progress'), []),
   getByChild: async (childId: number): Promise<ProgressRecord[]> => {
     const all = await progressApi.getAll();
-    return all.filter(p => p.FK_ChildId === childId);
+    return all.filter(p => p.user_id === childId);
   },
   create: (data: Partial<ProgressRecord>): Promise<ProgressRecord | null> =>
     safe(apiPost<ProgressRecord>('/api/progress', data), null),

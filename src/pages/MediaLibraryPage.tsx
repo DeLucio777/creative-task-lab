@@ -76,7 +76,7 @@ const MediaLibraryPage: React.FC = () => {
           {filteredPecs.map(p => (
             <div key={p.PK_PECSid} className="bg-card border-2 border-border rounded-2xl p-4 text-center hover:border-primary/30 hover:shadow-md transition-all duration-200">
               <div className="aspect-square bg-muted/30 rounded-xl flex items-center justify-center mb-3">
-                <img src={p.filePath} alt={p.Descripti} className="w-16 h-16 object-contain" />
+                <img src={`http://localhost:3000${p.filePath}`} alt={p.Descripti} className="w-16 h-16 object-contain" />
               </div>
               <p className="text-sm font-bold text-foreground truncate">{p.Descripti}</p>
               <p className="text-xs text-muted-foreground font-medium">{p.Category}</p>

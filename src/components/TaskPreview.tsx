@@ -29,7 +29,7 @@ const diffColors = {
 const PecsImage: React.FC<{ pecsId?: number; size?: string; pecsList: CatalogPECS[] }> = ({ pecsId, size = 'w-12 h-12', pecsList }) => {
   const pecs = pecsId ? pecsList.find(p => p.PK_PECSid === pecsId) : null;
   if (!pecs) return <div className={`${size} bg-muted/50 rounded-xl border border-dashed border-border flex items-center justify-center text-muted-foreground text-xs`}>?</div>;
-  return <img src={pecs.filePath} alt={pecs.Descripti} className={`${size} object-contain rounded-xl border border-border bg-card p-1`} />;
+  return <img src={`http://localhost:3000${pecs.filePath}`}  alt={pecs.Descripti} className={`${size} object-contain rounded-xl border border-border bg-card p-1`} />;
 };
 
 const TaskPreview: React.FC<TaskPreviewProps> = ({
@@ -76,7 +76,7 @@ const TaskPreview: React.FC<TaskPreviewProps> = ({
           return (
             <div key={pair.id} className="flex items-center gap-3 p-2 rounded-xl border border-border bg-card">
               <PecsImage pecsId={pair.pecsId} size="w-8 h-8" pecsList={pecsList} />
-              {media && <img src={media.FilePath} alt="" className="w-8 h-8 object-contain rounded-lg border border-border" />}
+              {media && <img src={`http://localhost:3000${media.FilePath}`}  alt="" className="w-8 h-8 object-contain rounded-lg border border-border" />}
               <span className="text-xs font-bold flex-1">{showHints ? pair.word : '???'}</span>
             </div>
           );
