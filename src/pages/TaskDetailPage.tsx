@@ -449,8 +449,19 @@ const TaskDetailPage: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
 
+    if (correct) {
+      // мягкое конфетти ~1.5с, пастельные цвета, низкая плотность — для детей с РАС
+      const end = Date.now() + 1500;
+      const colors = ['#A7E8BD', '#B8D8F8', '#F8D7E6', '#FCE5B6'];
+      const tick = () => {
+        confetti({ particleCount: 18, angle: 60, spread: 55, startVelocity: 30, gravity: 0.8, ticks: 80, origin: { x: 0, y: 0.8 }, colors, scalar: 0.8 });
+        confetti({ particleCount: 18, angle: 120, spread: 55, startVelocity: 30, gravity: 0.8, ticks: 80, origin: { x: 1, y: 0.8 }, colors, scalar: 0.8 });
+        if (Date.now() < end) requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
     if (user) {
-      // Обновляем статистику ребёнка через childInfo
       const all = await childInfoApi.getAll();
       const cur = all.find(i => i.FK_user_id === user.PK_UserId) || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
       await childInfoApi.save(user.PK_UserId, {
@@ -465,9 +476,14 @@ const TaskDetailPage: React.FC = () => {
       const updated = await taskListsApi.markTaskCompletedForUser(taskId, user.PK_UserId);
       if (updated.length > 0) {
         const statuses = await taskListsApi.getStatusesForUser(user.PK_UserId);
-        const finishedLists = updated.map(u => u.task_list_id).filter((v, i, arr) => arr.indexOf(v) === i).filter(listId => statuses[listId]?.isDone);
-        if (finishedLists.length > 0) toast.success('🎉 Цепочка заданий завершена!');
-        else toast.success('Шаг цепочки выполнен ✅');
+        const finished = updated.map(u => u.task_list_id).filter((v, i, a) => a.indexOf(v) === i).filter(id => statuses[id]?.isDone);
+        if (finished.length > 0) {
+          const awarded = await taskListsApi.awardForCompletedChains(user.PK_UserId);
+          setAwardedAchievements(awarded);
+          toast.success(awarded.length > 0 ? `🏆 Получено достижение: ${awarded.map(a => a.name).join(', ')}` : '🎉 Цепочка заданий завершена!');
+        } else {
+          toast.success('Шаг цепочки выполнен ✅');
+        }
       }
       const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
       setNextInChain(nxt);
