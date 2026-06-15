@@ -111,6 +111,13 @@ const AssignmentsPage: React.FC = () => {
   const handleCreate = async () => {
     if (!form.Title.trim()) { toast.error('Введите название цепочки'); return; }
     if (selectedTasks.length === 0) { toast.error('Выберите хотя бы одно задание'); return; }
+    if (form.date_complite) {
+      const picked = new Date(form.date_complite).getTime();
+      if (Number.isFinite(picked) && picked < Date.now()) {
+        toast.error('Срок выполнения не может быть в прошлом');
+        return;
+      }
+    }
 
     const targetUserIds = new Set<number>();
     selectedGroups.forEach(gid => {
@@ -123,6 +130,7 @@ const AssignmentsPage: React.FC = () => {
     await taskListsApi.create({
       Title: form.Title, Descripti: form.Descripti, teacher_id: user!.PK_UserId,
       date_complite: form.date_complite || undefined,
+      FK_achievement_id: form.FK_achievement_id || undefined,
       taskIds: selectedTasks, userIds: Array.from(targetUserIds),
     });
     setDialogOpen(false);
