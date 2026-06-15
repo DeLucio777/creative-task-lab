@@ -154,6 +154,8 @@ export const groupsApi = {
   },
   create: (data: Partial<ChildGroup>): Promise<ChildGroup | null> =>
     safe(apiPost<ChildGroup>('/api/groups', data), null),
+  update: (id: number, data: Partial<ChildGroup>): Promise<ChildGroup | null> =>
+    safe(apiPut<ChildGroup>(`/api/groups/${id}`, data), null),
   delete: async (id: number): Promise<boolean> => {
     try { await apiDelete(`/api/groups/${id}`); return true; } catch { return false; }
   },
@@ -164,7 +166,7 @@ export const groupsApi = {
   },
 };
 
-/* ─── Progress (легаси, остаётся для отчётов) ─── */
+/* ─── Progress (легаси) ─── */
 export const progressApi = {
   getAll: (): Promise<ProgressRecord[]> => safe(apiGet<ProgressRecord[]>('/api/progress'), []),
   getByChild: async (childId: number): Promise<ProgressRecord[]> => {
@@ -178,6 +180,13 @@ export const progressApi = {
 /* ─── Achievements ─── */
 export const achievementsApi = {
   getAll: (): Promise<Achievement[]> => safe(apiGet<Achievement[]>('/api/achievements'), []),
+  create: (data: Partial<Achievement>): Promise<Achievement | null> =>
+    safe(apiPost<Achievement>('/api/achievements', data), null),
+  update: (id: number, data: Partial<Achievement>): Promise<Achievement | null> =>
+    safe(apiPut<Achievement>(`/api/achievements/${id}`, data), null),
+  delete: async (id: number): Promise<boolean> => {
+    try { await apiDelete(`/api/achievements/${id}`); return true; } catch { return false; }
+  },
   getAllUserAchievements: (): Promise<UserAchievement[]> =>
     safe(apiGet<UserAchievement[]>('/api/user-achievements'), []),
   getByUser: async (userId: number): Promise<UserAchievement[]> => {
@@ -194,6 +203,7 @@ export interface TaskListCreate {
   Descripti?: string;
   teacher_id: number;
   date_complite?: string;
+  FK_achievement_id?: number;
   taskIds: number[];
   userIds: number[];
 }
@@ -224,8 +234,20 @@ export const taskListsApi = {
     safe(apiPost<TaskList>('/api/task-lists', data), null),
   markCompleted: (itemId: number): Promise<TaskListItem | null> =>
     safe(apiPut<TaskListItem>(`/api/task-list-items/${itemId}/complete`, {}), null),
-  markTaskCompletedForUser: (taskId: number, userId: number): Promise<TaskListItem[]> =>
-    safe(apiPost<TaskListItem[]>(`/api/task-list-items/complete-for-user`, { taskId, userId }), []),
+  /**
+   * Помечает все пункты для пары (taskId, userId) выполненными
+   * через `PUT /api/task-list-items/:id/complete` (актуальный backend route).
+   */
+  markTaskCompletedForUser: async (taskId: number, userId: number): Promise<TaskListItem[]> => {
+    const all = await taskListsApi.getAllItems();
+    const targets = all.filter(i => i.task_id === taskId && i.user_id === userId && !i.complited);
+    const updated: TaskListItem[] = [];
+    for (const it of targets) {
+      const r = await taskListsApi.markCompleted(it.id);
+      if (r) updated.push(r);
+    }
+    return updated;
+  },
   getStatusesForUser: async (userId: number): Promise<Record<number, TaskListStatus>> => {
     const items = (await taskListsApi.getAllItems()).filter(i => i.user_id === userId);
     const acc: Record<number, TaskListStatus> = {};
@@ -242,20 +264,45 @@ export const taskListsApi = {
     const items = (await taskListsApi.getAllItems())
       .filter(i => i.user_id === userId)
       .sort((a, b) => a.position - b.position);
-    // ищем в каждом списке текущую задачу — берём следующую по позиции
     const byList = new Map<number, TaskListItem[]>();
     items.forEach(i => {
       const arr = byList.get(i.task_list_id) ?? [];
       arr.push(i); byList.set(i.task_list_id, arr);
     });
     for (const [listId, arr] of byList) {
-      const idx = arr.findIndex(i => i.task_id === currentTaskId && !i.complited);
-      if (idx >= 0 && idx + 1 < arr.length) {
-        const next = arr[idx + 1];
-        return { listId, nextTaskId: next.task_id, position: next.position };
+      const idx = arr.findIndex(i => i.task_id === currentTaskId);
+      if (idx >= 0) {
+        const next = arr.slice(idx + 1).find(x => !x.complited);
+        if (next) return { listId, nextTaskId: next.task_id, position: next.position };
       }
     }
     return null;
+  },
+  /**
+   * Проверяет, какие цепочки только что завершились для пользователя,
+   * и автоматически выдаёт привязанные к ним достижения.
+   * Возвращает выданные достижения (для отображения «🏆 Получено!»).
+   */
+  awardForCompletedChains: async (userId: number): Promise<Achievement[]> => {
+    const [lists, statuses, ach, userAch] = await Promise.all([
+      taskListsApi.getAll(),
+      taskListsApi.getStatusesForUser(userId),
+      achievementsApi.getAll(),
+      achievementsApi.getByUser(userId),
+    ]);
+    const earned = new Set(userAch.map(u => u.achivement_id));
+    const awarded: Achievement[] = [];
+    for (const list of lists) {
+      if (!list.FK_achievement_id) continue;
+      if (!statuses[list.PK_id]?.isDone) continue;
+      if (earned.has(list.FK_achievement_id)) continue;
+      const r = await achievementsApi.award(userId, list.FK_achievement_id);
+      if (r) {
+        const a = ach.find(x => x.id === list.FK_achievement_id);
+        if (a) awarded.push(a);
+      }
+    }
+    return awarded;
   },
   delete: async (listId: number): Promise<boolean> => {
     try { await apiDelete(`/api/task-lists/${listId}`); return true; } catch { return false; }
