@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Save, Plus, Trash2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import TaskPreview from '@/components/TaskPreview';
 
