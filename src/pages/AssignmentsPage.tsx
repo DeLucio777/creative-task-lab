@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { taskListsApi, groupsApi, childrenApi } from '@/services/entitiesApi';
+import { taskListsApi, groupsApi, childrenApi, achievementsApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
-import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, TaskTemplate } from '@/types/models';
+import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, TaskTemplate, Achievement } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
