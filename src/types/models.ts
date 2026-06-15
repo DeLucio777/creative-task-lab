@@ -159,6 +159,7 @@ export interface TaskList {
   teacher_id: number;
   Title?: string;
   Descripti?: string;
+  FK_achievement_id?: number;
 }
 export interface TaskListItem {
   id: number;
@@ -169,7 +170,7 @@ export interface TaskListItem {
   complited: boolean;
 }
 
-/* ─── Прогресс (легаси-модель, остаётся для отчётов) ─── */
+/* ─── Прогресс (легаси) ─── */
 export interface ProgressRecord {
   PK_ProgressId: number;
   FK_AssignmentId?: number;
@@ -187,6 +188,7 @@ export interface Achievement {
   name?: string;
   description?: string;
   image_id?: number;
+  created_by?: number;
 }
 export interface UserAchievement {
   id: number;
