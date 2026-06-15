@@ -67,6 +67,7 @@ const AssignmentsPage: React.FC = () => {
     reload();
     tasksApi.getTasks().then(setTasks);
     tasksApi.getTemplates().then(setTemplates);
+    achievementsApi.getAll().then(setAchievements);
     if (role === 'educator' && user) {
       childrenApi.getByEducator(user.PK_UserId).then(setChildren);
     } else {
@@ -75,7 +76,7 @@ const AssignmentsPage: React.FC = () => {
   }, [user, role]);
 
   const openCreate = () => {
-    setForm({ Title: '', Descripti: '', date_complite: '' });
+    setForm({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
     setSelectedTasks([]); setSelectedGroups([]); setSelectedChildren([]);
     setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setOnlyMine(true);
     setDialogOpen(true);
