@@ -222,14 +222,16 @@ const TaskEditorPage: React.FC = () => {
         { ParameterName: 'TimerSeconds', ParameterValue: String(timerSeconds) },
       ];
 
+      // Default visibility: админ -> public=true, педагог -> public=false. При редактировании сохраняем оригинал.
+      const defaultPublic = role === 'admin';
       const payload: Parameters<typeof api.createFullTask>[0] = {
         task: {
           Title: title,
           Descripti: description,
           FK_TemplateId: templateId,
-          FK_UserId: originalAuthorId ?? 1,
+          FK_UserId: originalAuthorId ?? user?.PK_UserId ?? 1,
           DifficultyLevel: difficulty,
-          ...(originalIsPublished !== undefined ? { public_task: originalIsPublished } : {}),
+          public_task: isNew ? defaultPublic : (originalIsPublished ?? defaultPublic),
         },
         constructions,
       };
