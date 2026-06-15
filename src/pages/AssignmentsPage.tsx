@@ -27,11 +27,12 @@ const AssignmentsPage: React.FC = () => {
   const [groups, setGroups] = useState<ChildGroup[]>([]);
   const [groupMembers, setGroupMembers] = useState<ChildGroupMember[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState<'individual' | 'groups'>('individual');
   const [openGroupChainIds, setOpenGroupChainIds] = useState<Set<number>>(new Set());
 
-  const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '' });
+  const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<number[]>([]);
