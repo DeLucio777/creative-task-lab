@@ -329,12 +329,31 @@ const AssignmentsPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Срок выполнения</Label>
-                <Input type="datetime-local" value={form.date_complite} onChange={e => setForm(f => ({ ...f, date_complite: e.target.value }))} className="rounded-xl h-11" />
+                <Input
+                  type="datetime-local"
+                  value={form.date_complite}
+                  min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                  onChange={e => setForm(f => ({ ...f, date_complite: e.target.value }))}
+                  className="rounded-xl h-11"
+                />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Описание</Label>
-              <Input value={form.Descripti} onChange={e => setForm(f => ({ ...f, Descripti: e.target.value }))} className="rounded-xl h-11" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="font-semibold">Описание</Label>
+                <Input value={form.Descripti} onChange={e => setForm(f => ({ ...f, Descripti: e.target.value }))} className="rounded-xl h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">🏆 Достижение за прохождение</Label>
+                <select
+                  value={form.FK_achievement_id}
+                  onChange={e => setForm(f => ({ ...f, FK_achievement_id: Number(e.target.value) }))}
+                  className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium h-11"
+                >
+                  <option value={0}>Без достижения</option>
+                  {achievements.map(a => <option key={a.id} value={a.id}>{a.name || `#${a.id}`}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-3 border-2 border-border rounded-xl p-4 bg-muted/20">
