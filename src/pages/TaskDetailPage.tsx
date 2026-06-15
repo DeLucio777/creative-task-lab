@@ -529,47 +529,52 @@ const TaskDetailPage: React.FC = () => {
 
   // Result screen
   if (result) {
+    const goHome = () => {
+      const homePath = user?.FK_RoleId === 1 ? '/home' : '/dashboard';
+      navigate(homePath);
+    };
     return (
       <div className="max-w-lg mx-auto text-center py-12">
-        <button onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Назад
-        </button>
-        <div className="bg-card rounded-2xl border-2 border-border p-10">
+        <div className="bg-card rounded-2xl border-2 border-border p-10 animate-fade-in">
           <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Молодец!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Готово!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время на задание закончилось.' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время закончилось.' : 'Не расстраивайся, попробуй снова!'}
           </p>
-          <Progress value={result === 'correct' ? 100 : 30} className="h-3 mb-6" />
+          {result === 'correct' && awardedAchievements.length > 0 && (
+            <div className="mb-6 p-4 rounded-2xl bg-warning/10 border-2 border-warning">
+              <p className="text-3xl mb-1">🏆</p>
+              <p className="font-bold text-warning">Новое достижение!</p>
+              <p className="text-sm text-foreground font-semibold mt-1">{awardedAchievements.map(a => a.name).join(', ')}</p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button variant="outline" onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="rounded-xl font-bold gap-2">
-              <ArrowLeft className="h-4 w-4" /> К описанию
+            <Button onClick={goHome} className="rounded-xl font-bold gap-2 h-12">
+              <Home className="h-4 w-4" /> На главную
             </Button>
-            <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2">
-              <RotateCcw className="h-4 w-4" /> Ещё раз
-            </Button>
+            {result !== 'correct' && (
+              <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2 h-12">
+                <RotateCcw className="h-4 w-4" /> Ещё раз
+              </Button>
+            )}
             {result === 'correct' && nextInChain && (
               <Button
                 onClick={() => {
                   setHintShown(false);
                   setNextInChain(null);
+                  setAwardedAchievements([]);
                   setResult(null);
                   setStarted(false);
                   navigate(`/task/${nextInChain.nextTaskId}`);
                 }}
-                className="rounded-xl font-bold gap-2"
+                className="rounded-xl font-bold gap-2 h-12"
               >
-                Далее <ArrowRight className="h-4 w-4" />
+                Следующее задание <ArrowRight className="h-4 w-4" />
               </Button>
             )}
           </div>
-          {result === 'correct' && nextInChain && (
-            <p className="mt-4 text-xs font-semibold text-muted-foreground">
-              Следующий шаг цепочки № {nextInChain.position} ждёт тебя!
-            </p>
-          )}
         </div>
       </div>
     );
