@@ -50,7 +50,7 @@ export const tasksApi = {
   },
 
   publishTask: async (taskId: number, published: boolean): Promise<boolean> => {
-    const r = await safe(apiPost<Task>(`/api/tasks/${taskId}/publish`, { public_task: published }), null);
+    const r = await safe(apiPost<{ success?: boolean }>(`/api/tasks/${taskId}/publish`, { published }), null);
     return r !== null;
   },
 };

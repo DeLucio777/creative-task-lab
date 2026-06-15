@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { taskListsApi, groupsApi, childrenApi } from '@/services/entitiesApi';
+import { taskListsApi, groupsApi, childrenApi, achievementsApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
-import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, TaskTemplate } from '@/types/models';
+import type { TaskList, TaskListItem, Task, ChildGroup, ChildGroupMember, Child, TaskTemplate, Achievement } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -27,11 +27,12 @@ const AssignmentsPage: React.FC = () => {
   const [groups, setGroups] = useState<ChildGroup[]>([]);
   const [groupMembers, setGroupMembers] = useState<ChildGroupMember[]>([]);
   const [children, setChildren] = useState<Child[]>([]);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tab, setTab] = useState<'individual' | 'groups'>('individual');
   const [openGroupChainIds, setOpenGroupChainIds] = useState<Set<number>>(new Set());
 
-  const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '' });
+  const [form, setForm] = useState({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
   const [selectedTasks, setSelectedTasks] = useState<number[]>([]);
   const [selectedGroups, setSelectedGroups] = useState<number[]>([]);
   const [selectedChildren, setSelectedChildren] = useState<number[]>([]);
@@ -66,6 +67,7 @@ const AssignmentsPage: React.FC = () => {
     reload();
     tasksApi.getTasks().then(setTasks);
     tasksApi.getTemplates().then(setTemplates);
+    achievementsApi.getAll().then(setAchievements);
     if (role === 'educator' && user) {
       childrenApi.getByEducator(user.PK_UserId).then(setChildren);
     } else {
@@ -74,7 +76,7 @@ const AssignmentsPage: React.FC = () => {
   }, [user, role]);
 
   const openCreate = () => {
-    setForm({ Title: '', Descripti: '', date_complite: '' });
+    setForm({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
     setSelectedTasks([]); setSelectedGroups([]); setSelectedChildren([]);
     setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setOnlyMine(true);
     setDialogOpen(true);
@@ -109,6 +111,13 @@ const AssignmentsPage: React.FC = () => {
   const handleCreate = async () => {
     if (!form.Title.trim()) { toast.error('Введите название цепочки'); return; }
     if (selectedTasks.length === 0) { toast.error('Выберите хотя бы одно задание'); return; }
+    if (form.date_complite) {
+      const picked = new Date(form.date_complite).getTime();
+      if (Number.isFinite(picked) && picked < Date.now()) {
+        toast.error('Срок выполнения не может быть в прошлом');
+        return;
+      }
+    }
 
     const targetUserIds = new Set<number>();
     selectedGroups.forEach(gid => {
@@ -121,6 +130,7 @@ const AssignmentsPage: React.FC = () => {
     await taskListsApi.create({
       Title: form.Title, Descripti: form.Descripti, teacher_id: user!.PK_UserId,
       date_complite: form.date_complite || undefined,
+      FK_achievement_id: form.FK_achievement_id || undefined,
       taskIds: selectedTasks, userIds: Array.from(targetUserIds),
     });
     setDialogOpen(false);
@@ -319,12 +329,31 @@ const AssignmentsPage: React.FC = () => {
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Срок выполнения</Label>
-                <Input type="datetime-local" value={form.date_complite} onChange={e => setForm(f => ({ ...f, date_complite: e.target.value }))} className="rounded-xl h-11" />
+                <Input
+                  type="datetime-local"
+                  value={form.date_complite}
+                  min={new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 16)}
+                  onChange={e => setForm(f => ({ ...f, date_complite: e.target.value }))}
+                  className="rounded-xl h-11"
+                />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label className="font-semibold">Описание</Label>
-              <Input value={form.Descripti} onChange={e => setForm(f => ({ ...f, Descripti: e.target.value }))} className="rounded-xl h-11" />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label className="font-semibold">Описание</Label>
+                <Input value={form.Descripti} onChange={e => setForm(f => ({ ...f, Descripti: e.target.value }))} className="rounded-xl h-11" />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">🏆 Достижение за прохождение</Label>
+                <select
+                  value={form.FK_achievement_id}
+                  onChange={e => setForm(f => ({ ...f, FK_achievement_id: Number(e.target.value) }))}
+                  className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium h-11"
+                >
+                  <option value={0}>Без достижения</option>
+                  {achievements.map(a => <option key={a.id} value={a.id}>{a.name || `#${a.id}`}</option>)}
+                </select>
+              </div>
             </div>
 
             <div className="space-y-3 border-2 border-border rounded-xl p-4 bg-muted/20">

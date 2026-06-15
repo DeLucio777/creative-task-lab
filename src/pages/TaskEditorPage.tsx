@@ -8,6 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Save, Plus, Trash2, Timer } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/services/api';
+import { useAuth } from '@/contexts/AuthContext';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import TaskPreview from '@/components/TaskPreview';
 
@@ -78,6 +79,7 @@ const PecsPreview: React.FC<{
 const TaskEditorPage: React.FC = () => {
   const navigate = useNavigate();
   const { id } = useParams();
+  const { user, role } = useAuth();
   const isNew = id === 'new';
 
   const [pecsList, setPecsList] = useState<CatalogPECS[]>([]);
@@ -220,14 +222,16 @@ const TaskEditorPage: React.FC = () => {
         { ParameterName: 'TimerSeconds', ParameterValue: String(timerSeconds) },
       ];
 
+      // Default visibility: админ -> public=true, педагог -> public=false. При редактировании сохраняем оригинал.
+      const defaultPublic = role === 'admin';
       const payload: Parameters<typeof api.createFullTask>[0] = {
         task: {
           Title: title,
           Descripti: description,
           FK_TemplateId: templateId,
-          FK_UserId: originalAuthorId ?? 1,
+          FK_UserId: originalAuthorId ?? user?.PK_UserId ?? 1,
           DifficultyLevel: difficulty,
-          ...(originalIsPublished !== undefined ? { public_task: originalIsPublished } : {}),
+          public_task: isNew ? defaultPublic : (originalIsPublished ?? defaultPublic),
         },
         constructions,
       };

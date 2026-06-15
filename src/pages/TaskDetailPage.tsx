@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Play, RotateCcw, CheckCircle2, XCircle, Timer, Trash2, Lightbulb, Pencil, ArrowRight, Home } from 'lucide-react';
 import { api } from '@/services/api';
 import { taskListsApi, childInfoApi } from '@/services/entitiesApi';
 import { useAuth } from '@/contexts/AuthContext';
-import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction } from '@/types/models';
-import { Progress } from '@/components/ui/progress';
+import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction, Achievement } from '@/types/models';
 import { toast } from 'sonner';
+import confetti from 'canvas-confetti';
 
 const difficultyLabels: Record<string, { label: string; emoji: string }> = {
   Easy: { label: 'Лёгкий', emoji: '🟢' },
@@ -372,6 +372,7 @@ const TaskDetailPage: React.FC = () => {
 
   // Следующее задание в цепочке
   const [nextInChain, setNextInChain] = useState<{ listId: number; nextTaskId: number; position: number } | null>(null);
+  const [awardedAchievements, setAwardedAchievements] = useState<Achievement[]>([]);
 
   // Timer state
   const [timeLeft, setTimeLeft] = useState<number | null>(null);
@@ -448,8 +449,19 @@ const TaskDetailPage: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
 
+    if (correct) {
+      // мягкое конфетти ~1.5с, пастельные цвета, низкая плотность — для детей с РАС
+      const end = Date.now() + 1500;
+      const colors = ['#A7E8BD', '#B8D8F8', '#F8D7E6', '#FCE5B6'];
+      const tick = () => {
+        confetti({ particleCount: 18, angle: 60, spread: 55, startVelocity: 30, gravity: 0.8, ticks: 80, origin: { x: 0, y: 0.8 }, colors, scalar: 0.8 });
+        confetti({ particleCount: 18, angle: 120, spread: 55, startVelocity: 30, gravity: 0.8, ticks: 80, origin: { x: 1, y: 0.8 }, colors, scalar: 0.8 });
+        if (Date.now() < end) requestAnimationFrame(tick);
+      };
+      tick();
+    }
+
     if (user) {
-      // Обновляем статистику ребёнка через childInfo
       const all = await childInfoApi.getAll();
       const cur = all.find(i => i.FK_user_id === user.PK_UserId) || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
       await childInfoApi.save(user.PK_UserId, {
@@ -464,9 +476,14 @@ const TaskDetailPage: React.FC = () => {
       const updated = await taskListsApi.markTaskCompletedForUser(taskId, user.PK_UserId);
       if (updated.length > 0) {
         const statuses = await taskListsApi.getStatusesForUser(user.PK_UserId);
-        const finishedLists = updated.map(u => u.task_list_id).filter((v, i, arr) => arr.indexOf(v) === i).filter(listId => statuses[listId]?.isDone);
-        if (finishedLists.length > 0) toast.success('🎉 Цепочка заданий завершена!');
-        else toast.success('Шаг цепочки выполнен ✅');
+        const finished = updated.map(u => u.task_list_id).filter((v, i, a) => a.indexOf(v) === i).filter(id => statuses[id]?.isDone);
+        if (finished.length > 0) {
+          const awarded = await taskListsApi.awardForCompletedChains(user.PK_UserId);
+          setAwardedAchievements(awarded);
+          toast.success(awarded.length > 0 ? `🏆 Получено достижение: ${awarded.map(a => a.name).join(', ')}` : '🎉 Цепочка заданий завершена!');
+        } else {
+          toast.success('Шаг цепочки выполнен ✅');
+        }
       }
       const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
       setNextInChain(nxt);
@@ -512,47 +529,52 @@ const TaskDetailPage: React.FC = () => {
 
   // Result screen
   if (result) {
+    const goHome = () => {
+      const homePath = user?.FK_RoleId === 1 ? '/home' : '/dashboard';
+      navigate(homePath);
+    };
     return (
       <div className="max-w-lg mx-auto text-center py-12">
-        <button onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground mb-8 transition-colors">
-          <ArrowLeft className="h-4 w-4" /> Назад
-        </button>
-        <div className="bg-card rounded-2xl border-2 border-border p-10">
+        <div className="bg-card rounded-2xl border-2 border-border p-10 animate-fade-in">
           <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Молодец!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Готово!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время на задание закончилось.' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время закончилось.' : 'Не расстраивайся, попробуй снова!'}
           </p>
-          <Progress value={result === 'correct' ? 100 : 30} className="h-3 mb-6" />
+          {result === 'correct' && awardedAchievements.length > 0 && (
+            <div className="mb-6 p-4 rounded-2xl bg-warning/10 border-2 border-warning">
+              <p className="text-3xl mb-1">🏆</p>
+              <p className="font-bold text-warning">Новое достижение!</p>
+              <p className="text-sm text-foreground font-semibold mt-1">{awardedAchievements.map(a => a.name).join(', ')}</p>
+            </div>
+          )}
           <div className="flex flex-wrap gap-3 justify-center">
-            <Button variant="outline" onClick={() => { setStarted(false); setResult(null); setHintShown(false); setNextInChain(null); }} className="rounded-xl font-bold gap-2">
-              <ArrowLeft className="h-4 w-4" /> К описанию
+            <Button onClick={goHome} className="rounded-xl font-bold gap-2 h-12">
+              <Home className="h-4 w-4" /> На главную
             </Button>
-            <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2">
-              <RotateCcw className="h-4 w-4" /> Ещё раз
-            </Button>
+            {result !== 'correct' && (
+              <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2 h-12">
+                <RotateCcw className="h-4 w-4" /> Ещё раз
+              </Button>
+            )}
             {result === 'correct' && nextInChain && (
               <Button
                 onClick={() => {
                   setHintShown(false);
                   setNextInChain(null);
+                  setAwardedAchievements([]);
                   setResult(null);
                   setStarted(false);
                   navigate(`/task/${nextInChain.nextTaskId}`);
                 }}
-                className="rounded-xl font-bold gap-2"
+                className="rounded-xl font-bold gap-2 h-12"
               >
-                Далее <ArrowRight className="h-4 w-4" />
+                Следующее задание <ArrowRight className="h-4 w-4" />
               </Button>
             )}
           </div>
-          {result === 'correct' && nextInChain && (
-            <p className="mt-4 text-xs font-semibold text-muted-foreground">
-              Следующий шаг цепочки № {nextInChain.position} ждёт тебя!
-            </p>
-          )}
         </div>
       </div>
     );
