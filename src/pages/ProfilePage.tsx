@@ -74,8 +74,29 @@ const ProfilePage: React.FC = () => {
       childInfoApi.getAll().then(all => setChildInfo(all.find(i => i.FK_user_id === user.PK_UserId) ?? null));
       diseasesApi.getAll().then(setDiseases);
     }
+
+    if (role === 'admin' || role === 'educator') {
+      loadAchievements();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.PK_UserId, role]);
+
+  const saveAchievement = async () => {
+    if (!achDialog || !user) return;
+    const name = achDialog.name.trim();
+    if (!name) { toast.error('Введите название'); return; }
+    if (achDialog.id) {
+      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description });
+      if (upd) { setAchDialog(null); loadAchievements(); toast.success('Достижение обновлено'); }
+    } else {
+      const c = await achievementsApi.create({ name, description: achDialog.description, created_by: user.PK_UserId });
+      if (c) { setAchDialog(null); loadAchievements(); toast.success('Достижение создано'); }
+    }
+  };
+
+  const deleteAchievement = async (id: number) => {
+    if (await achievementsApi.delete(id)) { loadAchievements(); toast.success('Удалено'); }
+  };
 
   const handleSave = async () => {
     if (!user) return;
