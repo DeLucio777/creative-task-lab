@@ -84,7 +84,12 @@ const AssignmentsPage: React.FC = () => {
 
   const availableTasks = useMemo(() => {
     let base = tasks;
-    if (onlyMine && user) base = base.filter(t => t.FK_UserId === user.PK_UserId || t.public_task);
+    if (user) {
+      if (taskScope === 'mine') base = base.filter(t => t.FK_UserId === user.PK_UserId);
+      else if (taskScope === 'public') base = base.filter(t => t.public_task);
+      // 'both' = свои или публичные (исключаем чужие приватные)
+      else base = base.filter(t => t.FK_UserId === user.PK_UserId || t.public_task);
+    }
     if (taskTemplateFilter) base = base.filter(t => t.FK_TemplateId === taskTemplateFilter);
     if (taskDiffFilter) base = base.filter(t => t.DifficultyLevel === taskDiffFilter);
     if (taskSearch.trim()) {
@@ -92,7 +97,7 @@ const AssignmentsPage: React.FC = () => {
       base = base.filter(t => t.Title.toLowerCase().includes(q) || (t.Descripti?.toLowerCase().includes(q) ?? false));
     }
     return base;
-  }, [tasks, taskSearch, taskTemplateFilter, taskDiffFilter, onlyMine, user]);
+  }, [tasks, taskSearch, taskTemplateFilter, taskDiffFilter, taskScope, user]);
 
   const toggleTask = (id: number) => {
     setSelectedTasks(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
