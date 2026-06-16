@@ -454,15 +454,7 @@ const ReportsPage: React.FC = () => {
 
       <div className="bg-card rounded-2xl border-2 border-border p-5 space-y-4">
         <p className="font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Фильтры</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">С</Label>
-            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">По</Label>
-            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Ребёнок</Label>
             <select value={childId} onChange={e => setChildId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
