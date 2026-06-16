@@ -310,10 +310,17 @@ const TaskEditorPage: React.FC = () => {
             )}
           </div>
           <PecsPreview pecsList={pecsList} pecsId={pair.pecsId} onSelect={pecsId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId } : p))} onClear={() => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId: undefined } : p))} />
-          <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={pair.mediaId ?? ''} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId: Number(e.target.value) } : p))}>
-            <option value="" disabled>Выберите медиа...</option>
-            {mediaList.map(m => <option key={m.PK_MediaId} value={m.PK_MediaId}>{m.Descripti}</option>)}
-          </select>
+          <ImagePicker
+            value={pair.mediaId}
+            options={mediaList.map(m => ({
+              id: m.PK_MediaId,
+              label: m.Descripti || `Медиа #${m.PK_MediaId}`,
+              sublabel: m.FileType,
+              filePath: m.FilePath,
+            }))}
+            onChange={mediaId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId } : p))}
+            placeholder="Выберите медиа..."
+          />
           <Input value={pair.word} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))} placeholder="Слово для соотнесения *" className={`rounded-xl h-11 ${!pair.word.trim() ? 'border-destructive' : ''}`} />
         </div>
       ))}
