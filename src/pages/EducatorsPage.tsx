@@ -28,7 +28,7 @@ const EducatorsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Educator | null>(null);
-  const empty = { FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' };
+  const empty = { FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '', NewPassword: '' };
   const [form, setForm] = useState(empty);
 
   useEffect(() => { educatorsApi.getAll().then(setEducators); }, []);
@@ -38,7 +38,7 @@ const EducatorsPage: React.FC = () => {
   const openCreate = () => { setEditing(null); setForm(empty); setDialogOpen(true); };
   const openEdit = (e: Educator) => {
     setEditing(e);
-    setForm({ FullName: e.FullName, Specialization: e.Specialization || '', Phone: e.Phone || '', Email: e.Email || '', UserLogin: '', UserPassword: '' });
+    setForm({ FullName: e.FullName, Specialization: e.Specialization || '', Phone: e.Phone || '', Email: e.Email || '', UserLogin: '', UserPassword: '', NewPassword: '' });
     setDialogOpen(true);
   };
 
