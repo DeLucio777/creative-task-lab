@@ -21,7 +21,7 @@ const ChildrenPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
-  const empty = { FullName: '', age: '', speak_level: '', FK_disease_id: 0, email: '', phone: '', UserLogin: '', UserPassword: '' };
+  const empty = { FullName: '', age: '', speak_level: '', FK_disease_id: 0, email: '', phone: '', UserLogin: '', UserPassword: '', NewPassword: '' };
   const [form, setForm] = useState(empty);
 
   const canEdit = role === 'admin';
