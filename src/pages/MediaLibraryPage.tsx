@@ -91,37 +91,41 @@ const MediaLibraryPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">🖼️ Библиотека медиа-файлов</h1>
-        <Button onClick={() => setUploadOpen(true)} className="gap-2 rounded-xl font-bold h-11 transition-all duration-200 active:scale-[0.98]">
-          <Upload className="h-4 w-4" /> Загрузить
-        </Button>
-      </div>
+      <div className="page-sticky-header">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">🖼️ Библиотека медиа-файлов</h1>
+          <Button onClick={() => setUploadOpen(true)} className="gap-2 rounded-xl font-bold h-11 transition-all duration-200 active:scale-[0.98]">
+            <Upload className="h-4 w-4" /> Загрузить
+          </Button>
+        </div>
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="flex gap-2">
-          <button
-            onClick={() => setTab('pecs')}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold rounded-xl transition-all ${
-              tab === 'pecs' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <Image className="h-4 w-4" /> PECS
-          </button>
-          <button
-            onClick={() => setTab('media')}
-            className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold rounded-xl transition-all ${
-              tab === 'media' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
-            }`}
-          >
-            <FileText className="h-4 w-4" /> Медиа
-          </button>
-        </div>
-        <div className="relative flex-1 min-w-[180px] max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => setTab('pecs')}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold rounded-xl transition-all ${
+                tab === 'pecs' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <Image className="h-4 w-4" /> PECS
+            </button>
+            <button
+              onClick={() => setTab('media')}
+              className={`flex items-center gap-2 px-4 sm:px-5 py-2.5 sm:py-3 text-sm font-bold rounded-xl transition-all ${
+                tab === 'media' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              <FileText className="h-4 w-4" /> Медиа
+            </button>
+          </div>
+          <div className="relative flex-1 min-w-[180px] max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+          </div>
         </div>
       </div>
+      <div className="mb-6" />
+
 
       {tab === 'pecs' && (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
