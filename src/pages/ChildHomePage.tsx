@@ -40,8 +40,11 @@ const ChildHomePage: React.FC = () => {
   }, [user]);
 
   const todayItems = useMemo(() => {
+    const now = Date.now();
     return data.flatMap(d => d.items.map(i => ({ item: i, list: d.list, task: d.tasks.find(t => t.PK_TaskId === i.task_id) })))
-      .filter(x => !x.item.complited);
+      .filter(x => !x.item.complited)
+      // скрываем просроченные задания, чтобы они не отображались в UI «На сегодня»
+      .filter(x => !x.list.date_complite || new Date(x.list.date_complite).getTime() >= now);
   }, [data]);
 
   if (loading) return <div className="text-center py-16"><p className="text-4xl mb-3 animate-bounce">⏳</p><p className="text-muted-foreground font-bold">Загрузка...</p></div>;
