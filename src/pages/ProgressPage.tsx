@@ -105,36 +105,40 @@ const ProgressPage: React.FC = () => {
   // -----------------------------
   return (
       <div>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground mb-6">
-          🏆 Прогресс обучения
-        </h1>
+        <div className="page-sticky-header">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground mb-4">
+            🏆 Прогресс обучения
+          </h1>
 
-        {(!isParent || children.length > 1) && (
-            <div className="max-w-xs mb-6 space-y-2">
-              <Label className="font-semibold text-xs">
-                {isParent ? 'Выберите ребёнка' : 'Фильтр по ребёнку'}
-              </Label>
+          {(!isParent || children.length > 1) && (
+              <div className="max-w-xs space-y-2">
+                <Label className="font-semibold text-xs">
+                  {isParent ? 'Выберите ребёнка' : 'Фильтр по ребёнку'}
+                </Label>
 
-              <select
-                  className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium"
-                  value={selectedChild}
-                  onChange={e => setSelectedChild(Number(e.target.value))}
-              >
-                {!isParent && <option value={0}>Все дети</option>}
-                {children.map(c => (
-                    <option key={c.PK_ChildId} value={c.PK_ChildId}>
-                      {c.FullName}
-                    </option>
-                ))}
-              </select>
-            </div>
-        )}
+                <select
+                    className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium"
+                    value={selectedChild}
+                    onChange={e => setSelectedChild(Number(e.target.value))}
+                >
+                  {!isParent && <option value={0}>Все дети</option>}
+                  {children.map(c => (
+                      <option key={c.PK_ChildId} value={c.PK_ChildId}>
+                        {c.FullName}
+                      </option>
+                  ))}
+                </select>
+              </div>
+          )}
 
-        {isParent && children.length === 1 && (
-            <p className="text-sm text-muted-foreground font-semibold mb-6">
-              Прогресс: <span className="text-foreground">{children[0].FullName}</span>
-            </p>
-        )}
+          {isParent && children.length === 1 && (
+              <p className="text-sm text-muted-foreground font-semibold">
+                Прогресс: <span className="text-foreground">{children[0].FullName}</span>
+              </p>
+          )}
+        </div>
+        <div className="mb-6" />
+
 
         {/* Карточки статистики */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-6">
