@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usersApi, educatorsApi, taskListsApi, groupsApi, achievementsApi, childInfoApi, diseasesApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
+import { mediaApi } from '@/services/mediaApi';
 import { useNavigate } from 'react-router-dom';
-import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator } from '@/types/models';
+import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator, MediaCatalog, CatalogPECS } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2 } from 'lucide-react';
+import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
@@ -38,7 +40,10 @@ const ProfilePage: React.FC = () => {
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [educatorRec, setEducatorRec] = useState<Educator | null>(null);
   const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
-  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string } | null>(null);
+  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string; image_id?: number } | null>(null);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
+  const [pecsListAll, setPecsListAll] = useState<CatalogPECS[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const isManager = role === 'admin' || role === 'educator';
   const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
