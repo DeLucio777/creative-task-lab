@@ -50,6 +50,13 @@ const EducatorsPage: React.FC = () => {
         FullName: form.FullName.trim(), Specialization: form.Specialization, Phone: form.Phone, Email: form.Email,
       });
       if (upd) {
+        const credPatch: Partial<{ UserLogin: string; UserPassword: string }> = {};
+        if (form.UserLogin.trim()) credPatch.UserLogin = form.UserLogin.trim();
+        if (form.NewPassword) {
+          if (form.NewPassword.length < 4) { toast.error('Пароль: мин. 4 символа'); return; }
+          credPatch.UserPassword = form.NewPassword;
+        }
+        if (Object.keys(credPatch).length) await usersApi.update(editing.PK_EducatorId, credPatch);
         setEducators(prev => prev.map(e => e.PK_EducatorId === editing.PK_EducatorId ? upd : e));
         toast.success('Изменения сохранены');
         setDialogOpen(false);
