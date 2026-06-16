@@ -69,8 +69,27 @@ const ProgressPage: React.FC = () => {
   // -----------------------------
   const totalCorrect = filtered.filter(p => p.completed).length;
 
-  // Ошибки НЕ суммируем — берём из первой записи
-  const totalErrors = filtered.filter(p => !p.completed).length;
+  const totalErrors = useMemo(() => {
+    if (!filtered.length) return 0;
+
+    // Если выбран конкретный ребёнок — берём агрегат из первой строки
+    if (selectedChild) {
+      return filtered[0].missed_tasks_count ?? 0;
+    }
+
+    // Если выбраны все дети — суммируем по уникальным детям
+    const byChild = new Map<number, number>();
+
+    filtered.forEach(p => {
+      if (!byChild.has(p.user_id)) {
+        byChild.set(p.user_id, p.missed_tasks_count ?? 0);
+      }
+    });
+
+    return Array.from(byChild.values()).reduce((sum, v) => sum + v, 0);
+  }, [filtered, selectedChild]);
+
+
 
 
   const getChildName = (id: number) =>
