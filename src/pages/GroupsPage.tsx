@@ -57,6 +57,15 @@ const GroupsPage: React.FC = () => {
     if (await groupsApi.delete(id)) { loadGroups(); toast.success('Группа удалена'); }
   };
 
+  const handleRename = async () => {
+    if (!renameGroup) return;
+    const name = renameValue.trim();
+    if (!name) { toast.error('Введите название'); return; }
+    const upd = await groupsApi.update(renameGroup.PK_Id, { GroupName: name });
+    if (upd) { setRenameGroup(null); loadGroups(); toast.success('Название обновлено'); }
+  };
+
+
   const handleAddMember = async (groupId: number, userId: number) => {
     await groupsApi.addMember(groupId, userId);
     loadGroups();
