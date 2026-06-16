@@ -29,13 +29,6 @@ import * as XLSX from 'xlsx';
 type Row = (string | number)[];
 type ReportData = { title: string; headers: string[]; rows: Row[] };
 
-const inDate = (iso: string | undefined, from: string, to: string) => {
-  if (!iso) return !from && !to;
-  const d = new Date(iso);
-  if (from && d < new Date(from)) return false;
-  if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); if (d > e) return false; }
-  return true;
-};
 
 const exportXLSX = (data: ReportData) => {
   const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
