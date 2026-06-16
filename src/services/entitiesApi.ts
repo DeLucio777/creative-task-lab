@@ -290,20 +290,30 @@ export const taskListsApi = {
       achievementsApi.getAll(),
       achievementsApi.getByUser(userId),
     ]);
+
     const earned = new Set(userAch.map(u => u.achivement_id));
     const awarded: Achievement[] = [];
+
     for (const list of lists) {
+      console.log("LIST:", JSON.stringify(list));
+      console.log("STATUS:", JSON.stringify(statuses[list.PK_id]));
+      console.log("EARNED:", JSON.stringify([...earned]));
+      console.log("ACH ID:", list.FK_achievement_id);
+
       if (!list.FK_achievement_id) continue;
       if (!statuses[list.PK_id]?.isDone) continue;
       if (earned.has(list.FK_achievement_id)) continue;
+
       const r = await achievementsApi.award(userId, list.FK_achievement_id);
       if (r) {
         const a = ach.find(x => x.id === list.FK_achievement_id);
         if (a) awarded.push(a);
       }
     }
+
     return awarded;
-  },
+  }
+  ,
   delete: async (listId: number): Promise<boolean> => {
     try { await apiDelete(`/api/task-lists/${listId}`); return true; } catch { return false; }
   },

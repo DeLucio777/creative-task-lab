@@ -566,20 +566,36 @@ const TaskDetailPage: React.FC = () => {
 
     if (correct && user) {
       const updated = await taskListsApi.markTaskCompletedForUser(taskId, user.PK_UserId);
+
+      console.log("UPDATED:", updated);
+
       if (updated.length > 0) {
         const statuses = await taskListsApi.getStatusesForUser(user.PK_UserId);
-        const finished = updated.map(u => u.task_list_id).filter((v, i, a) => a.indexOf(v) === i).filter(id => statuses[id]?.isDone);
+
+        const finished = updated
+            .map(u => u.task_list_id)
+            .filter((v, i, a) => a.indexOf(v) === i)
+            .filter(id => statuses[id]?.isDone);
+
+        console.log("FINISHED:", finished);
+
         if (finished.length > 0) {
           const awarded = await taskListsApi.awardForCompletedChains(user.PK_UserId);
           setAwardedAchievements(awarded);
-          toast.success(awarded.length > 0 ? `🏆 Получено достижение: ${awarded.map(a => a.name).join(', ')}` : '🎉 Цепочка заданий завершена!');
+          toast.success(
+              awarded.length > 0
+                  ? `🏆 Получено достижение: ${awarded.map(a => a.name).join(', ')}`
+                  : '🎉 Цепочка заданий завершена!'
+          );
         } else {
           toast.success('Шаг цепочки выполнен ✅');
         }
       }
+
       const nxt = await taskListsApi.getNextInChainsForUser(taskId, user.PK_UserId);
       setNextInChain(nxt);
     }
+
   }, [taskId, user, hintShown]);
 
   const handleRestart = () => {
