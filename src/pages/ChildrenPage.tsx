@@ -147,39 +147,44 @@ const ChildrenPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">👶 Дети</h1>
-        {canEdit && (
-          <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
-            <Plus className="h-4 w-4" /> Добавить
-          </Button>
-        )}
+      <div className="page-sticky-header">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">👶 Дети</h1>
+          {canEdit && (
+            <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
+              <Plus className="h-4 w-4" /> Добавить
+            </Button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-3">
+          <div className="relative min-w-[200px] flex-1 max-w-xs">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+          </div>
+          <Input type="number" min={1} value={ageMin} onChange={e => setAgeMin(e.target.value)} placeholder="Возраст от" className="rounded-xl h-11 w-32" />
+          <Input type="number" min={1} value={ageMax} onChange={e => setAgeMax(e.target.value)} placeholder="до" className="rounded-xl h-11 w-24" />
+          <select
+            value={diseaseFilter}
+            onChange={e => setDiseaseFilter(Number(e.target.value))}
+            className="rounded-xl border-2 border-border bg-card px-3 h-11 text-sm font-medium"
+          >
+            <option value={0}>Все болезни</option>
+            {diseases.map(d => <option key={d.PK_Id} value={d.PK_Id}>{d.name}</option>)}
+          </select>
+          {(!!search || !!ageMin || !!ageMax || diseaseFilter !== 0) && (
+            <button
+              onClick={() => { setSearch(''); setAgeMin(''); setAgeMax(''); setDiseaseFilter(0); }}
+              className="px-3 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-wrap gap-3 mb-6">
-        <div className="relative min-w-[200px] flex-1 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
-        </div>
-        <Input type="number" min={1} value={ageMin} onChange={e => setAgeMin(e.target.value)} placeholder="Возраст от" className="rounded-xl h-11 w-32" />
-        <Input type="number" min={1} value={ageMax} onChange={e => setAgeMax(e.target.value)} placeholder="до" className="rounded-xl h-11 w-24" />
-        <select
-          value={diseaseFilter}
-          onChange={e => setDiseaseFilter(Number(e.target.value))}
-          className="rounded-xl border-2 border-border bg-card px-3 h-11 text-sm font-medium"
-        >
-          <option value={0}>Все болезни</option>
-          {diseases.map(d => <option key={d.PK_Id} value={d.PK_Id}>{d.name}</option>)}
-        </select>
-        {(!!search || !!ageMin || !!ageMax || diseaseFilter !== 0) && (
-          <button
-            onClick={() => { setSearch(''); setAgeMin(''); setAgeMax(''); setDiseaseFilter(0); }}
-            className="px-3 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
-          >
-            Сбросить
-          </button>
-        )}
-      </div>
+      <div className="mb-6" />
+
 
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
