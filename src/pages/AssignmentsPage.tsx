@@ -230,20 +230,26 @@ const AssignmentsPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">📋 Цепочки заданий</h1>
-        {canManage && (
-          <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
-            <Plus className="h-4 w-4" /> Назначить
-          </Button>
-        )}
+      <div className="page-sticky-header">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">📋 Цепочки заданий</h1>
+          {canManage && (
+            <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
+              <Plus className="h-4 w-4" /> Назначить
+            </Button>
+          )}
+        </div>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'individual' | 'groups')}>
+          <TabsList>
+            <TabsTrigger value="individual" className="gap-2"><Baby className="h-4 w-4" /> Отдельные дети ({individualLists.length})</TabsTrigger>
+            <TabsTrigger value="groups" className="gap-2"><UsersRound className="h-4 w-4" /> Группы ({groupLists.length})</TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+      <div className="mb-4" />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'individual' | 'groups')}>
-        <TabsList className="mb-4">
-          <TabsTrigger value="individual" className="gap-2"><Baby className="h-4 w-4" /> Отдельные дети ({individualLists.length})</TabsTrigger>
-          <TabsTrigger value="groups" className="gap-2"><UsersRound className="h-4 w-4" /> Группы ({groupLists.length})</TabsTrigger>
-        </TabsList>
+
 
         <TabsContent value="individual" className="space-y-3">
           {individualLists.map(e => (
