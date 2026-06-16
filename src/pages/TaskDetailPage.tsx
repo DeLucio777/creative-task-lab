@@ -25,6 +25,9 @@ const templateToType: Record<number, string> = {
 
 // --- Interactive game components ---
 
+// Палитра для подсветки разных пар в задании "сопоставление"
+const PAIR_COLORS = ['#3b82f6', '#ec4899', '#f59e0b', '#10b981', '#8b5cf6', '#06b6d4', '#ef4444', '#14b8a6'];
+
 const FindOddGame: React.FC<{ items: FindOddOneOutItem[]; pecsList: CatalogPECS[]; onComplete: (correct: boolean) => void }> = ({ items, pecsList, onComplete }) => {
   const [selected, setSelected] = useState<number | null>(null);
   const [answered, setAnswered] = useState(false);
@@ -55,17 +58,19 @@ const FindOddGame: React.FC<{ items: FindOddOneOutItem[]; pecsList: CatalogPECS[
             <button
               key={item.PK_ItemId}
               onClick={() => handleSelect(item.PK_ItemId)}
-              className={`p-5 rounded-2xl border-3 text-center transition-all duration-300 active:scale-[0.95] ${
+              className={`p-4 rounded-2xl border-3 text-center transition-all duration-300 active:scale-[0.95] flex flex-col items-center ${
                 isCorrect ? 'border-green-400 bg-green-50 shadow-lg shadow-green-200/50' :
                 isWrong ? 'border-red-400 bg-red-50 shadow-lg shadow-red-200/50' :
                 isSelected ? 'border-primary bg-primary/5 shadow-md' :
                 'border-border bg-card hover:border-primary/40 hover:shadow-sm'
               }`}
             >
-              {pecs && (
-                <img src={`http://localhost:3000${pecs.filePath}`}  alt={pecs.Descripti} className="w-16 h-16 object-contain mx-auto mb-2 rounded-xl" />
-              )}
-              <p className="text-base font-bold">{item.ItemText}</p>
+              {pecs ? (
+                <div className="w-full aspect-square bg-muted/20 rounded-xl flex items-center justify-center mb-2 p-2">
+                  <img src={`http://localhost:3000${pecs.filePath}`} alt={pecs.Descripti} className="max-w-full max-h-full object-contain" />
+                </div>
+              ) : null}
+              <p className={`font-bold ${pecs ? 'text-sm' : 'text-2xl py-8'}`}>{item.ItemText}</p>
               {answered && isCorrect && <CheckCircle2 className="h-6 w-6 text-green-500 mx-auto mt-2" />}
               {answered && isWrong && <XCircle className="h-6 w-6 text-red-500 mx-auto mt-2" />}
             </button>
@@ -84,12 +89,20 @@ const FindOddGame: React.FC<{ items: FindOddOneOutItem[]; pecsList: CatalogPECS[
 const MatchGame: React.FC<{ pairs: MatchImageWordPair[]; pecsList: CatalogPECS[]; onComplete: (correct: boolean) => void }> = ({ pairs, pecsList, onComplete }) => {
   const shuffledWords = useMemo(() => [...pairs].sort(() => Math.random() - 0.5), [pairs]);
   const [selectedImage, setSelectedImage] = useState<number | null>(null);
+  // matches[imagePairId] = wordPairId
   const [matches, setMatches] = useState<Record<number, number>>({});
+  // pairColors[imagePairId] = цвет, общий для картинки и её слова
+  const [pairColors, setPairColors] = useState<Record<number, string>>({});
   const [checked, setChecked] = useState(false);
 
-  const handleWordClick = (pairId: number) => {
+  const handleWordClick = (wordPairId: number) => {
     if (checked || selectedImage === null) return;
-    setMatches(prev => ({ ...prev, [selectedImage]: pairId }));
+    setMatches(prev => ({ ...prev, [selectedImage]: wordPairId }));
+    setPairColors(prev => {
+      if (prev[selectedImage]) return prev;
+      const usedCount = Object.keys(prev).length;
+      return { ...prev, [selectedImage]: PAIR_COLORS[usedCount % PAIR_COLORS.length] };
+    });
     setSelectedImage(null);
   };
 
@@ -97,6 +110,12 @@ const MatchGame: React.FC<{ pairs: MatchImageWordPair[]; pecsList: CatalogPECS[]
     setChecked(true);
     const allCorrect = pairs.every(p => matches[p.PK_PairId] === p.PK_PairId);
     setTimeout(() => onComplete(allCorrect), 2000);
+  };
+
+  // Найти цвет для слова: ищем картинку, к которой это слово привязано
+  const colorForWord = (wordPairId: number): string | undefined => {
+    const imgId = Object.entries(matches).find(([, w]) => w === wordPairId)?.[0];
+    return imgId ? pairColors[Number(imgId)] : undefined;
   };
 
   const allMatched = Object.keys(matches).length === pairs.length;
@@ -113,21 +132,26 @@ const MatchGame: React.FC<{ pairs: MatchImageWordPair[]; pecsList: CatalogPECS[]
             const isMatched = matches[pair.PK_PairId] !== undefined;
             const isCorrect = checked && matches[pair.PK_PairId] === pair.PK_PairId;
             const isWrong = checked && isMatched && matches[pair.PK_PairId] !== pair.PK_PairId;
+            const color = pairColors[pair.PK_PairId];
+            const style = !checked && color
+              ? { borderColor: color, backgroundColor: `${color}22` }
+              : undefined;
 
             return (
               <button
                 key={pair.PK_PairId}
                 onClick={() => !checked && setSelectedImage(pair.PK_PairId)}
-                className={`w-full p-4 rounded-2xl border-2 transition-all duration-200 ${
+                style={style}
+                className={`w-full p-4 rounded-2xl border-4 transition-all duration-200 flex flex-col items-center ${
                   isCorrect ? 'border-green-400 bg-green-50' :
                   isWrong ? 'border-red-400 bg-red-50' :
-                  isSelected ? 'border-primary bg-primary/5 shadow-md' :
-                  isMatched ? 'border-accent bg-accent/50' :
-                  'border-border bg-card hover:border-primary/30'
+                  isSelected && !color ? 'border-primary bg-primary/5 shadow-md' :
+                  !isMatched && !color ? 'border-border bg-card hover:border-primary/30' : ''
                 }`}
               >
-                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-12 h-12 object-contain mx-auto rounded-xl" />}
-                {!pecs && <div className="w-12 h-12 bg-muted rounded-xl mx-auto flex items-center justify-center text-2xl">🖼️</div>}
+                {pecs
+                  ? <img src={`http://localhost:3000${pecs.filePath}`} alt="" className="w-32 h-32 sm:w-40 sm:h-40 object-contain rounded-xl" />
+                  : <div className="w-32 h-32 sm:w-40 sm:h-40 bg-muted rounded-xl flex items-center justify-center text-5xl">🖼️</div>}
               </button>
             );
           })}
@@ -136,14 +160,19 @@ const MatchGame: React.FC<{ pairs: MatchImageWordPair[]; pecsList: CatalogPECS[]
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider text-center">Слова</p>
           {shuffledWords.map(pair => {
             const isUsed = Object.values(matches).includes(pair.PK_PairId);
+            const color = colorForWord(pair.PK_PairId);
+            const style = !checked && color
+              ? { borderColor: color, backgroundColor: `${color}22` }
+              : undefined;
             return (
               <button
                 key={pair.PK_PairId}
                 onClick={() => handleWordClick(pair.PK_PairId)}
                 disabled={isUsed || checked}
-                className={`w-full p-4 rounded-2xl border-2 text-base font-bold transition-all duration-200 ${
-                  isUsed ? 'border-accent bg-accent/30 text-accent-foreground' :
-                  'border-border bg-card hover:border-primary/30 text-foreground'
+                style={style}
+                className={`w-full p-4 rounded-2xl border-4 text-base font-bold transition-all duration-200 ${
+                  !color && isUsed ? 'border-accent bg-accent/30 text-accent-foreground' :
+                  !color ? 'border-border bg-card hover:border-primary/30 text-foreground' : 'text-foreground'
                 }`}
               >
                 {pair.Words}
@@ -201,15 +230,15 @@ const SequenceGame: React.FC<{ items: SequenceItem[]; pecsList: CatalogPECS[]; o
               <button
                 key={item.PK_SeqItemId}
                 onClick={() => removeItem(item)}
-                className={`flex items-center gap-2 px-4 py-3 rounded-xl border-2 font-bold transition-all ${
+                className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 font-bold transition-all ${
                   isCorrect ? 'border-green-400 bg-green-50 text-green-700' :
                   isWrong ? 'border-red-400 bg-red-50 text-red-700' :
                   'border-primary bg-primary/5 text-foreground hover:bg-primary/10'
                 }`}
               >
                 <span className="text-xs text-muted-foreground">{idx + 1}.</span>
-                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
-                {item.ItemValue}
+                {pecs && <img src={`http://localhost:3000${pecs.filePath}`} alt="" className="w-20 h-20 object-contain rounded" />}
+                <span className={pecs ? 'text-xs' : 'text-base'}>{item.ItemValue}</span>
               </button>
             );
           })}
@@ -228,10 +257,10 @@ const SequenceGame: React.FC<{ items: SequenceItem[]; pecsList: CatalogPECS[]; o
               <button
                 key={item.PK_SeqItemId}
                 onClick={() => addItem(item)}
-                className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95]"
+                className="flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95]"
               >
-                {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
-                {item.ItemValue}
+                {pecs && <img src={`http://localhost:3000${pecs.filePath}`} alt="" className="w-20 h-20 object-contain rounded" />}
+                <span className={pecs ? 'text-xs' : 'text-base'}>{item.ItemValue}</span>
               </button>
             );
           })}
@@ -288,12 +317,12 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`rounded-2xl border-2 p-4 transition-all min-h-[120px] ${
+            className={`rounded-2xl border-2 p-4 transition-all min-h-[120px] text-left ${
               selectedCategory === cat ? 'border-primary bg-primary/5 shadow-md' : 'border-border bg-card hover:border-primary/30'
             }`}
           >
             <p className="text-sm font-bold text-primary mb-3">{cat}</p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-2">
               {buckets[cat].map(item => {
                 const isCorrect = checked && item.SortKey === cat;
                 const isWrong = checked && item.SortKey !== cat;
@@ -302,13 +331,13 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
                   <button
                     key={item.PK_SortItemId}
                     onClick={(e) => { e.stopPropagation(); removeFromBucket(cat, item); }}
-                    className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    className={`flex flex-col items-center gap-1 p-2 rounded-lg text-xs font-bold transition-all ${
                       isCorrect ? 'bg-green-100 text-green-700 border border-green-300' :
                       isWrong ? 'bg-red-100 text-red-700 border border-red-300' :
                       'bg-muted text-foreground border border-border'
                     }`}
                   >
-                    {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-4 h-4 object-contain rounded" />}
+                    {pecs && <img src={`http://localhost:3000${pecs.filePath}`} alt="" className="w-16 h-16 object-contain rounded" />}
                     {item.ItemValue}
                   </button>
                 );
@@ -331,10 +360,10 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
                   key={item.PK_SortItemId}
                   onClick={() => handleItemClick(item)}
                   disabled={!selectedCategory}
-                  className="flex items-center gap-2 px-4 py-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95] disabled:opacity-50"
+                  className="flex flex-col items-center gap-1 p-3 rounded-xl border-2 border-border bg-card font-bold hover:border-primary/40 hover:shadow-sm transition-all active:scale-[0.95] disabled:opacity-50"
                 >
-                  {pecs && <img src={`http://localhost:3000${pecs.filePath}`}  alt="" className="w-6 h-6 object-contain rounded" />}
-                  {item.ItemValue}
+                  {pecs && <img src={`http://localhost:3000${pecs.filePath}`} alt="" className="w-20 h-20 object-contain rounded" />}
+                  <span className={pecs ? 'text-xs' : 'text-base'}>{item.ItemValue}</span>
                 </button>
               );
             })}
@@ -351,12 +380,12 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
   );
 };
 
+
 // --- Main page ---
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.FK_RoleId === 1;
+  const { user, role } = useAuth();
   const taskId = Number(id);
 
   const [task, setTask] = useState<Task | null>(null);
@@ -365,7 +394,15 @@ const TaskDetailPage: React.FC = () => {
   const [constructions, setConstructions] = useState<TaskConstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | 'expired' | null>(null);
+
+  // Дедлайн назначения для текущего ребёнка
+  const [chainDeadline, setChainDeadline] = useState<Date | null>(null);
+
+
+  const isAdmin = role === 'admin';
+  const isOwnerEducator = role === 'educator' && task?.FK_UserId === user?.PK_UserId;
+  const canEditTask = isAdmin || isOwnerEducator;
 
   // Подсказка
   const [hintShown, setHintShown] = useState(false);
@@ -406,6 +443,41 @@ const TaskDetailPage: React.FC = () => {
       setLoading(false);
     });
   }, [taskId]);
+
+  // Поиск дедлайна цепочки для текущего ребёнка
+  useEffect(() => {
+    if (!user || role !== 'parent') { setChainDeadline(null); return; }
+    (async () => {
+      const [allItems, allLists] = await Promise.all([
+        taskListsApi.getAllItems(),
+        taskListsApi.getAll(),
+      ]);
+      const myItem = allItems.find(i => i.task_id === taskId && i.user_id === user.PK_UserId && !i.complited);
+      if (!myItem) return;
+      const list = allLists.find(l => l.PK_id === myItem.task_list_id);
+      if (list?.date_complite) setChainDeadline(new Date(list.date_complite));
+    })();
+  }, [taskId, user, role]);
+
+  const isExpired = chainDeadline ? chainDeadline.getTime() < Date.now() : false;
+
+  // Если просрочено и ребёнок открыл — закрываем доступ и фиксируем как невыполненное
+  useEffect(() => {
+    if (isExpired && role === 'parent' && user && result === null) {
+      setResult('expired');
+      // фиксируем «не выполнено»: увеличиваем счётчик пропущенных
+      (async () => {
+        const all = await childInfoApi.getAll();
+        const cur = all.find(i => i.FK_user_id === user.PK_UserId)
+          || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
+        await childInfoApi.save(user.PK_UserId, {
+          ...cur,
+          miss_tasks_count: (cur.miss_tasks_count || 0) + 1,
+        });
+      })();
+    }
+  }, [isExpired, role, user, result]);
+
 
   // Derive timer + hint settings from constructions
   const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
@@ -536,13 +608,20 @@ const TaskDetailPage: React.FC = () => {
     return (
       <div className="max-w-lg mx-auto text-center py-12">
         <div className="bg-card rounded-2xl border-2 border-border p-10 animate-fade-in">
-          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
+          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : result === 'expired' ? '🔒' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Готово!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Готово!'
+              : result === 'timeout' ? 'Время вышло!'
+              : result === 'expired' ? 'Срок задания истёк'
+              : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время закончилось.' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!'
+              : result === 'timeout' ? 'К сожалению, время закончилось.'
+              : result === 'expired' ? 'Это задание больше недоступно. Оно засчитано как невыполненное.'
+              : 'Не расстраивайся, попробуй снова!'}
           </p>
+
           {result === 'correct' && awardedAchievements.length > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-warning/10 border-2 border-warning">
               <p className="text-3xl mb-1">🏆</p>
@@ -554,7 +633,7 @@ const TaskDetailPage: React.FC = () => {
             <Button onClick={goHome} className="rounded-xl font-bold gap-2 h-12">
               <Home className="h-4 w-4" /> На главную
             </Button>
-            {result !== 'correct' && (
+            {result !== 'correct' && result !== 'expired' && (
               <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2 h-12">
                 <RotateCcw className="h-4 w-4" /> Ещё раз
               </Button>
@@ -661,7 +740,7 @@ const TaskDetailPage: React.FC = () => {
         <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Каталог заданий
         </button>
-        {isAdmin && (
+        {canEditTask && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -703,6 +782,12 @@ const TaskDetailPage: React.FC = () => {
             <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
           </p>
         )}
+        {chainDeadline && (
+          <p className={`text-sm font-bold mb-4 flex items-center gap-1.5 ${isExpired ? 'text-destructive' : 'text-warning'}`}>
+            <Timer className="h-4 w-4" />
+            {isExpired ? 'Срок выполнения истёк' : `Выполнить до: ${chainDeadline.toLocaleString('ru')}`}
+          </p>
+        )}
         {hasHint && (
           <p className="text-sm text-warning font-bold mb-4 flex items-center gap-1.5">
             <Lightbulb className="h-4 w-4" /> В задании есть подсказка — нажми на лампочку, если потребуется помощь
@@ -712,13 +797,15 @@ const TaskDetailPage: React.FC = () => {
 
         <Button
           onClick={() => setStarted(true)}
-          className="gap-2 h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-[0.98]"
+          disabled={isExpired && role === 'parent'}
+          className="gap-2 h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
           size="lg"
         >
           <Play className="h-6 w-6" />
-          Начать задание
+          {isExpired && role === 'parent' ? 'Задание недоступно' : 'Начать задание'}
         </Button>
       </div>
+
     </div>
   );
 };

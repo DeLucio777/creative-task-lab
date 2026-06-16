@@ -18,6 +18,9 @@ const ChildrenPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [search, setSearch] = useState('');
+  const [ageMin, setAgeMin] = useState('');
+  const [ageMax, setAgeMax] = useState('');
+  const [diseaseFilter, setDiseaseFilter] = useState<number>(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
@@ -43,7 +46,13 @@ const ChildrenPage: React.FC = () => {
     })();
   }, [user, role, isEducator]);
 
-  const filtered = children.filter(c => !search || c.FullName.toLowerCase().includes(search.toLowerCase()));
+  const filtered = children.filter(c => {
+    if (search && !c.FullName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (ageMin && (c.age == null || c.age < Number(ageMin))) return false;
+    if (ageMax && (c.age == null || c.age > Number(ageMax))) return false;
+    if (diseaseFilter && c.FK_disease_id !== diseaseFilter) return false;
+    return true;
+  });
 
   const openCreate = () => { setEditingChild(null); setForm(empty); setDialogOpen(true); };
   const openEdit = (c: Child) => {
@@ -147,10 +156,31 @@ const ChildrenPage: React.FC = () => {
         )}
       </div>
 
-      <div className="relative max-w-xs mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+      <div className="flex flex-wrap gap-3 mb-6">
+        <div className="relative min-w-[200px] flex-1 max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+        </div>
+        <Input type="number" min={1} value={ageMin} onChange={e => setAgeMin(e.target.value)} placeholder="Возраст от" className="rounded-xl h-11 w-32" />
+        <Input type="number" min={1} value={ageMax} onChange={e => setAgeMax(e.target.value)} placeholder="до" className="rounded-xl h-11 w-24" />
+        <select
+          value={diseaseFilter}
+          onChange={e => setDiseaseFilter(Number(e.target.value))}
+          className="rounded-xl border-2 border-border bg-card px-3 h-11 text-sm font-medium"
+        >
+          <option value={0}>Все болезни</option>
+          {diseases.map(d => <option key={d.PK_Id} value={d.PK_Id}>{d.name}</option>)}
+        </select>
+        {(search || ageMin || ageMax || diseaseFilter) && (
+          <button
+            onClick={() => { setSearch(''); setAgeMin(''); setAgeMax(''); setDiseaseFilter(0); }}
+            className="px-3 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
+          >
+            Сбросить
+          </button>
+        )}
       </div>
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(c => (

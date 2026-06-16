@@ -2,16 +2,18 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { usersApi, educatorsApi, taskListsApi, groupsApi, achievementsApi, childInfoApi, diseasesApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
+import { mediaApi } from '@/services/mediaApi';
 import { useNavigate } from 'react-router-dom';
-import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator } from '@/types/models';
+import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator, MediaCatalog } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2 } from 'lucide-react';
+import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+
 
 const roleLabels: Record<string, string> = {
   admin: 'Администратор',
@@ -38,7 +40,9 @@ const ProfilePage: React.FC = () => {
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [educatorRec, setEducatorRec] = useState<Educator | null>(null);
   const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
-  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string } | null>(null);
+  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string; image_id?: number } | null>(null);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
+  const [pickerOpen, setPickerOpen] = useState(false);
 
   const isManager = role === 'admin' || role === 'educator';
   const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
@@ -79,6 +83,7 @@ const ProfilePage: React.FC = () => {
 
     if (role === 'admin' || role === 'educator') {
       loadAchievements();
+      mediaApi.getMedia().then(setMediaList);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.PK_UserId, role]);
@@ -88,10 +93,10 @@ const ProfilePage: React.FC = () => {
     const name = achDialog.name.trim();
     if (!name) { toast.error('Введите название'); return; }
     if (achDialog.id) {
-      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description });
+      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description, image_id: achDialog.image_id });
       if (upd) { setAchDialog(null); loadAchievements(); toast.success('Достижение обновлено'); }
     } else {
-      const c = await achievementsApi.create({ name, description: achDialog.description, created_by: user.PK_UserId });
+      const c = await achievementsApi.create({ name, description: achDialog.description, image_id: achDialog.image_id, created_by: user.PK_UserId });
       if (c) { setAchDialog(null); loadAchievements(); toast.success('Достижение создано'); }
     }
   };
@@ -309,16 +314,19 @@ const ProfilePage: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
             {allAchievements.map(a => {
               const editable = canEditAch(a);
+              const media = a.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
               return (
                 <div key={a.id} className="border-2 border-border rounded-2xl p-4">
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <Trophy className="h-5 w-5 text-warning" />
+                      {media
+                        ? <img src={`http://localhost:3000${media.FilePath}`} alt="" className="w-10 h-10 object-contain rounded-lg" />
+                        : <Trophy className="h-5 w-5 text-warning" />}
                       <p className="font-bold text-sm text-foreground">{a.name || '—'}</p>
                     </div>
                     {editable && (
                       <div className="flex gap-1">
-                        <button onClick={() => setAchDialog({ id: a.id, name: a.name ?? '', description: a.description ?? '' })} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
+                        <button onClick={() => setAchDialog({ id: a.id, name: a.name ?? '', description: a.description ?? '', image_id: a.image_id })} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
                         <button onClick={() => deleteAchievement(a.id)} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></button>
                       </div>
                     )}
@@ -348,9 +356,58 @@ const ProfilePage: React.FC = () => {
                 <Label className="font-semibold">Описание</Label>
                 <Textarea value={achDialog.description} onChange={e => setAchDialog({ ...achDialog, description: e.target.value })} maxLength={500} className="rounded-xl" rows={3} />
               </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Картинка</Label>
+                {(() => {
+                  const selected = achDialog.image_id ? mediaList.find(m => m.PK_MediaId === achDialog.image_id) : null;
+                  return (
+                    <div className="flex items-center gap-3 p-3 border-2 border-border rounded-xl">
+                      {selected
+                        ? <img src={`http://localhost:3000${selected.FilePath}`} alt="" className="w-16 h-16 object-contain rounded-lg" />
+                        : <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center text-2xl">🏆</div>}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold truncate">{selected?.Descripti || 'Не выбрано'}</p>
+                        <div className="flex gap-2 mt-2">
+                          <Button type="button" size="sm" variant="outline" className="rounded-lg gap-1 text-xs" onClick={() => setPickerOpen(true)}>
+                            <ImageIcon className="h-3.5 w-3.5" /> Выбрать
+                          </Button>
+                          {selected && (
+                            <Button type="button" size="sm" variant="ghost" className="rounded-lg text-xs text-destructive" onClick={() => setAchDialog({ ...achDialog, image_id: undefined })}>
+                              Убрать
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
               <Button onClick={saveAchievement} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+        <DialogContent className="rounded-2xl max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Выберите картинку из медиа-библиотеки</DialogTitle></DialogHeader>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-2">
+            {mediaList.map(m => (
+              <button
+                key={m.PK_MediaId}
+                onClick={() => { if (achDialog) setAchDialog({ ...achDialog, image_id: m.PK_MediaId }); setPickerOpen(false); }}
+                className="border-2 border-border hover:border-primary rounded-xl p-2 transition-all hover:shadow-md"
+              >
+                <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center mb-1">
+                  <img src={`http://localhost:3000${m.FilePath}`} alt="" className="max-w-full max-h-full object-contain" />
+                </div>
+                <p className="text-xs font-bold truncate">{m.Descripti}</p>
+              </button>
+            ))}
+            {mediaList.length === 0 && (
+              <p className="col-span-full text-sm text-muted-foreground text-center py-8">В библиотеке нет файлов. Загрузите их в разделе «Медиа-библиотека».</p>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </div>
