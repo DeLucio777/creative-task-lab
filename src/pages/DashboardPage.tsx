@@ -39,41 +39,45 @@ const DashboardPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center gap-3 mb-6 sm:mb-8">
-        <div className="relative flex-1 min-w-[220px] max-w-md">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Поиск по названию..."
-            className="pl-9 rounded-xl h-11"
-          />
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {DIFFICULTIES.map(d => {
-            const active = difficulty.includes(d.value);
-            return (
+      <div className="page-sticky-header">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[220px] max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Поиск по названию..."
+              className="pl-9 rounded-xl h-11"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {DIFFICULTIES.map(d => {
+              const active = difficulty.includes(d.value);
+              return (
+                <button
+                  key={d.value}
+                  onClick={() => toggleDifficulty(d.value)}
+                  className={`px-3.5 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
+                    active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary/40'
+                  }`}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+            {(difficulty.length > 0 || search) && (
               <button
-                key={d.value}
-                onClick={() => toggleDifficulty(d.value)}
-                className={`px-3.5 py-2 rounded-xl text-sm font-bold border-2 transition-all ${
-                  active ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-foreground hover:border-primary/40'
-                }`}
+                onClick={() => { setDifficulty([]); setSearch(''); }}
+                className="px-3.5 py-2 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
               >
-                {d.label}
+                Сбросить
               </button>
-            );
-          })}
-          {(difficulty.length > 0 || search) && (
-            <button
-              onClick={() => { setDifficulty([]); setSearch(''); }}
-              className="px-3.5 py-2 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
-            >
-              Сбросить
-            </button>
-          )}
+            )}
+          </div>
         </div>
       </div>
+      <div className="mb-6 sm:mb-8" />
+
 
       {loading ? (
         <div className="text-center py-16">
