@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, UserPlus, X } from 'lucide-react';
+import { Plus, Trash2, Users, UserPlus, X, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GroupCard { group: ChildGroup; members: ChildGroupMember[] }
