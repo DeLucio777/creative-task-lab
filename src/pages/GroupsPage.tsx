@@ -192,6 +192,19 @@ const GroupsPage: React.FC = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={!!renameGroup} onOpenChange={(o) => !o && setRenameGroup(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader><DialogTitle>Переименовать группу</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="font-semibold">Новое название *</Label>
+              <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} maxLength={80} className="rounded-xl h-11" autoFocus />
+            </div>
+            <Button onClick={handleRename} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
