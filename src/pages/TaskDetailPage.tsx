@@ -461,22 +461,15 @@ const TaskDetailPage: React.FC = () => {
 
   const isExpired = chainDeadline ? chainDeadline.getTime() < Date.now() : false;
 
-  // Если просрочено и ребёнок открыл — закрываем доступ и фиксируем как невыполненное
+  // Если ребёнок всё же открыл просроченное задание (например по прямой ссылке) —
+  // показываем экран «просрочено», но НЕ начисляем ошибку в счётчик (она засчитывается
+  // лишь один раз — в момент истечения срока, а не при каждом просмотре).
   useEffect(() => {
-    if (isExpired && role === 'parent' && user && result === null) {
+    if (isExpired && role === 'parent' && result === null) {
       setResult('expired');
-      // фиксируем «не выполнено»: увеличиваем счётчик пропущенных
-      (async () => {
-        const all = await childInfoApi.getAll();
-        const cur = all.find(i => i.FK_user_id === user.PK_UserId)
-          || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
-        await childInfoApi.save(user.PK_UserId, {
-          ...cur,
-          miss_tasks_count: (cur.miss_tasks_count || 0) + 1,
-        });
-      })();
     }
-  }, [isExpired, role, user, result]);
+  }, [isExpired, role, result]);
+
 
 
   // Derive timer + hint settings from constructions
