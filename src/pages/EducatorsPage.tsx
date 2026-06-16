@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { educatorsApi } from '@/services/entitiesApi';
+import { educatorsApi, usersApi } from '@/services/entitiesApi';
 import { authApi } from '@/services/authApi';
 import type { Educator } from '@/types/models';
 import { Button } from '@/components/ui/button';
