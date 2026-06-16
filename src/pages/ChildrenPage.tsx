@@ -78,6 +78,9 @@ const ChildrenPage: React.FC = () => {
       phone: form.phone || undefined,
     };
     if (form.phone && !isValidBelarusPhone(form.phone)) { toast.error('Неверный формат телефона'); return; }
+    if (patch.age !== undefined && (!Number.isFinite(patch.age) || patch.age < 1)) {
+      toast.error('Возраст должен быть не меньше 1'); return;
+    }
 
     if (editingChild) {
       const errs = validate(editSchema, form);
@@ -85,6 +88,14 @@ const ChildrenPage: React.FC = () => {
       const upd = await childrenApi.update(editingChild.PK_ChildId, patch);
       if (upd) {
         setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? upd : c));
+        // Admin может менять логин/пароль
+        const credPatch: Partial<{ UserLogin: string; UserPassword: string }> = {};
+        if (form.UserLogin.trim()) credPatch.UserLogin = form.UserLogin.trim();
+        if (form.NewPassword) {
+          if (form.NewPassword.length < 4) { toast.error('Пароль: мин. 4 символа'); return; }
+          credPatch.UserPassword = form.NewPassword;
+        }
+        if (Object.keys(credPatch).length) await usersApi.update(editingChild.PK_ChildId, credPatch);
         toast.success('Данные обновлены');
       }
     } else {
