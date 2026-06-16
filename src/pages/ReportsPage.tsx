@@ -289,7 +289,9 @@ const ReportsPage: React.FC = () => {
       'Прогресс %'
     ],
 
-    rows: groups.map(group => {
+    rows: groups
+        .filter(g => !educatorId || g.FK_Teacher_id === educatorId)
+        .map(group => {
 
       const teacher =
           educators.find(
@@ -298,7 +300,8 @@ const ReportsPage: React.FC = () => {
 
       const members =
           groupMembers.filter(
-              m => m.FK_group_id === group.PK_Id
+              m => m.FK_group_id === group.PK_Id &&
+                   (!childId || m.FK_user_id === childId)
           );
 
       const childIds =
@@ -336,7 +339,9 @@ const ReportsPage: React.FC = () => {
     groups,
     groupMembers,
     educators,
-    listItemsUnique
+    listItemsUnique,
+    educatorId,
+    childId
   ]);
 
 
