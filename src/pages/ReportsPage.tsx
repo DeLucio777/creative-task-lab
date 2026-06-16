@@ -211,7 +211,7 @@ const ReportsPage: React.FC = () => {
 
   const taskTitle = (id: number) => tasks.find(t => t.PK_TaskId === id)?.Title || `#${id}`;
   const childName = (id: number) => children.find(c => c.PK_ChildId === id)?.FullName || `#${id}`;
-
+//asdasdadasd
   /** Возвращает педагогов, связанных с ребёнком через группы. */
   const educatorIdsForChild = useMemo(() => {
     const map = new Map<number, Set<number>>();
