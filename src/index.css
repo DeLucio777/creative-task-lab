@@ -52,3 +52,19 @@
     font-family: 'Nunito', system-ui, sans-serif;
   }
 }
+
+@layer components {
+  /* Sticky header for list pages: compensates parent scroll-container padding
+     (p-4 / sm:p-6 / lg:p-8 from AppLayout) so the header sits flush at the top. */
+  .page-sticky-header {
+    @apply sticky z-20 bg-background pb-3
+           -mx-4 sm:-mx-6 lg:-mx-8
+           px-4 sm:px-6 lg:px-8
+           -mt-4 sm:-mt-6 lg:-mt-8
+           pt-4 sm:pt-6 lg:pt-8;
+    top: -1rem;
+  }
+  @media (min-width: 640px) { .page-sticky-header { top: -1.5rem; } }
+  @media (min-width: 1024px) { .page-sticky-header { top: -2rem; } }
+}
+
