@@ -11,6 +11,7 @@ import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import TaskPreview from '@/components/TaskPreview';
+import ImagePicker from '@/components/ImagePicker';
 
 type TaskType = 'find_odd' | 'match_image_word' | 'sequence' | 'sort';
 
