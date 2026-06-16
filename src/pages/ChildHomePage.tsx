@@ -37,6 +37,7 @@ const ChildHomePage: React.FC = () => {
       setData(result);
       setAchievements(await achievementsApi.getAll());
       setUserAch(await achievementsApi.getByUser(user.PK_UserId));
+      setMediaList(await mediaApi.getMedia());
       setLoading(false);
     })();
   }, [user]);
