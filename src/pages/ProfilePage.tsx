@@ -43,6 +43,7 @@ const ProfilePage: React.FC = () => {
   const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string; image_id?: number } | null>(null);
   const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [mediaSearch, setMediaSearch] = useState('');
 
   const isManager = role === 'admin' || role === 'educator';
   const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
