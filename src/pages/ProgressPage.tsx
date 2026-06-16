@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { progressApi, childrenApi, achievementsApi } from '@/services/entitiesApi';
+import { mediaApi } from '@/services/mediaApi';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ProgressRecord, Child, UserAchievement, Achievement } from '@/types/models';
+import type { ProgressRecord, Child, UserAchievement, Achievement, MediaCatalog } from '@/types/models';
 import { Label } from '@/components/ui/label';
 import { CheckCircle2, XCircle, Star } from 'lucide-react';
 
@@ -11,6 +12,7 @@ const ProgressPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [selectedChild, setSelectedChild] = useState<number>(0);
   const [allowedChildIds, setAllowedChildIds] = useState<number[] | null>(null);
 
