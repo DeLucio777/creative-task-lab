@@ -18,6 +18,9 @@ const ChildrenPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [search, setSearch] = useState('');
+  const [ageMin, setAgeMin] = useState('');
+  const [ageMax, setAgeMax] = useState('');
+  const [diseaseFilter, setDiseaseFilter] = useState<number>(0);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
@@ -43,7 +46,13 @@ const ChildrenPage: React.FC = () => {
     })();
   }, [user, role, isEducator]);
 
-  const filtered = children.filter(c => !search || c.FullName.toLowerCase().includes(search.toLowerCase()));
+  const filtered = children.filter(c => {
+    if (search && !c.FullName.toLowerCase().includes(search.toLowerCase())) return false;
+    if (ageMin && (c.age == null || c.age < Number(ageMin))) return false;
+    if (ageMax && (c.age == null || c.age > Number(ageMax))) return false;
+    if (diseaseFilter && c.FK_disease_id !== diseaseFilter) return false;
+    return true;
+  });
 
   const openCreate = () => { setEditingChild(null); setForm(empty); setDialogOpen(true); };
   const openEdit = (c: Child) => {
