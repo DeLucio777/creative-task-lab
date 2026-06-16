@@ -711,7 +711,7 @@ const TaskDetailPage: React.FC = () => {
         <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-sm font-bold text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-4 w-4" /> Каталог заданий
         </button>
-        {isAdmin && (
+        {canEditTask && (
           <div className="flex gap-2">
             <Button
               variant="outline"
@@ -753,6 +753,12 @@ const TaskDetailPage: React.FC = () => {
             <Timer className="h-4 w-4" /> Время на выполнение: {formatTime(timerSeconds)}
           </p>
         )}
+        {chainDeadline && (
+          <p className={`text-sm font-bold mb-4 flex items-center gap-1.5 ${isExpired ? 'text-destructive' : 'text-warning'}`}>
+            <Timer className="h-4 w-4" />
+            {isExpired ? 'Срок выполнения истёк' : `Выполнить до: ${chainDeadline.toLocaleString('ru')}`}
+          </p>
+        )}
         {hasHint && (
           <p className="text-sm text-warning font-bold mb-4 flex items-center gap-1.5">
             <Lightbulb className="h-4 w-4" /> В задании есть подсказка — нажми на лампочку, если потребуется помощь
@@ -762,13 +768,15 @@ const TaskDetailPage: React.FC = () => {
 
         <Button
           onClick={() => setStarted(true)}
-          className="gap-2 h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-[0.98]"
+          disabled={isExpired && role === 'parent'}
+          className="gap-2 h-14 text-lg font-bold rounded-2xl transition-all duration-200 active:scale-[0.98] disabled:opacity-50"
           size="lg"
         >
           <Play className="h-6 w-6" />
-          Начать задание
+          {isExpired && role === 'parent' ? 'Задание недоступно' : 'Начать задание'}
         </Button>
       </div>
+
     </div>
   );
 };
