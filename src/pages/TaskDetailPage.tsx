@@ -604,7 +604,7 @@ const TaskDetailPage: React.FC = () => {
             <Button onClick={goHome} className="rounded-xl font-bold gap-2 h-12">
               <Home className="h-4 w-4" /> На главную
             </Button>
-            {result !== 'correct' && (
+            {result !== 'correct' && result !== 'expired' && (
               <Button variant="outline" onClick={handleRestart} className="rounded-xl font-bold gap-2 h-12">
                 <RotateCcw className="h-4 w-4" /> Ещё раз
               </Button>
