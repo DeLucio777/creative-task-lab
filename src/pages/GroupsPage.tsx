@@ -22,6 +22,8 @@ const GroupsPage: React.FC = () => {
   const [allChildren, setAllChildren] = useState<Child[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [memberOpen, setMemberOpen] = useState<number | null>(null);
+  const [renameGroup, setRenameGroup] = useState<ChildGroup | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [groupName, setGroupName] = useState('');
   const [createEduId, setCreateEduId] = useState<number>(0);
 
