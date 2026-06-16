@@ -4,7 +4,7 @@ import { usersApi, educatorsApi, taskListsApi, groupsApi, achievementsApi, child
 import { tasksApi } from '@/services/tasksApi';
 import { mediaApi } from '@/services/mediaApi';
 import { useNavigate } from 'react-router-dom';
-import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator, MediaCatalog, CatalogPECS } from '@/types/models';
+import type { Task, TaskList, ChildGroup, Achievement, UserAchievement, ChildInfo, Disease, Educator, MediaCatalog } from '@/types/models';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -42,7 +42,6 @@ const ProfilePage: React.FC = () => {
   const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
   const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string; image_id?: number } | null>(null);
   const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
-  const [pecsListAll, setPecsListAll] = useState<CatalogPECS[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   const isManager = role === 'admin' || role === 'educator';
@@ -85,7 +84,6 @@ const ProfilePage: React.FC = () => {
     if (role === 'admin' || role === 'educator') {
       loadAchievements();
       mediaApi.getMedia().then(setMediaList);
-      mediaApi.getPecs().then(setPecsListAll);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.PK_UserId, role]);
