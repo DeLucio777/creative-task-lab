@@ -389,10 +389,25 @@ const AssignmentsPage: React.FC = () => {
                   <option value="Hard">🔴 Сложный</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Checkbox checked={onlyMine} onCheckedChange={v => setOnlyMine(!!v)} />
-                <span className="font-semibold">Только мои + публичные</span>
-              </label>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {([
+                  { v: 'mine', label: '👤 Мои' },
+                  { v: 'public', label: '🌍 Публичные' },
+                  { v: 'both', label: '⭐ Мои + публичные' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setTaskScope(opt.v)}
+                    className={`px-3 py-1.5 rounded-lg font-bold border-2 transition-all ${
+                      taskScope === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
