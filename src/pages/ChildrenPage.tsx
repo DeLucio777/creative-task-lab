@@ -55,7 +55,7 @@ const ChildrenPage: React.FC = () => {
       FK_disease_id: c.FK_disease_id ?? 0,
       email: c.email ?? '',
       phone: c.phone ?? '',
-      UserLogin: '', UserPassword: '',
+      UserLogin: '', UserPassword: '', NewPassword: '',
     });
     setDialogOpen(true);
   };
