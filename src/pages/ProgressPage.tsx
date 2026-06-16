@@ -26,6 +26,7 @@ const ProgressPage: React.FC = () => {
       ]);
 
       setAchievements(allAch);
+      mediaApi.getMedia().then(setMediaList);
 
       if (role === 'parent' && user) {
         const me = allChildren.filter(c => c.PK_ChildId === user.PK_UserId);
