@@ -208,7 +208,7 @@ const AssignmentsPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
           <span className="text-muted-foreground"><Users className="h-3 w-3 inline mr-1" />{e.recipientUserIds.length} учеников</span>
           <span className="text-success font-semibold">✓ {e.done}/{e.total} шагов</span>
-          {e.list.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(e.list.date_complite).toLocaleDateString('ru')}</span>}
+          {e.list.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(e.list.date_complite).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
         </div>
       </div>
     </div>
