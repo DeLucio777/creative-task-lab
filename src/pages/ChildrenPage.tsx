@@ -171,7 +171,7 @@ const ChildrenPage: React.FC = () => {
           <option value={0}>Все болезни</option>
           {diseases.map(d => <option key={d.PK_Id} value={d.PK_Id}>{d.name}</option>)}
         </select>
-        {(search || ageMin || ageMax || diseaseFilter) && (
+        {(!!search || !!ageMin || !!ageMax || diseaseFilter !== 0) && (
           <button
             onClick={() => { setSearch(''); setAgeMin(''); setAgeMax(''); setDiseaseFilter(0); }}
             className="px-3 rounded-xl text-sm font-bold text-muted-foreground hover:text-foreground"
