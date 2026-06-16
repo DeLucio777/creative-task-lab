@@ -40,7 +40,7 @@ const AssignmentsPage: React.FC = () => {
   const [taskSearch, setTaskSearch] = useState('');
   const [taskTemplateFilter, setTaskTemplateFilter] = useState<number | 0>(0);
   const [taskDiffFilter, setTaskDiffFilter] = useState<string>('');
-  const [onlyMine, setOnlyMine] = useState(true);
+  const [taskScope, setTaskScope] = useState<'mine' | 'public' | 'both'>('both');
 
   const canManage = role === 'admin' || role === 'educator';
 
@@ -78,13 +78,18 @@ const AssignmentsPage: React.FC = () => {
   const openCreate = () => {
     setForm({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
     setSelectedTasks([]); setSelectedGroups([]); setSelectedChildren([]);
-    setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setOnlyMine(true);
+    setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setTaskScope('both');
     setDialogOpen(true);
   };
 
   const availableTasks = useMemo(() => {
     let base = tasks;
-    if (onlyMine && user) base = base.filter(t => t.FK_UserId === user.PK_UserId || t.public_task);
+    if (user) {
+      if (taskScope === 'mine') base = base.filter(t => t.FK_UserId === user.PK_UserId);
+      else if (taskScope === 'public') base = base.filter(t => t.public_task);
+      // 'both' = свои или публичные (исключаем чужие приватные)
+      else base = base.filter(t => t.FK_UserId === user.PK_UserId || t.public_task);
+    }
     if (taskTemplateFilter) base = base.filter(t => t.FK_TemplateId === taskTemplateFilter);
     if (taskDiffFilter) base = base.filter(t => t.DifficultyLevel === taskDiffFilter);
     if (taskSearch.trim()) {
@@ -92,7 +97,7 @@ const AssignmentsPage: React.FC = () => {
       base = base.filter(t => t.Title.toLowerCase().includes(q) || (t.Descripti?.toLowerCase().includes(q) ?? false));
     }
     return base;
-  }, [tasks, taskSearch, taskTemplateFilter, taskDiffFilter, onlyMine, user]);
+  }, [tasks, taskSearch, taskTemplateFilter, taskDiffFilter, taskScope, user]);
 
   const toggleTask = (id: number) => {
     setSelectedTasks(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
@@ -208,7 +213,7 @@ const AssignmentsPage: React.FC = () => {
         <div className="flex flex-wrap items-center gap-3 mt-2 text-xs">
           <span className="text-muted-foreground"><Users className="h-3 w-3 inline mr-1" />{e.recipientUserIds.length} учеников</span>
           <span className="text-success font-semibold">✓ {e.done}/{e.total} шагов</span>
-          {e.list.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(e.list.date_complite).toLocaleDateString('ru')}</span>}
+          {e.list.date_complite && <span className="text-warning font-semibold">⏰ до {new Date(e.list.date_complite).toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>}
         </div>
       </div>
     </div>
@@ -230,20 +235,25 @@ const AssignmentsPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">📋 Цепочки заданий</h1>
-        {canManage && (
-          <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
-            <Plus className="h-4 w-4" /> Назначить
-          </Button>
-        )}
+      <div className="page-sticky-header">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">📋 Цепочки заданий</h1>
+          {canManage && (
+            <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
+              <Plus className="h-4 w-4" /> Назначить
+            </Button>
+          )}
+        </div>
       </div>
+      <div className="mb-6" />
 
       <Tabs value={tab} onValueChange={(v) => setTab(v as 'individual' | 'groups')}>
         <TabsList className="mb-4">
           <TabsTrigger value="individual" className="gap-2"><Baby className="h-4 w-4" /> Отдельные дети ({individualLists.length})</TabsTrigger>
           <TabsTrigger value="groups" className="gap-2"><UsersRound className="h-4 w-4" /> Группы ({groupLists.length})</TabsTrigger>
         </TabsList>
+
+
 
         <TabsContent value="individual" className="space-y-3">
           {individualLists.map(e => (
@@ -379,10 +389,25 @@ const AssignmentsPage: React.FC = () => {
                   <option value="Hard">🔴 Сложный</option>
                 </select>
               </div>
-              <label className="flex items-center gap-2 text-xs cursor-pointer">
-                <Checkbox checked={onlyMine} onCheckedChange={v => setOnlyMine(!!v)} />
-                <span className="font-semibold">Только мои + публичные</span>
-              </label>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {([
+                  { v: 'mine', label: '👤 Мои' },
+                  { v: 'public', label: '🌍 Публичные' },
+                  { v: 'both', label: '⭐ Мои + публичные' },
+                ] as const).map(opt => (
+                  <button
+                    key={opt.v}
+                    type="button"
+                    onClick={() => setTaskScope(opt.v)}
+                    className={`px-3 py-1.5 rounded-lg font-bold border-2 transition-all ${
+                      taskScope === opt.v ? 'border-primary bg-primary/10 text-primary' : 'border-border bg-card text-muted-foreground hover:border-primary/40'
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>

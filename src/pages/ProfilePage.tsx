@@ -43,6 +43,7 @@ const ProfilePage: React.FC = () => {
   const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string; image_id?: number } | null>(null);
   const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [mediaSearch, setMediaSearch] = useState('');
 
   const isManager = role === 'admin' || role === 'educator';
   const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
@@ -388,28 +389,50 @@ const ProfilePage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={pickerOpen} onOpenChange={setPickerOpen}>
+      <Dialog open={pickerOpen} onOpenChange={(o) => { setPickerOpen(o); if (!o) setMediaSearch(''); }}>
         <DialogContent className="rounded-2xl max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Выберите картинку из медиа-библиотеки</DialogTitle></DialogHeader>
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-2">
-            {mediaList.map(m => (
-              <button
-                key={m.PK_MediaId}
-                onClick={() => { if (achDialog) setAchDialog({ ...achDialog, image_id: m.PK_MediaId }); setPickerOpen(false); }}
-                className="border-2 border-border hover:border-primary rounded-xl p-2 transition-all hover:shadow-md"
-              >
-                <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center mb-1">
-                  <img src={`http://localhost:3000${m.FilePath}`} alt="" className="max-w-full max-h-full object-contain" />
-                </div>
-                <p className="text-xs font-bold truncate">{m.Descripti}</p>
-              </button>
-            ))}
-            {mediaList.length === 0 && (
-              <p className="col-span-full text-sm text-muted-foreground text-center py-8">В библиотеке нет файлов. Загрузите их в разделе «Медиа-библиотека».</p>
-            )}
+          <div className="sticky top-0 z-10 bg-card pt-1 pb-3">
+            <Input
+              value={mediaSearch}
+              onChange={e => setMediaSearch(e.target.value)}
+              placeholder="🔎 Поиск по названию..."
+              className="rounded-xl h-11"
+              autoFocus
+            />
           </div>
+          {(() => {
+            const q = mediaSearch.trim().toLowerCase();
+            const filtered = q
+              ? mediaList.filter(m => (m.Descripti || '').toLowerCase().includes(q))
+              : mediaList;
+            return (
+              <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-3 mt-1">
+                {filtered.map(m => (
+                  <button
+                    key={m.PK_MediaId}
+                    onClick={() => { if (achDialog) setAchDialog({ ...achDialog, image_id: m.PK_MediaId }); setPickerOpen(false); setMediaSearch(''); }}
+                    className="border-2 border-border hover:border-primary rounded-xl p-2 transition-all hover:shadow-md"
+                  >
+                    <div className="aspect-square bg-muted/30 rounded-lg flex items-center justify-center mb-1">
+                      <img src={`http://localhost:3000${m.FilePath}`} alt="" className="max-w-full max-h-full object-contain" />
+                    </div>
+                    <p className="text-xs font-bold truncate">{m.Descripti}</p>
+                  </button>
+                ))}
+                {filtered.length === 0 && (
+                  <p className="col-span-full text-sm text-muted-foreground text-center py-8">
+                    {mediaList.length === 0
+                      ? 'В библиотеке нет файлов. Загрузите их в разделе «Медиа-библиотека».'
+                      : 'Ничего не найдено по вашему запросу.'}
+                  </p>
+                )}
+              </div>
+            );
+          })()}
         </DialogContent>
       </Dialog>
+
     </div>
   );
 };

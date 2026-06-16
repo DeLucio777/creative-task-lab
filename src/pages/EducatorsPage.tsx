@@ -90,17 +90,20 @@ const EducatorsPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">🎓 Педагоги</h1>
-        <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
-          <Plus className="h-4 w-4" /> Зарегистрировать
-        </Button>
+      <div className="page-sticky-header">
+        <div className="flex items-center justify-between mb-4">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">🎓 Педагоги</h1>
+          <Button onClick={openCreate} className="gap-2 rounded-xl font-bold h-11">
+            <Plus className="h-4 w-4" /> Зарегистрировать
+          </Button>
+        </div>
+        <div className="relative max-w-xs">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
+        </div>
       </div>
+      <div className="mb-6" />
 
-      <div className="relative max-w-xs mb-6">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск..." className="pl-9 rounded-xl h-11" />
-      </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filtered.map(edu => (

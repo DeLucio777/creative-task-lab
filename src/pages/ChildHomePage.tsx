@@ -40,8 +40,11 @@ const ChildHomePage: React.FC = () => {
   }, [user]);
 
   const todayItems = useMemo(() => {
+    const now = Date.now();
     return data.flatMap(d => d.items.map(i => ({ item: i, list: d.list, task: d.tasks.find(t => t.PK_TaskId === i.task_id) })))
-      .filter(x => !x.item.complited);
+      .filter(x => !x.item.complited)
+      // скрываем просроченные задания, чтобы они не отображались в UI «На сегодня»
+      .filter(x => !x.list.date_complite || new Date(x.list.date_complite).getTime() >= now);
   }, [data]);
 
   if (loading) return <div className="text-center py-16"><p className="text-4xl mb-3 animate-bounce">⏳</p><p className="text-muted-foreground font-bold">Загрузка...</p></div>;
@@ -129,22 +132,30 @@ const ChildHomePage: React.FC = () => {
                 <div className="flex flex-wrap gap-1.5">
                   {items.map(it => {
                     const t = tasks.find(x => x.PK_TaskId === it.task_id);
+                    const expired = list.date_complite ? new Date(list.date_complite).getTime() < Date.now() : false;
+                    const disabled = expired && !it.complited;
                     return (
                       <button
                         key={it.id}
-                        onClick={() => t && navigate(`/task/${t.PK_TaskId}`)}
+                        disabled={disabled}
+                        onClick={() => !disabled && t && navigate(`/task/${t.PK_TaskId}`)}
+                        title={disabled ? 'Срок задания истёк' : undefined}
                         className={`px-3 py-1.5 rounded-lg text-xs font-bold border-2 transition-all ${
                           it.complited
                             ? 'border-success bg-success/10 text-success'
-                            : 'border-border bg-card hover:border-primary text-foreground'
+                            : disabled
+                              ? 'border-destructive/30 bg-destructive/5 text-destructive/70 cursor-not-allowed opacity-60'
+                              : 'border-border bg-card hover:border-primary text-foreground'
                         }`}
                       >
                         {it.complited && <CheckCircle2 className="h-3 w-3 inline mr-1" />}
+                        {disabled && '🔒 '}
                         {it.position}. {t?.Title || `#${it.task_id}`}
                       </button>
                     );
                   })}
                 </div>
+
               </div>
             );
           })}
