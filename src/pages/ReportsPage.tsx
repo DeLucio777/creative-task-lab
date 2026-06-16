@@ -166,22 +166,37 @@ const ReportsPage: React.FC = () => {
     return [...ids].map(eid => educators.find(e => e.PK_EducatorId === eid)?.FullName || `#${eid}`).join(', ');
   };
 
-  // УНИКАЛИЗАЦИЯ ВСЕХ ДАННЫХ ОДНИМ БЛОКОМ
-  const progressUnique = [
-    ...new Map(progress.map(p => [p.user_id, p])).values()
-  ];
+  // Применяем фильтры детей: по выбранному ребёнку и по педагогу (через группы)
+  const filteredChildIds = useMemo(() => {
+    let ids = new Set(children.map(c => c.PK_ChildId));
+    if (childId) ids = new Set([childId].filter(i => ids.has(i)));
+    if (educatorId) {
+      const eduGroups = new Set(groups.filter(g => g.FK_Teacher_id === educatorId).map(g => g.PK_Id));
+      const eduChildren = new Set(groupMembers.filter(m => eduGroups.has(m.FK_group_id)).map(m => m.FK_user_id));
+      ids = new Set([...ids].filter(i => eduChildren.has(i)));
+    }
+    return ids;
+  }, [children, childId, educatorId, groups, groupMembers]);
 
-  const listItemsUnique = [
-    ...new Map(listItems.map(i => [`${i.user_id}_${i.task_id}`, i])).values()
-  ];
+  const childrenUnique = useMemo(
+    () => [...new Map(children.map(c => [c.PK_ChildId, c])).values()].filter(c => filteredChildIds.has(c.PK_ChildId)),
+    [children, filteredChildIds]
+  );
 
-  const childrenUnique = [
-    ...new Map(children.map(c => [c.PK_ChildId, c])).values()
-  ];
+  const progressUnique = useMemo(
+    () => [...new Map(progress.map(p => [p.user_id, p])).values()].filter(p => filteredChildIds.has(p.user_id)),
+    [progress, filteredChildIds]
+  );
 
-  const historyUnique = [
-    ...new Map(listItems.map(i => [`${i.task_list_id}_${i.task_id}_${i.user_id}`, i])).values()
-  ];
+  const listItemsUnique = useMemo(
+    () => [...new Map(listItems.map(i => [`${i.user_id}_${i.task_id}`, i])).values()].filter(i => filteredChildIds.has(i.user_id)),
+    [listItems, filteredChildIds]
+  );
+
+  const historyUnique = useMemo(
+    () => [...new Map(listItems.map(i => [`${i.task_list_id}_${i.task_id}_${i.user_id}`, i])).values()].filter(i => filteredChildIds.has(i.user_id)),
+    [listItems, filteredChildIds]
+  );
 
 
 // 1. Отчёт по прогрессу детей
