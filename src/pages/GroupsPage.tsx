@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Plus, Trash2, Users, UserPlus, X } from 'lucide-react';
+import { Plus, Trash2, Users, UserPlus, X, Edit2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface GroupCard { group: ChildGroup; members: ChildGroupMember[] }
@@ -22,6 +22,8 @@ const GroupsPage: React.FC = () => {
   const [allChildren, setAllChildren] = useState<Child[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
   const [memberOpen, setMemberOpen] = useState<number | null>(null);
+  const [renameGroup, setRenameGroup] = useState<ChildGroup | null>(null);
+  const [renameValue, setRenameValue] = useState('');
   const [groupName, setGroupName] = useState('');
   const [createEduId, setCreateEduId] = useState<number>(0);
 
@@ -54,6 +56,15 @@ const GroupsPage: React.FC = () => {
   const handleDelete = async (id: number) => {
     if (await groupsApi.delete(id)) { loadGroups(); toast.success('Группа удалена'); }
   };
+
+  const handleRename = async () => {
+    if (!renameGroup) return;
+    const name = renameValue.trim();
+    if (!name) { toast.error('Введите название'); return; }
+    const upd = await groupsApi.update(renameGroup.PK_Id, { GroupName: name });
+    if (upd) { setRenameGroup(null); loadGroups(); toast.success('Название обновлено'); }
+  };
+
 
   const handleAddMember = async (groupId: number, userId: number) => {
     await groupsApi.addMember(groupId, userId);
@@ -94,9 +105,14 @@ const GroupsPage: React.FC = () => {
                 </div>
               </div>
               {canManage && (
-                <button onClick={() => handleDelete(group.PK_Id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => { setRenameGroup(group); setRenameValue(group.GroupName || ''); }} className="p-1.5 rounded-lg hover:bg-muted" title="Переименовать">
+                    <Edit2 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <button onClick={() => handleDelete(group.PK_Id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
               )}
             </div>
 
@@ -173,6 +189,19 @@ const GroupsPage: React.FC = () => {
                 );
               });
             })()}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renameGroup} onOpenChange={(o) => !o && setRenameGroup(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader><DialogTitle>Переименовать группу</DialogTitle></DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-2">
+              <Label className="font-semibold">Новое название *</Label>
+              <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} maxLength={80} className="rounded-xl h-11" autoFocus />
+            </div>
+            <Button onClick={handleRename} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
           </div>
         </DialogContent>
       </Dialog>

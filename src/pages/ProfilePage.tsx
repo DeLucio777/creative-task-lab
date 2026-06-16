@@ -8,7 +8,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
-import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2 } from 'lucide-react';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
 
 const roleLabels: Record<string, string> = {
@@ -35,6 +37,13 @@ const ProfilePage: React.FC = () => {
   const [childInfo, setChildInfo] = useState<ChildInfo | null>(null);
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [educatorRec, setEducatorRec] = useState<Educator | null>(null);
+  const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
+  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string } | null>(null);
+
+  const isManager = role === 'admin' || role === 'educator';
+  const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
+
+  const loadAchievements = () => achievementsApi.getAll().then(setAllAchievements);
 
   useEffect(() => {
     if (!user) return;
@@ -67,8 +76,29 @@ const ProfilePage: React.FC = () => {
       childInfoApi.getAll().then(all => setChildInfo(all.find(i => i.FK_user_id === user.PK_UserId) ?? null));
       diseasesApi.getAll().then(setDiseases);
     }
+
+    if (role === 'admin' || role === 'educator') {
+      loadAchievements();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.PK_UserId, role]);
+
+  const saveAchievement = async () => {
+    if (!achDialog || !user) return;
+    const name = achDialog.name.trim();
+    if (!name) { toast.error('Введите название'); return; }
+    if (achDialog.id) {
+      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description });
+      if (upd) { setAchDialog(null); loadAchievements(); toast.success('Достижение обновлено'); }
+    } else {
+      const c = await achievementsApi.create({ name, description: achDialog.description, created_by: user.PK_UserId });
+      if (c) { setAchDialog(null); loadAchievements(); toast.success('Достижение создано'); }
+    }
+  };
+
+  const deleteAchievement = async (id: number) => {
+    if (await achievementsApi.delete(id)) { loadAchievements(); toast.success('Удалено'); }
+  };
 
   const handleSave = async () => {
     if (!user) return;
@@ -264,6 +294,65 @@ const ProfilePage: React.FC = () => {
           </div>
         </>
       )}
+
+      {isManager && (
+        <div className="bg-card rounded-2xl border-2 border-border p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-warning/20 flex items-center justify-center"><Trophy className="h-5 w-5 text-warning" /></div>
+              <h2 className="font-bold text-foreground">🏆 Каталог достижений ({allAchievements.length})</h2>
+            </div>
+            <Button onClick={() => setAchDialog({ name: '', description: '' })} variant="outline" className="rounded-xl font-bold gap-2">
+              <Plus className="h-4 w-4" /> Создать
+            </Button>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+            {allAchievements.map(a => {
+              const editable = canEditAch(a);
+              return (
+                <div key={a.id} className="border-2 border-border rounded-2xl p-4">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <Trophy className="h-5 w-5 text-warning" />
+                      <p className="font-bold text-sm text-foreground">{a.name || '—'}</p>
+                    </div>
+                    {editable && (
+                      <div className="flex gap-1">
+                        <button onClick={() => setAchDialog({ id: a.id, name: a.name ?? '', description: a.description ?? '' })} className="p-1.5 rounded-lg hover:bg-muted"><Edit2 className="h-4 w-4 text-muted-foreground" /></button>
+                        <button onClick={() => deleteAchievement(a.id)} className="p-1.5 rounded-lg hover:bg-destructive/10"><Trash2 className="h-4 w-4 text-destructive" /></button>
+                      </div>
+                    )}
+                  </div>
+                  {a.description && <p className="text-xs text-muted-foreground">{a.description}</p>}
+                  {!editable && <p className="text-xs italic text-muted-foreground mt-2">Только для просмотра</p>}
+                </div>
+              );
+            })}
+            {allAchievements.length === 0 && (
+              <p className="col-span-full text-sm text-muted-foreground text-center py-6">Достижений пока нет</p>
+            )}
+          </div>
+        </div>
+      )}
+
+      <Dialog open={!!achDialog} onOpenChange={(o) => !o && setAchDialog(null)}>
+        <DialogContent className="rounded-2xl">
+          <DialogHeader><DialogTitle>{achDialog?.id ? 'Редактировать достижение' : 'Новое достижение'}</DialogTitle></DialogHeader>
+          {achDialog && (
+            <div className="space-y-4 mt-2">
+              <div className="space-y-2">
+                <Label className="font-semibold">Название *</Label>
+                <Input value={achDialog.name} onChange={e => setAchDialog({ ...achDialog, name: e.target.value })} maxLength={120} className="rounded-xl h-11" autoFocus />
+              </div>
+              <div className="space-y-2">
+                <Label className="font-semibold">Описание</Label>
+                <Textarea value={achDialog.description} onChange={e => setAchDialog({ ...achDialog, description: e.target.value })} maxLength={500} className="rounded-xl" rows={3} />
+              </div>
+              <Button onClick={saveAchievement} className="w-full h-11 font-bold rounded-xl">Сохранить</Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

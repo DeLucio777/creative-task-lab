@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { childrenApi, educatorsApi, diseasesApi } from '@/services/entitiesApi';
+import { childrenApi, educatorsApi, diseasesApi, usersApi } from '@/services/entitiesApi';
 import { authApi } from '@/services/authApi';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Child, Disease } from '@/types/models';
@@ -21,7 +21,7 @@ const ChildrenPage: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editingChild, setEditingChild] = useState<Child | null>(null);
   const [viewingChild, setViewingChild] = useState<Child | null>(null);
-  const empty = { FullName: '', age: '', speak_level: '', FK_disease_id: 0, email: '', phone: '', UserLogin: '', UserPassword: '' };
+  const empty = { FullName: '', age: '', speak_level: '', FK_disease_id: 0, email: '', phone: '', UserLogin: '', UserPassword: '', NewPassword: '' };
   const [form, setForm] = useState(empty);
 
   const canEdit = role === 'admin';
@@ -55,7 +55,7 @@ const ChildrenPage: React.FC = () => {
       FK_disease_id: c.FK_disease_id ?? 0,
       email: c.email ?? '',
       phone: c.phone ?? '',
-      UserLogin: '', UserPassword: '',
+      UserLogin: '', UserPassword: '', NewPassword: '',
     });
     setDialogOpen(true);
   };
@@ -78,6 +78,9 @@ const ChildrenPage: React.FC = () => {
       phone: form.phone || undefined,
     };
     if (form.phone && !isValidBelarusPhone(form.phone)) { toast.error('Неверный формат телефона'); return; }
+    if (patch.age !== undefined && (!Number.isFinite(patch.age) || patch.age < 1)) {
+      toast.error('Возраст должен быть не меньше 1'); return;
+    }
 
     if (editingChild) {
       const errs = validate(editSchema, form);
@@ -85,6 +88,14 @@ const ChildrenPage: React.FC = () => {
       const upd = await childrenApi.update(editingChild.PK_ChildId, patch);
       if (upd) {
         setChildren(prev => prev.map(c => c.PK_ChildId === editingChild.PK_ChildId ? upd : c));
+        // Admin может менять логин/пароль
+        const credPatch: Partial<{ UserLogin: string; UserPassword: string }> = {};
+        if (form.UserLogin.trim()) credPatch.UserLogin = form.UserLogin.trim();
+        if (form.NewPassword) {
+          if (form.NewPassword.length < 4) { toast.error('Пароль: мин. 4 символа'); return; }
+          credPatch.UserPassword = form.NewPassword;
+        }
+        if (Object.keys(credPatch).length) await usersApi.update(editingChild.PK_ChildId, credPatch);
         toast.success('Данные обновлены');
       }
     } else {
@@ -196,7 +207,7 @@ const ChildrenPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="font-semibold">Возраст</Label>
-                <Input type="number" min={0} max={100} value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} className="rounded-xl h-11" />
+                <Input type="number" min={1} max={100} value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Уровень речи</Label>
@@ -220,12 +231,20 @@ const ChildrenPage: React.FC = () => {
                 <Input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: formatBelarusPhone(e.target.value) }))} placeholder={BY_PHONE_PLACEHOLDER} className="rounded-xl h-11" />
               </div>
             </div>
-            {!editingChild && (
+            {!editingChild ? (
               <div className="border-t border-border pt-4 space-y-3">
                 <p className="text-sm font-bold text-foreground">🔐 Учётные данные</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" /></div>
                   <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные (опционально)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Новый логин</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Новый пароль</Label><Input type="password" value={form.NewPassword} onChange={e => setForm(f => ({ ...f, NewPassword: e.target.value }))} maxLength={64} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
                 </div>
               </div>
             )}

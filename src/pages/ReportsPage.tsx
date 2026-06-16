@@ -14,7 +14,7 @@ import type {
   Achievement,
   UserAchievement
 } from '@/types/models';
-import { Calendar, Download, FileText, BarChart3 } from 'lucide-react';
+import { Download, FileText, BarChart3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
@@ -29,13 +29,6 @@ import * as XLSX from 'xlsx';
 type Row = (string | number)[];
 type ReportData = { title: string; headers: string[]; rows: Row[] };
 
-const inDate = (iso: string | undefined, from: string, to: string) => {
-  if (!iso) return !from && !to;
-  const d = new Date(iso);
-  if (from && d < new Date(from)) return false;
-  if (to) { const e = new Date(to); e.setHours(23, 59, 59, 999); if (d > e) return false; }
-  return true;
-};
 
 const exportXLSX = (data: ReportData) => {
   const ws = XLSX.utils.aoa_to_sheet([data.headers, ...data.rows]);
@@ -128,8 +121,6 @@ const ReportsPage: React.FC = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [diseases, setDiseases] = useState<Disease[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [childId, setChildId] = useState<number>(0);
   const [educatorId, setEducatorId] = useState<number>(0);
 
@@ -175,22 +166,37 @@ const ReportsPage: React.FC = () => {
     return [...ids].map(eid => educators.find(e => e.PK_EducatorId === eid)?.FullName || `#${eid}`).join(', ');
   };
 
-  // УНИКАЛИЗАЦИЯ ВСЕХ ДАННЫХ ОДНИМ БЛОКОМ
-  const progressUnique = [
-    ...new Map(progress.map(p => [p.user_id, p])).values()
-  ];
+  // Применяем фильтры детей: по выбранному ребёнку и по педагогу (через группы)
+  const filteredChildIds = useMemo(() => {
+    let ids = new Set(children.map(c => c.PK_ChildId));
+    if (childId) ids = new Set([childId].filter(i => ids.has(i)));
+    if (educatorId) {
+      const eduGroups = new Set(groups.filter(g => g.FK_Teacher_id === educatorId).map(g => g.PK_Id));
+      const eduChildren = new Set(groupMembers.filter(m => eduGroups.has(m.FK_group_id)).map(m => m.FK_user_id));
+      ids = new Set([...ids].filter(i => eduChildren.has(i)));
+    }
+    return ids;
+  }, [children, childId, educatorId, groups, groupMembers]);
 
-  const listItemsUnique = [
-    ...new Map(listItems.map(i => [`${i.user_id}_${i.task_id}`, i])).values()
-  ];
+  const childrenUnique = useMemo(
+    () => [...new Map(children.map(c => [c.PK_ChildId, c])).values()].filter(c => filteredChildIds.has(c.PK_ChildId)),
+    [children, filteredChildIds]
+  );
 
-  const childrenUnique = [
-    ...new Map(children.map(c => [c.PK_ChildId, c])).values()
-  ];
+  const progressUnique = useMemo(
+    () => [...new Map(progress.map(p => [p.user_id, p])).values()].filter(p => filteredChildIds.has(p.user_id)),
+    [progress, filteredChildIds]
+  );
 
-  const historyUnique = [
-    ...new Map(listItems.map(i => [`${i.task_list_id}_${i.task_id}_${i.user_id}`, i])).values()
-  ];
+  const listItemsUnique = useMemo(
+    () => [...new Map(listItems.map(i => [`${i.user_id}_${i.task_id}`, i])).values()].filter(i => filteredChildIds.has(i.user_id)),
+    [listItems, filteredChildIds]
+  );
+
+  const historyUnique = useMemo(
+    () => [...new Map(listItems.map(i => [`${i.task_list_id}_${i.task_id}_${i.user_id}`, i])).values()].filter(i => filteredChildIds.has(i.user_id)),
+    [listItems, filteredChildIds]
+  );
 
 
 // 1. Отчёт по прогрессу детей
@@ -283,7 +289,9 @@ const ReportsPage: React.FC = () => {
       'Прогресс %'
     ],
 
-    rows: groups.map(group => {
+    rows: groups
+        .filter(g => !educatorId || g.FK_Teacher_id === educatorId)
+        .map(group => {
 
       const teacher =
           educators.find(
@@ -292,7 +300,8 @@ const ReportsPage: React.FC = () => {
 
       const members =
           groupMembers.filter(
-              m => m.FK_group_id === group.PK_Id
+              m => m.FK_group_id === group.PK_Id &&
+                   (!childId || m.FK_user_id === childId)
           );
 
       const childIds =
@@ -330,7 +339,9 @@ const ReportsPage: React.FC = () => {
     groups,
     groupMembers,
     educators,
-    listItemsUnique
+    listItemsUnique,
+    educatorId,
+    childId
   ]);
 
 
@@ -463,15 +474,7 @@ const ReportsPage: React.FC = () => {
 
       <div className="bg-card rounded-2xl border-2 border-border p-5 space-y-4">
         <p className="font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Фильтры</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">С</Label>
-            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">По</Label>
-            <div className="relative"><Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" /><Input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="pl-9 rounded-xl h-10" /></div>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div className="space-y-1.5">
             <Label className="text-xs font-semibold">Ребёнок</Label>
             <select value={childId} onChange={e => setChildId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">

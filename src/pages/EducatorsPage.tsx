@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { educatorsApi } from '@/services/entitiesApi';
+import { educatorsApi, usersApi } from '@/services/entitiesApi';
 import { authApi } from '@/services/authApi';
 import type { Educator } from '@/types/models';
 import { Button } from '@/components/ui/button';
@@ -28,7 +28,7 @@ const EducatorsPage: React.FC = () => {
   const [search, setSearch] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editing, setEditing] = useState<Educator | null>(null);
-  const empty = { FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '' };
+  const empty = { FullName: '', Specialization: '', Phone: '', Email: '', UserLogin: '', UserPassword: '', NewPassword: '' };
   const [form, setForm] = useState(empty);
 
   useEffect(() => { educatorsApi.getAll().then(setEducators); }, []);
@@ -38,7 +38,7 @@ const EducatorsPage: React.FC = () => {
   const openCreate = () => { setEditing(null); setForm(empty); setDialogOpen(true); };
   const openEdit = (e: Educator) => {
     setEditing(e);
-    setForm({ FullName: e.FullName, Specialization: e.Specialization || '', Phone: e.Phone || '', Email: e.Email || '', UserLogin: '', UserPassword: '' });
+    setForm({ FullName: e.FullName, Specialization: e.Specialization || '', Phone: e.Phone || '', Email: e.Email || '', UserLogin: '', UserPassword: '', NewPassword: '' });
     setDialogOpen(true);
   };
 
@@ -50,6 +50,13 @@ const EducatorsPage: React.FC = () => {
         FullName: form.FullName.trim(), Specialization: form.Specialization, Phone: form.Phone, Email: form.Email,
       });
       if (upd) {
+        const credPatch: Partial<{ UserLogin: string; UserPassword: string }> = {};
+        if (form.UserLogin.trim()) credPatch.UserLogin = form.UserLogin.trim();
+        if (form.NewPassword) {
+          if (form.NewPassword.length < 4) { toast.error('Пароль: мин. 4 символа'); return; }
+          credPatch.UserPassword = form.NewPassword;
+        }
+        if (Object.keys(credPatch).length) await usersApi.update(editing.PK_EducatorId, credPatch);
         setEducators(prev => prev.map(e => e.PK_EducatorId === editing.PK_EducatorId ? upd : e));
         toast.success('Изменения сохранены');
         setDialogOpen(false);
@@ -137,12 +144,20 @@ const EducatorsPage: React.FC = () => {
               <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: formatBelarusPhone(e.target.value) }))} onFocus={() => { if (!form.Phone) setForm(f => ({ ...f, Phone: '+375 ' })); }} placeholder={BY_PHONE_PLACEHOLDER} inputMode="tel" className={`rounded-xl h-11 ${form.Phone && !isValidBelarusPhone(form.Phone) ? 'border-destructive' : ''}`} /></div>
               <div className="space-y-2"><Label className="font-semibold">Email</Label><Input type="email" value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} maxLength={255} className="rounded-xl h-11" /></div>
             </div>
-            {!editing && (
+            {!editing ? (
               <div className="border-t border-border pt-4 space-y-3">
                 <p className="text-sm font-bold text-foreground">🔐 Учётные данные для входа</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" /></div>
                   <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные (опционально)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Новый логин</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Новый пароль</Label><Input type="password" value={form.NewPassword} onChange={e => setForm(f => ({ ...f, NewPassword: e.target.value }))} maxLength={64} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
                 </div>
               </div>
             )}
