@@ -105,9 +105,14 @@ const GroupsPage: React.FC = () => {
                 </div>
               </div>
               {canManage && (
-                <button onClick={() => handleDelete(group.PK_Id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </button>
+                <div className="flex gap-1">
+                  <button onClick={() => { setRenameGroup(group); setRenameValue(group.GroupName || ''); }} className="p-1.5 rounded-lg hover:bg-muted" title="Переименовать">
+                    <Edit2 className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                  <button onClick={() => handleDelete(group.PK_Id)} className="p-1.5 rounded-lg hover:bg-destructive/10">
+                    <Trash2 className="h-4 w-4 text-destructive" />
+                  </button>
+                </div>
               )}
             </div>
 
