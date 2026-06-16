@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskListsApi, achievementsApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
+import { mediaApi } from '@/services/mediaApi';
 import { useNavigate } from 'react-router-dom';
-import type { TaskList, TaskListItem, Task, Achievement, UserAchievement } from '@/types/models';
+import type { TaskList, TaskListItem, Task, Achievement, UserAchievement, MediaCatalog } from '@/types/models';
 import { Trophy, PlayCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
