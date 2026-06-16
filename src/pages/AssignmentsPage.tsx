@@ -40,7 +40,7 @@ const AssignmentsPage: React.FC = () => {
   const [taskSearch, setTaskSearch] = useState('');
   const [taskTemplateFilter, setTaskTemplateFilter] = useState<number | 0>(0);
   const [taskDiffFilter, setTaskDiffFilter] = useState<string>('');
-  const [onlyMine, setOnlyMine] = useState(true);
+  const [taskScope, setTaskScope] = useState<'mine' | 'public' | 'both'>('both');
 
   const canManage = role === 'admin' || role === 'educator';
 
