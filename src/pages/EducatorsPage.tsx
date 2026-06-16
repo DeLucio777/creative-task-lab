@@ -144,12 +144,20 @@ const EducatorsPage: React.FC = () => {
               <div className="space-y-2"><Label className="font-semibold">Телефон</Label><Input value={form.Phone} onChange={e => setForm(f => ({ ...f, Phone: formatBelarusPhone(e.target.value) }))} onFocus={() => { if (!form.Phone) setForm(f => ({ ...f, Phone: '+375 ' })); }} placeholder={BY_PHONE_PLACEHOLDER} inputMode="tel" className={`rounded-xl h-11 ${form.Phone && !isValidBelarusPhone(form.Phone) ? 'border-destructive' : ''}`} /></div>
               <div className="space-y-2"><Label className="font-semibold">Email</Label><Input type="email" value={form.Email} onChange={e => setForm(f => ({ ...f, Email: e.target.value }))} maxLength={255} className="rounded-xl h-11" /></div>
             </div>
-            {!editing && (
+            {!editing ? (
               <div className="border-t border-border pt-4 space-y-3">
                 <p className="text-sm font-bold text-foreground">🔐 Учётные данные для входа</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2"><Label className="font-semibold">Логин *</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} className="rounded-xl h-11" /></div>
                   <div className="space-y-2"><Label className="font-semibold">Пароль *</Label><Input type="password" value={form.UserPassword} onChange={e => setForm(f => ({ ...f, UserPassword: e.target.value }))} maxLength={64} className="rounded-xl h-11" /></div>
+                </div>
+              </div>
+            ) : (
+              <div className="border-t border-border pt-4 space-y-3">
+                <p className="text-sm font-bold text-foreground">🔐 Учётные данные (опционально)</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-2"><Label className="font-semibold">Новый логин</Label><Input value={form.UserLogin} onChange={e => setForm(f => ({ ...f, UserLogin: e.target.value }))} maxLength={40} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
+                  <div className="space-y-2"><Label className="font-semibold">Новый пароль</Label><Input type="password" value={form.NewPassword} onChange={e => setForm(f => ({ ...f, NewPassword: e.target.value }))} maxLength={64} placeholder="оставьте пустым" className="rounded-xl h-11" /></div>
                 </div>
               </div>
             )}
