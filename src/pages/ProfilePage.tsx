@@ -84,6 +84,8 @@ const ProfilePage: React.FC = () => {
 
     if (role === 'admin' || role === 'educator') {
       loadAchievements();
+      mediaApi.getMedia().then(setMediaList);
+      mediaApi.getPecs().then(setPecsListAll);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.PK_UserId, role]);
@@ -93,10 +95,10 @@ const ProfilePage: React.FC = () => {
     const name = achDialog.name.trim();
     if (!name) { toast.error('Введите название'); return; }
     if (achDialog.id) {
-      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description });
+      const upd = await achievementsApi.update(achDialog.id, { name, description: achDialog.description, image_id: achDialog.image_id });
       if (upd) { setAchDialog(null); loadAchievements(); toast.success('Достижение обновлено'); }
     } else {
-      const c = await achievementsApi.create({ name, description: achDialog.description, created_by: user.PK_UserId });
+      const c = await achievementsApi.create({ name, description: achDialog.description, image_id: achDialog.image_id, created_by: user.PK_UserId });
       if (c) { setAchDialog(null); loadAchievements(); toast.success('Достижение создано'); }
     }
   };
