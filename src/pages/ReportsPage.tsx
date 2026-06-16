@@ -14,7 +14,7 @@ import type {
   Achievement,
   UserAchievement
 } from '@/types/models';
-import { Calendar, Download, FileText, BarChart3 } from 'lucide-react';
+import { Download, FileText, BarChart3 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
