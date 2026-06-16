@@ -23,7 +23,7 @@ import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, Headi
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import html2canvas from 'html2canvas';
 import * as XLSX from 'xlsx';
 
 type Row = (string | number)[];
@@ -38,15 +38,78 @@ const exportXLSX = (data: ReportData) => {
   toast.success('Экспортировано в Excel');
 };
 
-const exportPDF = (data: ReportData) => {
-  const doc = new jsPDF();
-  doc.setFont('helvetica');
-  doc.setFontSize(14);
-  doc.text(data.title, 14, 16);
-  autoTable(doc, { head: [data.headers], body: data.rows.map(r => r.map(String)), startY: 22, styles: { fontSize: 9 } });
-  doc.save(`${data.title}.pdf`);
-  toast.success('Экспортировано в PDF');
+/**
+ * jsPDF встроенный шрифт helvetica не содержит кириллицу — русские символы
+ * превращались в «??????». Чтобы поддержать Unicode без подгрузки тяжёлых TTF,
+ * рендерим таблицу через offscreen DOM → html2canvas → PNG → jsPDF.
+ * Браузерный шрифт страницы (Nunito/Arial) корректно рисует кириллицу.
+ */
+const exportPDF = async (data: ReportData) => {
+  // Строим offscreen-узел с таблицей и стилями, видимый для html2canvas
+  const wrapper = document.createElement('div');
+  wrapper.style.position = 'fixed';
+  wrapper.style.left = '-10000px';
+  wrapper.style.top = '0';
+  wrapper.style.width = '1100px';
+  wrapper.style.padding = '24px';
+  wrapper.style.background = '#ffffff';
+  wrapper.style.color = '#1a1a1a';
+  wrapper.style.fontFamily = "'Nunito', Arial, sans-serif";
+  wrapper.style.fontSize = '14px';
+
+  const escape = (s: string) => s.replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c] as string));
+
+  wrapper.innerHTML = `
+    <h1 style="font-size:22px;font-weight:800;margin:0 0 16px;">${escape(data.title)}</h1>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead>
+        <tr>${data.headers.map(h => `<th style="border:1px solid #b8c3cf;background:#d5e8f0;padding:8px 10px;text-align:left;font-weight:700;">${escape(h)}</th>`).join('')}</tr>
+      </thead>
+      <tbody>
+        ${data.rows.length === 0
+          ? `<tr><td colspan="${data.headers.length}" style="border:1px solid #b8c3cf;padding:16px;text-align:center;color:#888;">Нет данных</td></tr>`
+          : data.rows.map(r => `<tr>${r.map(c => `<td style="border:1px solid #d6dce3;padding:6px 10px;vertical-align:top;">${escape(String(c))}</td>`).join('')}</tr>`).join('')}
+      </tbody>
+    </table>
+    <p style="margin-top:16px;font-size:11px;color:#888;text-align:right;">Сформировано: ${new Date().toLocaleString('ru')}</p>
+  `;
+  document.body.appendChild(wrapper);
+  try {
+    const canvas = await html2canvas(wrapper, { scale: 2, backgroundColor: '#ffffff' });
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const margin = 10;
+    const imgW = pageW - margin * 2;
+    const imgH = (canvas.height * imgW) / canvas.width;
+
+    if (imgH <= pageH - margin * 2) {
+      pdf.addImage(imgData, 'PNG', margin, margin, imgW, imgH);
+    } else {
+      // Постранично «разрезаем» длинное изображение
+      let remaining = imgH;
+      let position = 0;
+      const pageContentH = pageH - margin * 2;
+      while (remaining > 0) {
+        pdf.addImage(imgData, 'PNG', margin, margin - position, imgW, imgH);
+        remaining -= pageContentH;
+        position += pageContentH;
+        if (remaining > 0) pdf.addPage();
+      }
+    }
+    pdf.save(`${data.title}.pdf`);
+    toast.success('Экспортировано в PDF');
+  } catch (e) {
+    console.error(e);
+    toast.error('Не удалось создать PDF');
+  } finally {
+    document.body.removeChild(wrapper);
+  }
 };
+
 
 const exportDOCX = async (data: ReportData) => {
   const border = { style: BorderStyle.SINGLE, size: 1, color: '999999' };
