@@ -516,28 +516,32 @@ const ReportsPage: React.FC = () => {
   ]);
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold tracking-tight text-foreground">📊 Отчётность</h1>
+    <div>
+      <div className="page-sticky-header">
+        <h1 className="text-2xl font-bold tracking-tight text-foreground mb-4">📊 Отчётность</h1>
 
-      <div className="bg-card rounded-2xl border-2 border-border p-5 space-y-4">
-        <p className="font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Фильтры</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Ребёнок</Label>
-            <select value={childId} onChange={e => setChildId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
-              <option value={0}>Все дети</option>
-              {children.map(c => <option key={c.PK_ChildId} value={c.PK_ChildId}>{c.FullName}</option>)}
-            </select>
-          </div>
-          <div className="space-y-1.5">
-            <Label className="text-xs font-semibold">Педагог</Label>
-            <select value={educatorId} onChange={e => setEducatorId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
-              <option value={0}>Все педагоги</option>
-              {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
-            </select>
+        <div className="bg-card rounded-2xl border-2 border-border p-4 space-y-3">
+          <p className="font-bold flex items-center gap-2"><BarChart3 className="h-4 w-4" /> Фильтры</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Ребёнок</Label>
+              <select value={childId} onChange={e => setChildId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
+                <option value={0}>Все дети</option>
+                {children.map(c => <option key={c.PK_ChildId} value={c.PK_ChildId}>{c.FullName}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold">Педагог</Label>
+              <select value={educatorId} onChange={e => setEducatorId(Number(e.target.value))} className="w-full text-sm rounded-xl border-2 border-border bg-card p-2 h-10 font-medium">
+                <option value={0}>Все педагоги</option>
+                {educators.map(e => <option key={e.PK_EducatorId} value={e.PK_EducatorId}>{e.FullName}</option>)}
+              </select>
+            </div>
           </div>
         </div>
       </div>
+      <div className="mb-6" />
+
 
       <Tabs defaultValue="child-progress">
         <TabsList className="flex flex-wrap h-auto">
