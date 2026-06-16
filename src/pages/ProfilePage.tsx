@@ -35,6 +35,13 @@ const ProfilePage: React.FC = () => {
   const [childInfo, setChildInfo] = useState<ChildInfo | null>(null);
   const [diseases, setDiseases] = useState<Disease[]>([]);
   const [educatorRec, setEducatorRec] = useState<Educator | null>(null);
+  const [allAchievements, setAllAchievements] = useState<Achievement[]>([]);
+  const [achDialog, setAchDialog] = useState<{ id?: number; name: string; description: string } | null>(null);
+
+  const isManager = role === 'admin' || role === 'educator';
+  const canEditAch = (a: Achievement) => role === 'admin' || a.created_by === user?.PK_UserId;
+
+  const loadAchievements = () => achievementsApi.getAll().then(setAllAchievements);
 
   useEffect(() => {
     if (!user) return;
