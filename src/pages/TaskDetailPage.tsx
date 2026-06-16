@@ -398,7 +398,7 @@ const TaskDetailPage: React.FC = () => {
 
   // Дедлайн назначения для текущего ребёнка
   const [chainDeadline, setChainDeadline] = useState<Date | null>(null);
-  const [chainItemId, setChainItemId] = useState<number | null>(null);
+
 
   const isAdmin = role === 'admin';
   const isOwnerEducator = role === 'educator' && task?.FK_UserId === user?.PK_UserId;
