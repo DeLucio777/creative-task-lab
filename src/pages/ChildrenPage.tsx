@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { childrenApi, educatorsApi, diseasesApi } from '@/services/entitiesApi';
+import { childrenApi, educatorsApi, diseasesApi, usersApi } from '@/services/entitiesApi';
 import { authApi } from '@/services/authApi';
 import { useAuth } from '@/contexts/AuthContext';
 import type { Child, Disease } from '@/types/models';
