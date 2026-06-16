@@ -355,8 +355,7 @@ const SortGame: React.FC<{ items: SortItem[]; pecsList: CatalogPECS[]; onComplet
 const TaskDetailPage: React.FC = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const isAdmin = user?.FK_RoleId === 1;
+  const { user, role } = useAuth();
   const taskId = Number(id);
 
   const [task, setTask] = useState<Task | null>(null);
@@ -365,7 +364,15 @@ const TaskDetailPage: React.FC = () => {
   const [constructions, setConstructions] = useState<TaskConstruction[]>([]);
   const [loading, setLoading] = useState(true);
   const [started, setStarted] = useState(false);
-  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | null>(null);
+  const [result, setResult] = useState<'correct' | 'wrong' | 'timeout' | 'expired' | null>(null);
+
+  // Дедлайн назначения для текущего ребёнка
+  const [chainDeadline, setChainDeadline] = useState<Date | null>(null);
+  const [chainItemId, setChainItemId] = useState<number | null>(null);
+
+  const isAdmin = role === 'admin';
+  const isOwnerEducator = role === 'educator' && task?.FK_UserId === user?.PK_UserId;
+  const canEditTask = isAdmin || isOwnerEducator;
 
   // Подсказка
   const [hintShown, setHintShown] = useState(false);
@@ -406,6 +413,42 @@ const TaskDetailPage: React.FC = () => {
       setLoading(false);
     });
   }, [taskId]);
+
+  // Поиск дедлайна цепочки для текущего ребёнка
+  useEffect(() => {
+    if (!user || role !== 'parent') { setChainDeadline(null); setChainItemId(null); return; }
+    (async () => {
+      const [allItems, allLists] = await Promise.all([
+        taskListsApi.getAllItems(),
+        taskListsApi.getAll(),
+      ]);
+      const myItem = allItems.find(i => i.task_id === taskId && i.user_id === user.PK_UserId && !i.complited);
+      if (!myItem) return;
+      const list = allLists.find(l => l.PK_id === myItem.task_list_id);
+      setChainItemId(myItem.id);
+      if (list?.date_complite) setChainDeadline(new Date(list.date_complite));
+    })();
+  }, [taskId, user, role]);
+
+  const isExpired = chainDeadline ? chainDeadline.getTime() < Date.now() : false;
+
+  // Если просрочено и ребёнок открыл — закрываем доступ и фиксируем как невыполненное
+  useEffect(() => {
+    if (isExpired && role === 'parent' && user && result === null) {
+      setResult('expired');
+      // фиксируем «не выполнено»: увеличиваем счётчик пропущенных
+      (async () => {
+        const all = await childInfoApi.getAll();
+        const cur = all.find(i => i.FK_user_id === user.PK_UserId)
+          || { FK_user_id: user.PK_UserId, complited_tasks_count: 0, helpe_used_count: 0, miss_tasks_count: 0 };
+        await childInfoApi.save(user.PK_UserId, {
+          ...cur,
+          miss_tasks_count: (cur.miss_tasks_count || 0) + 1,
+        });
+      })();
+    }
+  }, [isExpired, role, user, result]);
+
 
   // Derive timer + hint settings from constructions
   const timerEnabled = constructions.find(c => c.ParameterName === 'TimerEnabled')?.ParameterValue === 'true';
