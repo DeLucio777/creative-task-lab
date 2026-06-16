@@ -56,7 +56,7 @@ const AppSidebar: React.FC<Props> = ({ collapsed = false }) => {
           <div className="text-2xl text-center" title={`${displayName} • ${roleLabel[role]}`}>🧩</div>
         ) : (
           <>
-            <h2 className="text-xl font-bold tracking-tight text-foreground">🧩 PECS Editor</h2>
+            <h2 className="text-xl font-bold tracking-tight text-foreground">🧩</h2>
             <p className="text-xs text-muted-foreground mt-1 font-medium truncate">
               {displayName} • {roleLabel[role]}
             </p>

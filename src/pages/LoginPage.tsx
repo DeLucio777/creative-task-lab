@@ -64,11 +64,7 @@ const LoginPage: React.FC = () => {
             Войти
           </Button>
         </form>
-
-        <div className="mt-6 space-y-1">
-          <p className="text-xs text-muted-foreground text-center font-medium">Тестовые аккаунты:</p>
-          <p className="text-xs text-muted-foreground text-center">👑 admin / admin123 &nbsp;|&nbsp; 🎓 educator / edu123 &nbsp;|&nbsp; 👨‍👩‍👧 parent / parent123</p>
-        </div>
+        
       </div>
     </div>
   );
