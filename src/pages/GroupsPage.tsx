@@ -81,14 +81,18 @@ const GroupsPage: React.FC = () => {
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-        <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">👥 Группы учеников</h1>
-        {canManage && (
-          <Button onClick={() => setCreateOpen(true)} className="gap-2 rounded-xl font-bold h-11">
-            <Plus className="h-4 w-4" /> Создать группу
-          </Button>
-        )}
+      <div className="page-sticky-header">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">👥 Группы учеников</h1>
+          {canManage && (
+            <Button onClick={() => setCreateOpen(true)} className="gap-2 rounded-xl font-bold h-11">
+              <Plus className="h-4 w-4" /> Создать группу
+            </Button>
+          )}
+        </div>
       </div>
+      <div className="mb-6" />
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {groups.map(({ group, members }) => (
