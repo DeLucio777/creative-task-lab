@@ -2,8 +2,9 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { taskListsApi, achievementsApi } from '@/services/entitiesApi';
 import { tasksApi } from '@/services/tasksApi';
+import { mediaApi } from '@/services/mediaApi';
 import { useNavigate } from 'react-router-dom';
-import type { TaskList, TaskListItem, Task, Achievement, UserAchievement } from '@/types/models';
+import type { TaskList, TaskListItem, Task, Achievement, UserAchievement, MediaCatalog } from '@/types/models';
 import { Trophy, PlayCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
@@ -19,6 +20,7 @@ const ChildHomePage: React.FC = () => {
   const [data, setData] = useState<ListWithItems[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAch, setUserAch] = useState<UserAchievement[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ const ChildHomePage: React.FC = () => {
       setData(result);
       setAchievements(await achievementsApi.getAll());
       setUserAch(await achievementsApi.getByUser(user.PK_UserId));
+      setMediaList(await mediaApi.getMedia());
       setLoading(false);
     })();
   }, [user]);
@@ -176,9 +179,16 @@ const ChildHomePage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {achievements.map(a => {
             const earned = userAch.find(ua => ua.achivement_id === a.id);
+            const media = a.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
             return (
               <div key={a.id} className={`border-2 rounded-2xl p-4 text-center transition-all ${earned ? 'border-warning bg-warning/5' : 'border-border opacity-40'}`}>
-                <p className="text-4xl mb-2">{earned ? '🏆' : '🔒'}</p>
+                <div className="h-14 mb-2 flex items-center justify-center">
+                  {media ? (
+                    <img src={`http://localhost:3000${media.FilePath}`} alt={a.name || ''} className={`max-h-14 max-w-full object-contain ${earned ? '' : 'grayscale opacity-60'}`} />
+                  ) : (
+                    <span className="text-4xl">{earned ? '🏆' : '🔒'}</span>
+                  )}
+                </div>
                 <p className="font-bold text-sm text-foreground">{a.name}</p>
               </div>
             );

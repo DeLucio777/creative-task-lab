@@ -288,9 +288,16 @@ const ProfilePage: React.FC = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
               {achievements.map(a => {
                 const earned = userAch.find(ua => ua.achivement_id === a.id);
+                const media = a.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
                 return (
                   <div key={a.id} className={`border-2 rounded-2xl p-4 text-center ${earned ? 'border-warning bg-warning/5' : 'border-border opacity-50'}`}>
-                    <p className="text-3xl mb-2">{earned ? '🏆' : '🔒'}</p>
+                    <div className="h-12 mb-2 flex items-center justify-center">
+                      {media ? (
+                        <img src={`http://localhost:3000${media.FilePath}`} alt={a.name || ''} className={`max-h-12 max-w-full object-contain ${earned ? '' : 'grayscale opacity-60'}`} />
+                      ) : (
+                        <span className="text-3xl">{earned ? '🏆' : '🔒'}</span>
+                      )}
+                    </div>
                     <p className="font-bold text-sm text-foreground">{a.name}</p>
                     {a.description && <p className="text-xs text-muted-foreground mt-1">{a.description}</p>}
                   </div>
