@@ -444,7 +444,10 @@ const TaskDetailPage: React.FC = () => {
     });
   }, [taskId]);
 
-  // Поиск дедлайна цепочки для текущего ребёнка
+  // Поиск дедлайна цепочки для текущего ребёнка.
+  // ВАЖНО: одно и то же задание может быть в нескольких цепочках с разными сроками.
+  // Блокируем только если ВСЕ активные (невыполненные) назначения этого задания просрочены.
+  // Если есть хотя бы одна активная цепочка — берём её дедлайн (ближайший в будущем).
   useEffect(() => {
     if (!user || role !== 'parent') { setChainDeadline(null); return; }
     (async () => {
@@ -452,10 +455,34 @@ const TaskDetailPage: React.FC = () => {
         taskListsApi.getAllItems(),
         taskListsApi.getAll(),
       ]);
-      const myItem = allItems.find(i => i.task_id === taskId && i.user_id === user.PK_UserId && !i.complited);
-      if (!myItem) return;
-      const list = allLists.find(l => l.PK_id === myItem.task_list_id);
-      if (list?.date_complite) setChainDeadline(new Date(list.date_complite));
+      const myItems = allItems.filter(i => i.task_id === taskId && i.user_id === user.PK_UserId && !i.complited);
+      if (myItems.length === 0) { setChainDeadline(null); return; }
+
+      const now = Date.now();
+      const withDeadline = myItems
+        .map(i => allLists.find(l => l.PK_id === i.task_list_id))
+        .filter((l): l is NonNullable<typeof l> => !!l);
+
+      // Активные цепочки (без дедлайна или ещё не просроченные)
+      const active = withDeadline.filter(l => !l.date_complite || new Date(l.date_complite).getTime() >= now);
+
+      if (active.length > 0) {
+        // Берём ближайший дедлайн среди активных (или null, если есть бессрочная)
+        const dl = active.reduce<Date | null>((acc, l) => {
+          if (!l.date_complite) return null;
+          const d = new Date(l.date_complite);
+          if (acc === null && !active.some(x => !x.date_complite)) return d;
+          return acc && acc.getTime() < d.getTime() ? acc : d;
+        }, null);
+        setChainDeadline(dl);
+      } else {
+        // Все цепочки с этим заданием просрочены — показываем самый поздний дедлайн (для UI)
+        const latest = withDeadline
+          .filter(l => l.date_complite)
+          .map(l => new Date(l.date_complite!))
+          .sort((a, b) => b.getTime() - a.getTime())[0] ?? null;
+        setChainDeadline(latest);
+      }
     })();
   }, [taskId, user, role]);
 

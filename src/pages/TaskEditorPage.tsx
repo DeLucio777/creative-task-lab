@@ -11,6 +11,7 @@ import { api } from '@/services/api';
 import { useAuth } from '@/contexts/AuthContext';
 import type { CatalogPECS, MediaCatalog } from '@/types/models';
 import TaskPreview from '@/components/TaskPreview';
+import ImagePicker from '@/components/ImagePicker';
 
 type TaskType = 'find_odd' | 'match_image_word' | 'sequence' | 'sort';
 
@@ -41,37 +42,31 @@ const PecsPreview: React.FC<{
   onClear: () => void;
 }> = ({ pecsId, pecsList, onSelect, onClear }) => {
   const selected = pecsId ? pecsList.find(p => p.PK_PECSid === pecsId) : null;
-
-  if (selected) {
-    return (
-      <div className="flex items-center gap-2 p-2 bg-accent/50 rounded-xl border-2 border-primary/20">
-        <div className="w-12 h-12 bg-card rounded-lg border border-border flex items-center justify-center shrink-0">
-          <img src={`http://localhost:3000${selected.filePath}`} alt={selected.Descripti} className="w-8 h-8 object-contain" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <p className="text-xs font-bold text-foreground truncate">{selected.Descripti}</p>
-          <p className="text-xs text-muted-foreground">{selected.Category}</p>
-        </div>
-        <button onClick={onClear} className="text-muted-foreground hover:text-destructive shrink-0">
-          <Trash2 className="h-3.5 w-3.5" />
-        </button>
-      </div>
-    );
-  }
+  const options = pecsList.map(p => ({
+    id: p.PK_PECSid,
+    label: p.Descripti || `PECS #${p.PK_PECSid}`,
+    sublabel: p.Category,
+    filePath: p.filePath,
+  }));
 
   return (
-    <select
-      className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium"
-      onChange={e => onSelect(Number(e.target.value))}
-      defaultValue=""
-    >
-      <option value="" disabled>Выберите PECS...</option>
-      {pecsList.map(p => (
-        <option key={p.PK_PECSid} value={p.PK_PECSid}>
-          {p.Descripti} ({p.Category})
-        </option>
-      ))}
-    </select>
+    <div className="space-y-1.5">
+      <ImagePicker
+        value={pecsId}
+        options={options}
+        onChange={onSelect}
+        placeholder="Выберите PECS-карточку..."
+      />
+      {selected && (
+        <button
+          type="button"
+          onClick={onClear}
+          className="text-xs font-semibold text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1 px-2"
+        >
+          <Trash2 className="h-3 w-3" /> Убрать картинку
+        </button>
+      )}
+    </div>
   );
 };
 
@@ -315,10 +310,17 @@ const TaskEditorPage: React.FC = () => {
             )}
           </div>
           <PecsPreview pecsList={pecsList} pecsId={pair.pecsId} onSelect={pecsId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId } : p))} onClear={() => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, pecsId: undefined } : p))} />
-          <select className="w-full text-sm rounded-xl border-2 border-border bg-card p-2.5 font-medium" value={pair.mediaId ?? ''} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId: Number(e.target.value) } : p))}>
-            <option value="" disabled>Выберите медиа...</option>
-            {mediaList.map(m => <option key={m.PK_MediaId} value={m.PK_MediaId}>{m.Descripti}</option>)}
-          </select>
+          <ImagePicker
+            value={pair.mediaId}
+            options={mediaList.map(m => ({
+              id: m.PK_MediaId,
+              label: m.Descripti || `Медиа #${m.PK_MediaId}`,
+              sublabel: m.FileType,
+              filePath: m.FilePath,
+            }))}
+            onChange={mediaId => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, mediaId } : p))}
+            placeholder="Выберите медиа..."
+          />
           <Input value={pair.word} onChange={e => setMatchPairs(prev => prev.map(p => p.id === pair.id ? { ...p, word: e.target.value } : p))} placeholder="Слово для соотнесения *" className={`rounded-xl h-11 ${!pair.word.trim() ? 'border-destructive' : ''}`} />
         </div>
       ))}
