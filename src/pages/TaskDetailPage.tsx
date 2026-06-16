@@ -579,13 +579,20 @@ const TaskDetailPage: React.FC = () => {
     return (
       <div className="max-w-lg mx-auto text-center py-12">
         <div className="bg-card rounded-2xl border-2 border-border p-10 animate-fade-in">
-          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : '😔'}</p>
+          <p className="text-6xl mb-4">{result === 'correct' ? '🎉' : result === 'timeout' ? '⏰' : result === 'expired' ? '🔒' : '😔'}</p>
           <h2 className="text-2xl font-bold text-foreground mb-2">
-            {result === 'correct' ? 'Готово!' : result === 'timeout' ? 'Время вышло!' : 'Попробуй ещё раз!'}
+            {result === 'correct' ? 'Готово!'
+              : result === 'timeout' ? 'Время вышло!'
+              : result === 'expired' ? 'Срок задания истёк'
+              : 'Попробуй ещё раз!'}
           </h2>
           <p className="text-muted-foreground mb-6 font-medium">
-            {result === 'correct' ? 'Ты справился с заданием!' : result === 'timeout' ? 'К сожалению, время закончилось.' : 'Не расстраивайся, попробуй снова!'}
+            {result === 'correct' ? 'Ты справился с заданием!'
+              : result === 'timeout' ? 'К сожалению, время закончилось.'
+              : result === 'expired' ? 'Это задание больше недоступно. Оно засчитано как невыполненное.'
+              : 'Не расстраивайся, попробуй снова!'}
           </p>
+
           {result === 'correct' && awardedAchievements.length > 0 && (
             <div className="mb-6 p-4 rounded-2xl bg-warning/10 border-2 border-warning">
               <p className="text-3xl mb-1">🏆</p>
