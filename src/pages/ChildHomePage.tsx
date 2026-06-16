@@ -68,25 +68,38 @@ const ChildHomePage: React.FC = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {todayItems.slice(0, 6).map(({ item, list, task }) => (
-              <button
-                key={item.id}
-                onClick={() => task && navigate(`/task/${task.PK_TaskId}`)}
-                className="bg-card border-2 border-border rounded-2xl p-5 text-left hover:border-primary hover:shadow-md transition-all active:scale-[0.98]"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
-                    <PlayCircle className="h-6 w-6 text-primary" />
+            {todayItems.slice(0, 6).map(({ item, list, task }) => {
+              const deadline = list.date_complite ? new Date(list.date_complite) : null;
+              const expired = deadline ? deadline.getTime() < Date.now() : false;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => task && navigate(`/task/${task.PK_TaskId}`)}
+                  className={`bg-card border-2 rounded-2xl p-5 text-left transition-all active:scale-[0.98] ${
+                    expired
+                      ? 'border-destructive/40 bg-destructive/5 opacity-70'
+                      : 'border-border hover:border-primary hover:shadow-md'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${expired ? 'bg-destructive/10' : 'bg-primary/10'}`}>
+                      <PlayCircle className={`h-6 w-6 ${expired ? 'text-destructive' : 'text-primary'}`} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-bold text-foreground">{task?.Title || `Задание #${item.task_id}`}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">📚 {list.Title} · шаг {item.position}</p>
+                      {deadline && (
+                        <p className={`text-xs mt-1 font-semibold ${expired ? 'text-destructive' : 'text-warning'}`}>
+                          {expired ? '🔒 Просрочено' : `⏰ до ${deadline.toLocaleString('ru', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-foreground">{task?.Title || `Задание #${item.task_id}`}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">📚 {list.Title} · шаг {item.position}</p>
-                    {list.date_complite && <p className="text-xs text-warning mt-1 font-semibold">⏰ до {new Date(list.date_complite).toLocaleDateString('ru')}</p>}
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
+
         )}
       </div>
 
