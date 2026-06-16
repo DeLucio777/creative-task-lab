@@ -210,10 +210,8 @@ const ReportsPage: React.FC = () => {
       'Диагноз',
       'Выполнено',
       'Пропущено',
-      'Подсказок',
-      'Достижения'
+      'Подсказок'
     ],
-
     rows: childrenUnique.map(child => {
 
       const childProgress =
@@ -242,19 +240,7 @@ const ReportsPage: React.FC = () => {
               d => d.PK_Id === child.FK_disease_id
           )?.name ?? '—';
 
-      const achNames =
-          userAchievements
-              .filter(
-                  ua => ua.user_id === child.PK_ChildId
-              )
-              .map(
-                  ua =>
-                      achievements.find(
-                          a => a.id === ua.achivement_id
-                      )?.name
-              )
-              .filter(Boolean)
-              .join(', ') || '—';
+     
 
       return [
         child.FullName,
@@ -263,9 +249,7 @@ const ReportsPage: React.FC = () => {
         disease,
         completed,
         missed,
-        hints,
-        achNames
-      ];
+        hints];
     }),
   }), [
     childrenUnique,
