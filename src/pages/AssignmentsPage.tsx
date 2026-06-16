@@ -78,7 +78,7 @@ const AssignmentsPage: React.FC = () => {
   const openCreate = () => {
     setForm({ Title: '', Descripti: '', date_complite: '', FK_achievement_id: 0 });
     setSelectedTasks([]); setSelectedGroups([]); setSelectedChildren([]);
-    setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setOnlyMine(true);
+    setTaskSearch(''); setTaskTemplateFilter(0); setTaskDiffFilter(''); setTaskScope('both');
     setDialogOpen(true);
   };
 
