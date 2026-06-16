@@ -446,7 +446,7 @@ const TaskDetailPage: React.FC = () => {
 
   // Поиск дедлайна цепочки для текущего ребёнка
   useEffect(() => {
-    if (!user || role !== 'parent') { setChainDeadline(null); setChainItemId(null); return; }
+    if (!user || role !== 'parent') { setChainDeadline(null); return; }
     (async () => {
       const [allItems, allLists] = await Promise.all([
         taskListsApi.getAllItems(),
@@ -455,7 +455,6 @@ const TaskDetailPage: React.FC = () => {
       const myItem = allItems.find(i => i.task_id === taskId && i.user_id === user.PK_UserId && !i.complited);
       if (!myItem) return;
       const list = allLists.find(l => l.PK_id === myItem.task_list_id);
-      setChainItemId(myItem.id);
       if (list?.date_complite) setChainDeadline(new Date(list.date_complite));
     })();
   }, [taskId, user, role]);
