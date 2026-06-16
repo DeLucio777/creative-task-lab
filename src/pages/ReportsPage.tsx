@@ -121,8 +121,6 @@ const ReportsPage: React.FC = () => {
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
   const [diseases, setDiseases] = useState<Disease[]>([]);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
   const [childId, setChildId] = useState<number>(0);
   const [educatorId, setEducatorId] = useState<number>(0);
 
