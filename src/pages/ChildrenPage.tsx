@@ -207,7 +207,7 @@ const ChildrenPage: React.FC = () => {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label className="font-semibold">Возраст</Label>
-                <Input type="number" min={0} max={100} value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} className="rounded-xl h-11" />
+                <Input type="number" min={1} max={100} value={form.age} onChange={e => setForm(f => ({ ...f, age: e.target.value }))} className="rounded-xl h-11" />
               </div>
               <div className="space-y-2">
                 <Label className="font-semibold">Уровень речи</Label>
