@@ -181,13 +181,25 @@ const ChildHomePage: React.FC = () => {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {achievements.map(a => {
             const earned = userAch.find(ua => ua.achivement_id === a.id);
+            const media = a.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
             return (
               <div key={a.id} className={`border-2 rounded-2xl p-4 text-center transition-all ${earned ? 'border-warning bg-warning/5' : 'border-border opacity-40'}`}>
-                <p className="text-4xl mb-2">{earned ? '🏆' : '🔒'}</p>
+                <div className="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                  {earned ? (
+                    media ? (
+                      <img src={`http://localhost:3000${media.FilePath}`} alt={a.name || ''} className="max-w-full max-h-full object-contain rounded-lg" />
+                    ) : (
+                      <Trophy className="h-12 w-12 text-warning" />
+                    )
+                  ) : (
+                    <span className="text-4xl grayscale">🔒</span>
+                  )}
+                </div>
                 <p className="font-bold text-sm text-foreground">{a.name}</p>
               </div>
             );
           })}
+
         </div>
       </div>
     </div>
