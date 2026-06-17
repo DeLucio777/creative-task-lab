@@ -21,6 +21,7 @@ const ChildHomePage: React.FC = () => {
   const [data, setData] = useState<ListWithItems[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAch, setUserAch] = useState<UserAchievement[]>([]);
+  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -37,9 +38,11 @@ const ChildHomePage: React.FC = () => {
       setData(result);
       setAchievements(await achievementsApi.getAll());
       setUserAch(await achievementsApi.getByUser(user.PK_UserId));
+      setMediaList(await mediaApi.getMedia());
       setLoading(false);
     })();
   }, [user]);
+
 
   const todayItems = useMemo(() => {
     const now = Date.now();
