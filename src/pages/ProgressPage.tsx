@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { progressApi, childrenApi, achievementsApi } from '@/services/entitiesApi';
-import { mediaApi } from '@/services/mediaApi';
 import { useAuth } from '@/contexts/AuthContext';
-import type { ProgressRecord, Child, UserAchievement, Achievement, MediaCatalog } from '@/types/models';
+import type { ProgressRecord, Child, UserAchievement, Achievement } from '@/types/models';
 import { Label } from '@/components/ui/label';
 import { CheckCircle2, XCircle, Star } from 'lucide-react';
 
@@ -12,7 +11,6 @@ const ProgressPage: React.FC = () => {
   const [children, setChildren] = useState<Child[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>([]);
   const [userAchievements, setUserAchievements] = useState<UserAchievement[]>([]);
-  const [mediaList, setMediaList] = useState<MediaCatalog[]>([]);
   const [selectedChild, setSelectedChild] = useState<number>(0);
   const [allowedChildIds, setAllowedChildIds] = useState<number[] | null>(null);
 
@@ -26,7 +24,6 @@ const ProgressPage: React.FC = () => {
       ]);
 
       setAchievements(allAch);
-      mediaApi.getMedia().then(setMediaList);
 
       if (role === 'parent' && user) {
         const me = allChildren.filter(c => c.PK_ChildId === user.PK_UserId);
@@ -173,16 +170,8 @@ const ProgressPage: React.FC = () => {
               </h3>
 
               <div className="flex gap-2 flex-wrap">
-                {userAchievements.map(r => {
-                  const a = achievements.find(x => x.id === r.achivement_id);
-                  const media = a?.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
-                  return (
-                    <div key={r.id} className="bg-card border-2 border-border rounded-xl px-4 py-2 text-center flex flex-col items-center gap-1">
-                      {media ? (
-                        <img src={`http://localhost:3000${media.FilePath}`} alt={a?.name || ''} className="h-10 w-10 object-contain" />
-                      ) : (
-                        <span className="text-2xl">🏆</span>
-                      )}
+                {userAchievements.map(r => (
+                    <div key={r.id} className="bg-card border-2 border-border rounded-xl px-4 py-2 text-center">
                       <p className="text-sm font-bold">{achName(r.achivement_id)}</p>
                       {r.earned_date && (
                           <p className="text-xs text-muted-foreground">
@@ -190,8 +179,7 @@ const ProgressPage: React.FC = () => {
                           </p>
                       )}
                     </div>
-                  );
-                })}
+                ))}
               </div>
             </div>
         )}

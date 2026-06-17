@@ -8,6 +8,7 @@ import type { TaskList, TaskListItem, Task, Achievement, UserAchievement, MediaC
 import { Trophy, PlayCircle, CheckCircle2, Calendar } from 'lucide-react';
 import { Progress } from '@/components/ui/progress';
 
+
 interface ListWithItems {
   list: TaskList;
   items: TaskListItem[];
@@ -41,6 +42,7 @@ const ChildHomePage: React.FC = () => {
       setLoading(false);
     })();
   }, [user]);
+
 
   const todayItems = useMemo(() => {
     const now = Date.now();
@@ -182,17 +184,22 @@ const ChildHomePage: React.FC = () => {
             const media = a.image_id ? mediaList.find(m => m.PK_MediaId === a.image_id) : null;
             return (
               <div key={a.id} className={`border-2 rounded-2xl p-4 text-center transition-all ${earned ? 'border-warning bg-warning/5' : 'border-border opacity-40'}`}>
-                <div className="h-14 mb-2 flex items-center justify-center">
-                  {media ? (
-                    <img src={`http://localhost:3000${media.FilePath}`} alt={a.name || ''} className={`max-h-14 max-w-full object-contain ${earned ? '' : 'grayscale opacity-60'}`} />
+                <div className="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                  {earned ? (
+                    media ? (
+                      <img src={`http://localhost:3000${media.FilePath}`} alt={a.name || ''} className="max-w-full max-h-full object-contain rounded-lg" />
+                    ) : (
+                      <Trophy className="h-12 w-12 text-warning" />
+                    )
                   ) : (
-                    <span className="text-4xl">{earned ? '🏆' : '🔒'}</span>
+                    <span className="text-4xl grayscale">🔒</span>
                   )}
                 </div>
                 <p className="font-bold text-sm text-foreground">{a.name}</p>
               </div>
             );
           })}
+
         </div>
       </div>
     </div>

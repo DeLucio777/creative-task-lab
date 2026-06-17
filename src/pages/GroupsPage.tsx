@@ -26,6 +26,8 @@ const GroupsPage: React.FC = () => {
   const [renameValue, setRenameValue] = useState('');
   const [groupName, setGroupName] = useState('');
   const [createEduId, setCreateEduId] = useState<number>(0);
+  const [memberSearch, setMemberSearch] = useState('');
+
 
   const loadGroups = useCallback(async () => {
     const list = isAdmin ? await groupsApi.getAll()
@@ -171,31 +173,44 @@ const GroupsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
 
-      <Dialog open={memberOpen !== null} onOpenChange={() => setMemberOpen(null)}>
+      <Dialog open={memberOpen !== null} onOpenChange={(o) => { if (!o) { setMemberOpen(null); setMemberSearch(''); } }}>
         <DialogContent className="rounded-2xl">
           <DialogHeader><DialogTitle>Добавить ученика в группу</DialogTitle></DialogHeader>
-          <div className="space-y-2 mt-2 max-h-[400px] overflow-y-auto">
-            {(() => {
-              const grp = groups.find(g => g.group.PK_Id === memberOpen);
-              if (!allChildren.length) return <p className="text-sm text-muted-foreground text-center py-4">Нет доступных детей</p>;
-              return allChildren.map(c => {
-                const inGroup = grp?.members.some(m => m.FK_user_id === c.PK_ChildId);
-                return (
-                  <button
-                    key={c.PK_ChildId}
-                    disabled={inGroup}
-                    onClick={() => { if (memberOpen) handleAddMember(memberOpen, c.PK_ChildId); setMemberOpen(null); }}
-                    className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
-                  >
-                    <span className="font-semibold text-sm">{c.FullName}</span>
-                    {inGroup && <span className="text-xs text-muted-foreground">уже в группе</span>}
-                  </button>
-                );
-              });
-            })()}
+          <div className="mt-2">
+            <Input
+              autoFocus
+              value={memberSearch}
+              onChange={e => setMemberSearch(e.target.value)}
+              placeholder="🔍 Поиск по имени..."
+              className="rounded-xl h-10 mb-3"
+            />
+            <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              {(() => {
+                const grp = groups.find(g => g.group.PK_Id === memberOpen);
+                if (!allChildren.length) return <p className="text-sm text-muted-foreground text-center py-4">Нет доступных детей</p>;
+                const q = memberSearch.trim().toLowerCase();
+                const filtered = q ? allChildren.filter(c => (c.FullName || '').toLowerCase().includes(q)) : allChildren;
+                if (!filtered.length) return <p className="text-sm text-muted-foreground text-center py-4">Никого не найдено</p>;
+                return filtered.map(c => {
+                  const inGroup = grp?.members.some(m => m.FK_user_id === c.PK_ChildId);
+                  return (
+                    <button
+                      key={c.PK_ChildId}
+                      disabled={inGroup}
+                      onClick={() => { if (memberOpen) handleAddMember(memberOpen, c.PK_ChildId); setMemberOpen(null); setMemberSearch(''); }}
+                      className="w-full flex items-center justify-between p-3 rounded-xl border-2 border-border hover:border-primary disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                    >
+                      <span className="font-semibold text-sm">{c.FullName}</span>
+                      {inGroup && <span className="text-xs text-muted-foreground">уже в группе</span>}
+                    </button>
+                  );
+                });
+              })()}
+            </div>
           </div>
         </DialogContent>
       </Dialog>
+
 
       <Dialog open={!!renameGroup} onOpenChange={(o) => !o && setRenameGroup(null)}>
         <DialogContent className="rounded-2xl">
