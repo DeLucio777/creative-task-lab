@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import AppSidebar from '@/components/AppSidebar';
+import UserBackground from '@/components/UserBackground';
 import { ChevronRight, ChevronLeft } from 'lucide-react';
 
 const SIDEBAR_WIDTH = 260;
@@ -11,7 +12,8 @@ const AppLayout: React.FC = () => {
   const width = collapsed ? SIDEBAR_COLLAPSED : SIDEBAR_WIDTH;
 
   return (
-    <div className="flex h-screen w-full bg-background overflow-hidden">
+    <div className="flex h-screen w-full bg-background overflow-hidden relative">
+      <UserBackground />
       <main className="flex-1 flex flex-col min-w-0">
         <div className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           <Outlet />

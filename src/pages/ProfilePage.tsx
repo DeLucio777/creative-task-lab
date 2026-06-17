@@ -11,8 +11,10 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2, Image as ImageIcon } from 'lucide-react';
+import { User as UserIcon, Phone, Save, BookOpen, Users, Trophy, Globe2, Lock, Mail, Plus, Trash2, Edit2, Image as ImageIcon, Palette, Sparkles, Check } from 'lucide-react';
 import { formatBelarusPhone, isValidBelarusPhone, BY_PHONE_PLACEHOLDER } from '@/lib/phone';
+import { Switch } from '@/components/ui/switch';
+import { useUserPrefs, BACKGROUND_PRESETS } from '@/hooks/useUserPrefs';
 
 
 const roleLabels: Record<string, string> = {
@@ -24,6 +26,7 @@ const roleLabels: Record<string, string> = {
 const ProfilePage: React.FC = () => {
   const { user, role, setUser } = useAuth();
   const navigate = useNavigate();
+  const { prefs, setPrefs } = useUserPrefs();
 
   const [form, setForm] = useState({
     UserLogin: '', UserPassword: '',
