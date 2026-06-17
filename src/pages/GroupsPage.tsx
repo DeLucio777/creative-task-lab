@@ -26,6 +26,8 @@ const GroupsPage: React.FC = () => {
   const [renameValue, setRenameValue] = useState('');
   const [groupName, setGroupName] = useState('');
   const [createEduId, setCreateEduId] = useState<number>(0);
+  const [memberSearch, setMemberSearch] = useState('');
+
 
   const loadGroups = useCallback(async () => {
     const list = isAdmin ? await groupsApi.getAll()
