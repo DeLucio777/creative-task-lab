@@ -271,6 +271,55 @@ const ProfilePage: React.FC = () => {
 
       {role === 'parent' && (
         <>
+          <div className="bg-card rounded-2xl border-2 border-border p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center"><Palette className="h-5 w-5 text-primary" /></div>
+              <h2 className="font-bold text-foreground">Настройки оформления</h2>
+            </div>
+
+            <div className="flex items-center justify-between p-4 rounded-xl border-2 border-border mb-5">
+              <div className="flex items-center gap-3">
+                <Sparkles className="h-5 w-5 text-warning" />
+                <div>
+                  <p className="font-bold text-sm text-foreground">Анимация конфетти</p>
+                  <p className="text-xs text-muted-foreground">Показывать после правильного ответа</p>
+                </div>
+              </div>
+              <Switch
+                checked={prefs.confettiEnabled}
+                onCheckedChange={(v) => setPrefs({ confettiEnabled: v })}
+              />
+            </div>
+
+            <div>
+              <p className="font-bold text-sm text-foreground mb-3">Фон приложения</p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                {BACKGROUND_PRESETS.map(b => {
+                  const active = prefs.background === b.id;
+                  return (
+                    <button
+                      key={b.id}
+                      onClick={() => setPrefs({ background: b.id })}
+                      className={`relative h-20 rounded-xl border-2 overflow-hidden transition-all ${active ? 'border-primary ring-2 ring-primary/30' : 'border-border hover:border-primary/50'}`}
+                      style={{ background: b.preview }}
+                      title={b.label}
+                    >
+                      <span className="absolute bottom-1 left-1 right-1 text-[11px] font-bold text-foreground bg-card/85 rounded px-1 py-0.5">
+                        {b.label}
+                      </span>
+                      {active && (
+                        <span className="absolute top-1 right-1 bg-primary text-primary-foreground rounded-full p-0.5">
+                          <Check className="h-3 w-3" />
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground mt-3">Настройки сохраняются для вашего аккаунта в этом браузере.</p>
+            </div>
+          </div>
+
           {childInfo && (
             <div className="bg-card rounded-2xl border-2 border-border p-6">
               <h2 className="font-bold text-foreground mb-4">📋 Информация об ученике</h2>
