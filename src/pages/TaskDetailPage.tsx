@@ -8,6 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import type { Task, TaskTemplate, FindOddOneOutItem, MatchImageWordPair, SequenceItem, SortItem, CatalogPECS, TaskConstruction, Achievement } from '@/types/models';
 import { toast } from 'sonner';
 import confetti from 'canvas-confetti';
+import { readPrefs } from '@/hooks/useUserPrefs';
 
 const difficultyLabels: Record<string, { label: string; emoji: string }> = {
   Easy: { label: 'Лёгкий', emoji: '🟢' },
@@ -541,7 +542,7 @@ const TaskDetailPage: React.FC = () => {
     if (timerRef.current) clearInterval(timerRef.current);
     setResult(correct ? 'correct' : 'wrong');
 
-    if (correct) {
+    if (correct && readPrefs(user?.PK_UserId).confettiEnabled) {
       // мягкое конфетти ~1.5с, пастельные цвета, низкая плотность — для детей с РАС
       const end = Date.now() + 1500;
       const colors = ['#A7E8BD', '#B8D8F8', '#F8D7E6', '#FCE5B6'];
